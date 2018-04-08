@@ -1,0 +1,36 @@
+/** run page specific classes */
+
+
+#card-template {
+    display: none;
+}
+
+#main-output-area {
+    overflow: auto;
+}
+
+.scroll-container {
+    overflow: auto;
+}
+
+
+
+#system-stats-chart {
+    height: 140px;
+    margin-bottom: 25px;
+}
+
+#running-tasks-container .run-output {
+    max-height: 105px;
+    overflow: auto;
+}
+
+#failed-tasks-container .run-output {
+    max-height: 130px;
+    overflow: auto;
+}
+
+#succeeded-tasks-container .card-block {
+    display: none;
+}
+

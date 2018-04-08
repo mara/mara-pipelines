@@ -1,0 +1,14 @@
+/** node page specific classes */
+
+#system-stats-chart {
+    height: 180px;
+    margin-bottom: 25px;
+}
+
+div.timeline {
+    margin-bottom: 25px;
+}
+
+#run-output {
+    overflow: auto;
+}

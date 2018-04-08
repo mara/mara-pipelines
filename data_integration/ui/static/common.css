@@ -1,0 +1,29 @@
+/** common css definitions that are needed by all data integration ui pages */
+
+/*
+Prevent Google charts from flickering
+https://stackoverflow.com/questions/37902708/google-charts-tooltip-flickering
+*/
+div.google-chart svg > g > g:last-child {
+    pointer-events: none
+}
+
+/* Node output formating */
+.run-output > div {
+    white-space: pre;
+    color: #222;
+}
+
+.run-output > div > span.error {
+    color: red !important;
+}
+
+.run-output > div > span.italics {
+    font-style: italic;
+    color: #888;
+}
+
+.run-output > div > span.verbatim {
+    font-family: "Courier", monospace;
+    color: #222;
+}
