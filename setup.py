@@ -13,7 +13,8 @@ setup(
         'python-dateutil>=2.6.1',
         'pythondialog>=3.4.0',
         'more-itertools>=3.1.0',
-        'psutil>=5.4.0'
+        'psutil>=5.4.0',
+        'wheel>=0.31'
     ],
 
     dependency_links=[
