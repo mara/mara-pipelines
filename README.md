@@ -1,6 +1,6 @@
 # Mara Data Integration
 
-This package contains a lightweight, opinionated ETL framework with a focus on transparency and complexity reduction. It is based on:
+This package contains a lightweight ETL framework with a focus on transparency and complexity reduction. It has a number of baked-in assumptions/ principles:
 
 - Data integration pipelines as code: pipelines, tasks and commands are created using declarative Python code.
 
@@ -15,6 +15,19 @@ This package contains a lightweight, opinionated ETL framework with a focus on t
 - Single machine pipeline execution based on Python's [multiprocessing](https://docs.python.org/3.6/library/multiprocessing.html). No need for distributed task queues. Easy debugging and and output logging.
 
 - Cost based priority queues: nodes with higher cost (based on recorded run times) are run first.
+
+&nbsp;
+
+## Installation
+
+To use the library directly, use pip:
+
+```
+pip install --process-dependency-links git+https://github.com/mara/data-integration.git
+```
+
+For an example of an integration into a flask application, have a look at the [mara example project](https://github.com/mara/mara-example-project).
+
 
 &nbsp;
 
@@ -65,18 +78,22 @@ mara_db.config.databases \
     = lambda: {'mara': mara_db.dbs.PostgreSQLDB(host='localhost', user='root', database='example_etl_mara')}
 
 mara_db.auto_migration.auto_discover_models_and_migrate()
-# -> 
-# Created database "postgresql+psycopg2://root@localhost/example_etl_mara"
-# 
-# CREATE TABLE data_integration_file_dependency (
-#     node_path TEXT[] NOT NULL, 
-#     dependency_type VARCHAR NOT NULL, 
-#     hash VARCHAR, 
-#     timestamp TIMESTAMP WITHOUT TIME ZONE, 
-#     PRIMARY KEY (node_path, dependency_type)
-# );
-# 
-# -- .. more tables
+```
+
+Given that PostgresSQL is running and the credentials work, the output looks like this (a database with a number of tables is created):
+
+```
+Created database "postgresql+psycopg2://root@localhost/example_etl_mara"
+
+CREATE TABLE data_integration_file_dependency (
+    node_path TEXT[] NOT NULL, 
+    dependency_type VARCHAR NOT NULL, 
+    hash VARCHAR, 
+    timestamp TIMESTAMP WITHOUT TIME ZONE, 
+    PRIMARY KEY (node_path, dependency_type)
+);
+
+.. more tables
 ```
 
 ### CLI UI
@@ -118,11 +135,11 @@ run_interactively()
 
 ### Web UI
 
-Probably more importantly, this package provides an extensive web interface. It can be easily integrated into any [Flask](http://flask.pocoo.org/) based app and the [mara example project](https://github.com/mara/mara-example-project) demonstrates how to do this using [mara-app](https://github.com/mara/mara-app).
+More importantly, this package provides an extensive web interface. It can be easily integrated into any [Flask](http://flask.pocoo.org/) based app and the [mara example project](https://github.com/mara/mara-example-project) demonstrates how to do this using [mara-app](https://github.com/mara/mara-app).
 
 For each pipeline, there is a page that shows
 
-- a graph of the dependencies between its nodes
+- a graph of all child nodes and the dependencies between them
 - a chart of the overal run time of the pipeline and it's most expensive nodes over the last 30 days (configurable)
 - a table of all the pipeline's nodes with their average run times and the resulting queuing priority
 - output and timeline for the last runs of the pipeline
