@@ -23,6 +23,7 @@ from mara_page import _, html
 class ReadMode(enum.EnumMeta):
     """A mode for specifying which files from a list of files to load"""
     ALL = 'all'  # load all files
+    ONLY_LATEST = 'only_latest' # load only the latest file
     ONLY_NEW = 'only_new'  # load only files that have not been loaded yet
     ONLY_NEW_EXCEPT_LATEST = 'only_new_except_latest'  # load only files that have not been loaded yet and not the last one
 
@@ -75,8 +76,13 @@ class _ParallelRead(pipelines.ParallelTask):
         if self.read_mode == ReadMode.ONLY_NEW_EXCEPT_LATEST:
             files = files[1:]
 
+        # take only latest file when requested
+        if files and len(files) > 0 and self.read_mode == ReadMode.ONLY_LATEST:
+            files = files[:1]
+
+
         # for incremental loading, determine which files already have been processed
-        if (self.read_mode != ReadMode.ALL
+        if (self.read_mode not in (ReadMode.ALL, ReadMode.ONLY_LATEST)
                 and (not self.file_dependencies
                      or not _file_dependencies.is_modified(self.path(), 'ParallelReadFile', self.parent.base_path(),
                                                            self.file_dependencies))):
