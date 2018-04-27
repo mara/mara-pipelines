@@ -116,3 +116,54 @@ class ReadSQLite(sql._SQLCommand):
                   ('db alias', _.tt[self.db_alias]),
                   ('time zone', _.tt[self.timezone]),
                   (_.i['shell command'], html.highlight_syntax(self.shell_command(), 'bash'))]
+
+
+class ReadScriptOutput(pipelines.Command):
+    """Reads the output from a python script into a database table"""
+
+    def __init__(self, file_name: str, target_table: str, make_unique: bool = False,
+                 db_alias: str = None, csv_format: bool = False, skip_header: bool = False,
+                 delimiter_char: str = None, quote_char: str = None,
+                 null_value_string: str = None, timezone: str = None) -> None:
+        super().__init__()
+        self.file_name = file_name
+        self.make_unique = make_unique
+
+        self.target_table = target_table
+        self.csv_format = csv_format
+        self.skip_header = skip_header
+        self._db_alias = db_alias
+        self.delimiter_char = delimiter_char
+        self.quote_char = quote_char
+        self.null_value_string = null_value_string
+        self.timezone = timezone
+
+    def db_alias(self):
+        return self._db_alias or config.default_db_alias()
+
+    def shell_command(self):
+        return f'{shlex.quote(sys.executable)} "{self.file_path()}" \\\n' \
+            + ('  | sort -u \\\n' if self.make_unique else '') \
+            + '  | ' + mara_db.shell.copy_from_stdin_command(
+                self.db_alias(), csv_format=self.csv_format, target_table=self.target_table, skip_header=self.skip_header,
+                delimiter_char=self.delimiter_char, quote_char=self.quote_char,
+                null_value_string=self.null_value_string, timezone=self.timezone)
+
+    def file_path(self):
+        return self.parent.parent.base_path() / self.file_name
+
+    def html_doc_items(self) -> [(str, str)]:
+        return [('file name', _.i[self.file_name]),
+                (_.i['content'], html.highlight_syntax(self.file_path().read_text().strip('\n')
+                                                       if self.file_name and self.file_path().exists()
+                                                       else '', 'python')),
+                ('make unique', _.tt[self.make_unique]),
+                ('target_table', _.tt[self.target_table]),
+                ('db alias', _.tt[self.db_alias()]),
+                ('delimiter char',
+                 _.tt[json.dumps(self.delimiter_char) if self.delimiter_char != None else None]),
+                ('quote char', _.tt[json.dumps(self.quote_char) if self.quote_char != None else None]),
+                ('null value string',
+                 _.tt[json.dumps(self.null_value_string) if self.null_value_string != None else None]),
+                ('time zone', _.tt[self.timezone]),
+                (_.i['shell command'], html.highlight_syntax(self.shell_command(), 'bash'))]
