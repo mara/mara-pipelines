@@ -55,3 +55,17 @@ def run_log_retention_in_days() -> int:
 def allow_run_from_web_ui() -> bool:
     """When false, then it is not possible to run an ETL from the web UI"""
     return True
+
+
+def base_url() -> str:
+    """External url of flask app, for linking nodes in slack messages"""
+    return 'http://127.0.0.1:5000'
+
+
+def slack_token() -> str:
+    """
+    When not None, then this slack webhook is notified of failed nodes.
+    Slack channel's token (i.e. THISIS/ASLACK/TOCKEN) can be retrieved from the
+    channel's app "Incoming WebHooks" configuration as part part of the Webhook URL
+    """
+    return None
