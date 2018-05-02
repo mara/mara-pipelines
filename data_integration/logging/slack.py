@@ -32,8 +32,8 @@ class Slack(events.EventHandler):
             key = tuple(event.node_path)
             if not event.succeeded and event.is_pipeline is False:
 
-                message = {'text': '\n:baby_chick: Ooops, a hiccup in ' + '_ <' + config.base_url()
-                                   + flask.url_for('data_integration.node_page', path='/'.join(event.node_path))
+                message = {'text': '\n:baby_chick: Ooops, a hiccup in '
+                                   + '_ <' + config.base_url() + '/' + '/'.join(event.node_path)
                                    + ' | ' + '/'.join(event.node_path) + ' > _',
                            'attachments': []}
 

@@ -59,7 +59,7 @@ def allow_run_from_web_ui() -> bool:
 
 def base_url() -> str:
     """External url of flask app, for linking nodes in slack messages"""
-    return 'http://127.0.0.1:5000'
+    return 'http://127.0.0.1:5000/data-integration'
 
 
 def slack_token() -> str:
