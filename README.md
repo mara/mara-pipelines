@@ -4,7 +4,7 @@ This package contains a lightweight ETL framework with a focus on transparency a
 
 - Data integration pipelines as code: pipelines, tasks and commands are created using declarative Python code.
 
-- PostreSQL as a data processing engine.
+- PostgreSQL as a data processing engine.
 
 - Extensive web ui. The web browser as the main tool for inspecting, running and debugging pipelines.
 
