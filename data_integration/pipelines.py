@@ -159,14 +159,14 @@ class Pipeline(Node):
         self._base_path = base_path
         self.max_number_of_parallel_tasks = max_number_of_parallel_tasks
 
-    def add(self, node: Node, upstreams: [typing.Union[str, Node]] = []) -> 'Pipeline':
+    def add(self, node: Node, upstreams: [typing.Union[str, Node]] = None) -> 'Pipeline':
         if node.id in self.nodes:
             raise ValueError(f'A node with id "{node.id}" already exists in pipeline "{self.id}"')
 
         self.nodes[node.id] = node
         node.parent = self
 
-        for upstream in upstreams:
+        for upstream in upstreams or []:
             self.add_dependency(upstream, node)
 
         if self.initial_node and not node.upstreams and self.initial_node != node:
