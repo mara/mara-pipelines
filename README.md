@@ -12,7 +12,7 @@ This package contains a lightweight ETL framework with a focus on transparency a
 
 - No in-app data processing: command line tools as the main tool for interacting with databases and data.
 
-- Single machine pipeline execution based on Python's [multiprocessing](https://docs.python.org/3.6/library/multiprocessing.html). No need for distributed task queues. Easy debugging and and output logging.
+- Single machine pipeline execution based on Python's [multiprocessing](https://docs.python.org/3.6/library/multiprocessing.html). No need for distributed task queues. Easy debugging and output logging.
 
 - Cost based priority queues: nodes with higher cost (based on recorded run times) are run first.
 
