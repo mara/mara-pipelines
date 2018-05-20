@@ -7,6 +7,7 @@ setup(
     description='Opinionated lightweight ETL pipeline framework',
 
     install_requires=[
+        'mara-config>=0.1',
         'mara-db>=3.0.0',
         'mara-page>=1.3.0',
         'graphviz>=0.8',
@@ -19,6 +20,7 @@ setup(
     ],
 
     dependency_links=[
+        'git+https://github.com/mara/mara-config.git@0.1#egg=mara-config-0.1',
         'git+https://github.com/mara/mara-page.git@1.3.0#egg=mara-page-1.3.0',
         'git+https://github.com/mara/mara-db.git@3.0.0#egg=mara-db-3.0.0'
     ],
