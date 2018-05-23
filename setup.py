@@ -2,7 +2,7 @@ from setuptools import setup, find_packages
 
 setup(
     name='data-integration',
-    version='1.0.4',
+    version='1.1.0',
 
     description='Opinionated lightweight ETL pipeline framework',
 
