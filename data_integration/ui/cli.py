@@ -3,10 +3,8 @@
 import sys
 
 import click
-from data_integration import config, pipelines, execution
-from data_integration.logging import logger, events
-from data_integration.incremental_processing import reset
-from dialog import Dialog
+
+from data_integration import config, pipelines
 
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
@@ -20,6 +18,9 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     Return:
         True when the pipeline run succeeded
     """
+    from data_integration.logging import logger, events
+    from data_integration import execution
+
     succeeded = True
     for event in execution.run_pipeline(pipeline, nodes, with_upstreams):
         if isinstance(event, events.Output):
@@ -72,6 +73,8 @@ def run(path, nodes, with_upstreams):
 @click.command()
 def run_interactively():
     """Select and run data pipelines"""
+    from dialog import Dialog
+
     d = Dialog(dialog="dialog", autowidgetsize=True)  # see http://pythondialog.sourceforge.net/doc/widgets.html
 
     def menu(node: pipelines.Node):
@@ -109,11 +112,11 @@ def run_interactively():
               help='The parent ids of of the node to reset. Example: "pipeline-id,sub-pipeline-id".')
 def reset_incremental_processing(path):
     """Reset status of incremental processing for a node"""
+    from data_integration.incremental_processing import reset
+
     path = path.split(',') if path else []
     node, found = pipelines.find_node(path)
     if not found:
         print(f'Node {path} not found', file=sys.stderr)
         sys.exit(-1)
     reset.reset_incremental_processing(path)
-
-
