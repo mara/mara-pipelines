@@ -77,6 +77,28 @@ def run_interactively():
 
     d = Dialog(dialog="dialog", autowidgetsize=True)  # see http://pythondialog.sourceforge.net/doc/widgets.html
 
+    def run_pipeline_and_notify(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None):
+        if config.slack_token():
+            import requests, os
+
+            message = (':hatching_chick: *' + (os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
+                       + '* manually triggered run of ' +
+                       ('pipeline <' + config.base_url() + '/' + '/'.join(pipeline.path()) + '|'
+                        + '/'.join(pipeline.path()) + ' >' if pipeline.parent else 'root pipeline'))
+
+            if nodes:
+                message += ', nodes ' + ', '.join([f'`{node.id}`' for node in nodes])
+
+            requests.post('https://hooks.slack.com/services/' + config.slack_token(), json={'text': message})
+
+        if not run_pipeline(pipeline, nodes):
+            requests.post('https://hooks.slack.com/services/' + config.slack_token(),
+                          json={'text': ':baby_chick: failed'})
+            sys.exit(-1)
+        requests.post('https://hooks.slack.com/services/' + config.slack_token(),
+                      json={'text': ':hatched_chick: succeeded'})
+        
+
     def menu(node: pipelines.Node):
         if isinstance(node, pipelines.Pipeline):
 
@@ -89,20 +111,17 @@ def run_interactively():
                 return
 
             if choice == '▶ ':
-                if not run_pipeline(node):
-                    sys.exit(-1)
+                run_pipeline_and_notify(node)
             elif choice == '>> ':
                 code, node_ids = d.checklist('Select sub-nodes to run. If you want to run all, then select none.',
                                              choices=[(node_id, '', False) for node_id in node.nodes.keys()])
                 if code == d.OK:
-                    if not run_pipeline(node, {node.nodes[id] for id in node_ids}, False):
-                        sys.exit(-1)
+                    run_pipeline_and_notify(node, {node.nodes[id] for id in node_ids})
             else:
                 menu(node.nodes[choice])
             return
         else:
-            if not run_pipeline(pipeline=node.parent, nodes=[node]):
-                sys.exit(-1)
+            run_pipeline_and_notify(pipeline=node.parent, nodes=[node])
 
     menu(config.root_pipeline())
 
