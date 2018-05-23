@@ -1,6 +1,5 @@
 """Slack notifications for failed node runs"""
 
-import flask
 import requests
 
 from data_integration import config
