@@ -80,10 +80,14 @@ def __(task: pipelines.Task):
     if not acl.current_user_has_permission(views.acl_resource):
         return bootstrap.card(header_left='Commands', body=acl.inline_permission_denied_message())
     else:
-        return bootstrap.card(
+        commands_card = bootstrap.card(
             header_left='Commands',
             fixed_header_height=True,
             sections=[_render_command(command) for command in task.commands])
+        if task.max_retries:
+            return [bootstrap.card(header_left=f'Max retries: {task.max_retries}'), commands_card]
+        else:
+            return commands_card
 
 
 @node_content.register(pipelines.ParallelTask)

@@ -292,10 +292,21 @@ class TaskProcess(multiprocessing.Process):
         logger.redirect_output(self.event_queue, self.task.path())
 
         succeeded = True
+        attempt = 0
         try:
-
-            if not self.task.run():
-                succeeded = False
+            while True:
+                if not self.task.run():
+                    if attempt < self.task.max_retries:
+                        attempt += 1
+                        delay = pow(2, attempt + 2)
+                        logger.log(message=f'Retry {attempt}/{self.task.max_retries} in {delay} seconds',
+                                   is_error=True, format=logger.Format.ITALICS)
+                        time.sleep(delay)
+                    else:
+                        succeeded = False
+                        break
+                else:
+                    break
         except Exception as e:
             logger.log(message=traceback.format_exc(), format=logger.Format.VERBATIM, is_error=True)
             succeeded = False
