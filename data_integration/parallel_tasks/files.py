@@ -3,6 +3,7 @@ import enum
 import glob
 import json
 import math
+import os.path
 import pathlib
 import re
 from html import escape
@@ -22,9 +23,10 @@ from mara_page import _, html
 
 class ReadMode(enum.EnumMeta):
     """A mode for specifying which files from a list of files to load"""
-    ALL = 'all'  # load all files
-    ONLY_LATEST = 'only_latest' # load only the latest file
+    ALL = 'all'  # load all files that match the pattern
+    ONLY_LATEST = 'only_latest'  # load only the latest matching file (requires date-regex)
     ONLY_NEW = 'only_new'  # load only files that have not been loaded yet
+    ONLY_CHANGED = 'only_changed'  # load all files that were modified since the last run (or that are new)
     ONLY_NEW_EXCEPT_LATEST = 'only_new_except_latest'  # load only files that have not been loaded yet and not the last one
 
 
@@ -80,14 +82,18 @@ class _ParallelRead(pipelines.ParallelTask):
         if files and len(files) > 0 and self.read_mode == ReadMode.ONLY_LATEST:
             files = files[:1]
 
-
         # for incremental loading, determine which files already have been processed
+        # reprocess all when file dependencies changed
         if (self.read_mode not in (ReadMode.ALL, ReadMode.ONLY_LATEST)
                 and (not self.file_dependencies
                      or not _file_dependencies.is_modified(self.path(), 'ParallelReadFile', self.parent.base_path(),
                                                            self.file_dependencies))):
-            processed_files = set(_processed_files.already_processed_files(self.path()))
-            files = [x for x in files if x[0] not in processed_files]
+            processed_files = _processed_files.already_processed_files(self.path())
+
+            files = [x for x in files
+                     if x[0] not in processed_files  # everything not yet read
+                     or (self.read_mode == ReadMode.ONLY_CHANGED  # everything modified
+                         and self._last_modification_timestamp(x[0]) > processed_files[x[0]])]
 
         if not files:
             logger.log('No newer files', format=logger.Format.ITALICS)
@@ -144,11 +150,15 @@ class _ParallelRead(pipelines.ParallelTask):
 
     def parallel_commands(self, file_name: str) -> [pipelines.Command]:
         return [self.read_command(file_name)] + (
-            [python.RunFunction(function=lambda: _processed_files.track_processed_file(self.path(), file_name))]
+            [python.RunFunction(function=lambda: _processed_files.track_processed_file(
+                self.path(), file_name, self._last_modification_timestamp(file_name)))]
             if self.read_mode != ReadMode.ALL else [])
 
     def read_command(self) -> pipelines.Command:
         raise NotImplementedError
+
+    def _last_modification_timestamp(self, file_name):
+        return datetime.datetime.fromtimestamp(os.path.getmtime(pathlib.Path(config.data_dir()) / file_name))
 
 
 class ParallelReadFile(_ParallelRead):
