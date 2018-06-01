@@ -1,6 +1,7 @@
 """Visualization of pipeline nodes"""
 
 import functools
+import json
 
 import flask
 
@@ -29,7 +30,8 @@ def node_page(path: str):
         html=[_.script['''
 var nodePage = null;
 document.addEventListener('DOMContentLoaded', function() {
-     nodePage = NodePage("''' + flask.url_for('data_integration.node_page', path='') + '''");
+     nodePage = NodePage("''' + flask.url_for('data_integration.node_page', path='') + '''", '''
+                       + json.dumps(node.path()) + ''');
 });'''],
               dependency_graph.card(node),
               run_time_chart.card(node),

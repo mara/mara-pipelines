@@ -2,16 +2,18 @@
 
 
 /** Creates links to a node and all its parents */
-function nodeLinks(baseUrl, nodePath, addColonAtEnd) {
+function nodeLinks(baseUrl, nodePath, startLevel, addColonAtEnd) {
     var node_url = baseUrl;
     var span = $('<span/>');
     for (var i in nodePath) {
         node_url += '/' + nodePath[i];
-        span.append($('<a>').attr('href', node_url).append(nodePath[i]));
-        if (i < nodePath.length - 1) {
-            span.append(' / ');
-        } else if (addColonAtEnd) {
-            span.append(': ');
+        if (i >= startLevel) {
+            span.append($('<a>').attr('href', node_url).append(nodePath[i]));
+            if (i < nodePath.length - 1) {
+                span.append(' / ');
+            } else if (addColonAtEnd) {
+                span.append(': ');
+            }
         }
     }
     return span;

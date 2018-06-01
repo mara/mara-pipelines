@@ -25,7 +25,7 @@ function PipelineRunButtons() {
 
 
 /** Manages the content of the #last-runs-card div */
-function NodePage (baseUrl) {
+function NodePage (baseUrl, nodePath) {
     var self = this;
     self.runId = null;
 
@@ -59,7 +59,8 @@ function NodePage (baseUrl) {
             var path, message, format, is_error;
             for (var i in output) {
                 [path, message, format, is_error] = output[i];
-                lines.push($('<div/>').append(nodeLinks(baseUrl, path, true)).append(formatNodeOutput(message, format, is_error)));
+                lines.push($('<div/>').append(nodeLinks(baseUrl, path, nodePath.length, true))
+                    .append(formatNodeOutput(message, format, is_error)));
             }
 
             $('#run-output').addClass('run-output');

@@ -79,7 +79,7 @@ function processRunEvents(baseUrl, streamUrl, nodePath) {
 
     source.addEventListener('Output', function (e) {
         var output = JSON.parse(e.data);
-        var prefix = nodeLinks(baseUrl, output.node_path, true);
+        var prefix = nodeLinks(baseUrl, output.node_path, nodePath.length, true);
         var id = output.node_path.join('_');
         var message = formatNodeOutput(output.message, output.format, output.is_error);
 
@@ -102,7 +102,7 @@ function processRunEvents(baseUrl, streamUrl, nodePath) {
         if (!event.is_pipeline) {
             var card = $('#card-template').clone();
             card.attr('id', id);
-            card.find('.card-header-left').html(nodeLinks(baseUrl, event.node_path, false));
+            card.find('.card-header-left').html(nodeLinks(baseUrl, event.node_path, nodePath.length, false));
             card.find('.card-header-right').append($('<i/>').text('0 seconds'));
 
             $('#running-tasks-container').append(card);
