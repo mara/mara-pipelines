@@ -4,7 +4,7 @@ import inspect
 import shlex
 import sys
 from html import escape
-from typing import Union, Callable
+from typing import Union, Callable, List
 
 from data_integration import pipelines
 from mara_page import html, _
@@ -27,7 +27,7 @@ class RunFunction(pipelines.Command):
 
 class ExecutePython(pipelines.Command):
     def __init__(self, file_name: Union[Callable, str],
-                 args: Union[Callable, str] = None) -> None:
+                 args: Union[Callable, List[str]] = None) -> None:
         """
         Runs a python script in a separate interpreter process
 
