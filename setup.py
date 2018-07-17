@@ -14,7 +14,8 @@ setup(
         'pythondialog>=3.4.0',
         'more-itertools>=3.1.0',
         'psutil>=5.4.0',
-        'wheel>=0.31'
+        'wheel>=0.31',
+        'requests'>=2.19.1
     ],
 
     dependency_links=[
