@@ -106,8 +106,9 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                  or (not node.parent in running_pipelines)
                                  or (running_pipelines[node.parent][1] < node.parent.max_number_of_parallel_tasks))):
                         node_queue.remove(node)
-                        if node.parent in failed_pipelines:
-                            processed_nodes.add(node)  # if the parent pipeline failed, don't launch new nodes
+                        if node.parent in failed_pipelines and not node.parent.force_run_all_children:
+                            # if the parent pipeline failed (and no overwrite), don't launch new nodes
+                            processed_nodes.add(node)
                         else:
                             return node
 
@@ -209,7 +210,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                         processed_nodes.add(task_process.task)
 
                         succeeded = not (task_process.status_queue.get() == False or task_process.exitcode != 0)
-                        if not succeeded:
+                        if not succeeded and not task_process.task.parent.ignore_errors:
                             for parent in task_process.task.parents()[:-1]:
                                 failed_pipelines.add(parent)
 
