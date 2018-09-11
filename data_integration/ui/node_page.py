@@ -117,9 +117,15 @@ def __(task: pipelines.ParallelTask):
 
 def _render_command(command: pipelines.Command):
     """Creates a html documentation for a command"""
-    return [_.p[_.b[command.__class__.__name__]],
-            bootstrap.table([], [_.tr[_.td[_.div[section]], _.td(style='width:90%')[content]]
-                                 for section, content in command.html_doc_items()])]
+    try:
+        doc = bootstrap.table([], [_.tr[_.td[_.div[section]], _.td(style='width:90%')[content]]
+                                   for section, content in command.html_doc_items()])
+    except Exception as e:
+        import traceback
+        doc = [_.p(style='color:red')[_.i['Error in rendering command documentation']],
+               _.pre(style='color:red')[traceback.format_exc()]]
+
+    return [_.p[_.b[command.__class__.__name__]], doc]
 
 
 @functools.singledispatch
