@@ -124,7 +124,8 @@ class _ParallelRead(pipelines.ParallelTask):
             sql_statement = ''
             for date in files_per_day.keys():
                 sql_statement += f'CREATE TABLE IF NOT EXISTS {self.target_table}_{date.strftime("%Y%m%d")}'
-                sql_statement += f' ( CHECK (day_id = {date.strftime("%Y%m%d")}) ) INHERITS ({self.target_table});\n'
+                sql_statement += f' PARTITION OF {self.target_table}'
+                sql_statement += f' FOR VALUES IN ({date.strftime("%Y%m%d")});\n'
 
             create_partitions_task = pipelines.Task(id='create_partitions',
                                                     description='Creates required target table partitions',
