@@ -1,5 +1,16 @@
 # Changelog
 
+## 1.4.0 (2018-09-15)
+
+- Use postgresql 10 native partitioning for creating day_id partitions in ParallelReadFile
+- Catch and display exceptions when creating html command documentation
+
+**required changes**
+
+- When using `ParallelReadFile` with parameter `partition_target_table_by_day_id=True`, then make sure the target table is natively partitioned by adding `PARTITION BY LIST (day_id)`.
+ 
+
+
 ## 1.3.0 (2018-07-17)
 
 - Add possibility to continue running child nodes on error (new `Pipeline` parameters `continue_on_error` and `force_run_all_children`)
