@@ -17,6 +17,9 @@ class RunFunction(pipelines.Command):
 
         Args:
             function: The parameterless function to run
+
+        Note:
+            if you want to pass arguments, then use a lambda function
         """
         self.run = function
 

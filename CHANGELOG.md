@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.1 (2018-11-09)
+
+- Add python ParallelRunFunction
+
 ## 1.4.0 (2018-09-15)
 
 - Use postgresql 10 native partitioning for creating day_id partitions in ParallelReadFile
