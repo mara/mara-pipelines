@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.4.2 (2018-11-15)
+
+- Add option to use explicit upsert on incremental load (explicit UPDATE + INSERT)
+
 ## 1.4.1 (2018-11-09)
 
 - Add python ParallelRunFunction

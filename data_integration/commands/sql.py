@@ -171,7 +171,8 @@ class CopyIncrementally(_SQLCommand):
                  modification_comparison: str, comparison_value_placeholder: str,
                  target_table: str, primary_keys: [str],
                  sql_file_name: Union[str, Callable] = None, sql_statement: Union[str, Callable] = None,
-                 target_db_alias: str = None, timezone: str = None, replace: {str: str} = None) -> None:
+                 target_db_alias: str = None, timezone: str = None, replace: {str: str} = None,
+                 use_explicit_upsert: bool = False) -> None:
         """
         Incrementally loads data from one database into another.
 
@@ -193,6 +194,7 @@ class CopyIncrementally(_SQLCommand):
             target_table: The table for loading data into
             primary_keys: A combination of primary key columns that are used for upserting into the target table
             timezone: How to interpret timestamps in the target db
+            use_explicit_upsert: When True, uses an Update + Insert query combination. Otherwise ON CONFLICT DO UPDATE.
         """
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
         self.source_db_alias = source_db_alias
@@ -204,6 +206,7 @@ class CopyIncrementally(_SQLCommand):
         self.target_table = target_table
         self.primary_keys = primary_keys
         self.timezone = timezone
+        self.use_explicit_upsert = use_explicit_upsert
 
     @property
     def target_db_alias(self):
@@ -282,17 +285,43 @@ class CopyIncrementally(_SQLCommand):
                 retrieve_column_query = f"SELECT attname FROM pg_attribute WHERE attrelid = '{self.target_table}'::REGCLASS AND attnum > 0;"
                 logger.log(retrieve_column_query, format=logger.Format.VERBATIM)
                 cursor.execute(retrieve_column_query)
-                set_clause = ', '.join([f'"{col[0]}" = EXCLUDED."{col[0]}"' for col in cursor.fetchall()])
+                if self.use_explicit_upsert:
+                    set_clause = ', '.join([f'"{col[0]}" = src."{col[0]}"' for col in cursor.fetchall()])
+                    key_definition = ' AND '.join([f'dst."{k}" = src."{k}"' for k in self.primary_keys])
+                else:
+                    set_clause = ', '.join([f'"{col[0]}" = EXCLUDED."{col[0]}"' for col in cursor.fetchall()])
+                    key_definition = ', '.join(['"' + primary_key +'"' for primary_key in self.primary_keys])
 
-            upsery_query = f"""
+            if self.use_explicit_upsert:
+                update_query = f"""
+UPDATE {self.target_table} dst
+SET {set_clause}
+FROM {self.target_table}_upsert src
+WHERE {key_definition}"""
+
+                insert_query = f"""
+INSERT INTO {self.target_table}
+SELECT src.*
+FROM {self.target_table}_upsert src
+LEFT JOIN {self.target_table} dst
+  ON {key_definition}
+WHERE dst.* IS NULL"""
+                if not shell.run_shell_command(f'echo {shlex.quote(update_query)} \\\n  | '
+                                           + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
+                    return False
+                elif not shell.run_shell_command(f'echo {shlex.quote(insert_query)} \\\n  | '
+                                           + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
+                    return False
+            else:
+                upsery_query = f"""
 INSERT INTO {self.target_table}
 SELECT {self.target_table}_upsert.*
 FROM {self.target_table}_upsert
-ON CONFLICT ({', '.join(['"' + primary_key +'"' for primary_key in self.primary_keys])})
+ON CONFLICT ({key_definition})
 DO UPDATE SET {set_clause}"""
-            if not shell.run_shell_command(f'echo {shlex.quote(upsery_query)} \\\n  | '
-                                           + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
-                return False
+                if not shell.run_shell_command(f'echo {shlex.quote(upsery_query)} \\\n  | '
+                                               + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
+                    return False
 
         # update data_integration_incremental_copy_status
         incremental_copy_status.update(self.node_path(), self.source_db_alias,
@@ -315,7 +344,8 @@ DO UPDATE SET {set_clause}"""
                   ('target db', _.tt[self.target_db_alias]),
                   ('target table', _.tt[self.target_table]),
                   ('primary_keys', _.tt[repr(self.primary_keys)]),
-                  ('timezone', _.tt[self.timezone or ''])]
+                  ('timezone', _.tt[self.timezone or '']),
+                  ('use explicit upsert', _.tt[repr(self.use_explicit_upsert)])]
 
 
 def _expand_pattern_substitution(replace: {str: str}) -> {str: str}:
