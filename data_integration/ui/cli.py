@@ -78,9 +78,9 @@ def run_interactively():
     d = Dialog(dialog="dialog", autowidgetsize=True)  # see http://pythondialog.sourceforge.net/doc/widgets.html
 
     def run_pipeline_and_notify(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None):
-        if config.slack_token():
-            import requests, os
+        import requests, os
 
+        if config.slack_token():
             message = (':hatching_chick: *' + (os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
                        + '* manually triggered run of ' +
                        ('pipeline <' + config.base_url() + '/' + '/'.join(pipeline.path()) + '|'
@@ -92,12 +92,14 @@ def run_interactively():
             requests.post('https://hooks.slack.com/services/' + config.slack_token(), json={'text': message})
 
         if not run_pipeline(pipeline, nodes):
-            requests.post('https://hooks.slack.com/services/' + config.slack_token(),
-                          json={'text': ':baby_chick: failed'})
+            if config.slack_token():
+                requests.post('https://hooks.slack.com/services/' + config.slack_token(),
+                              json={'text': ':baby_chick: failed'})
             sys.exit(-1)
-        requests.post('https://hooks.slack.com/services/' + config.slack_token(),
-                      json={'text': ':hatched_chick: succeeded'})
-        
+        if config.slack_token():
+            requests.post('https://hooks.slack.com/services/' + config.slack_token(),
+                          json={'text': ':hatched_chick: succeeded'})
+
 
     def menu(node: pipelines.Node):
         if isinstance(node, pipelines.Pipeline):
