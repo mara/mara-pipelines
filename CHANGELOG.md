@@ -1,17 +1,16 @@
 # Changelog
 
-## 1.4.2 (2018-11-15)
 
-- Add option to use explicit upsert on incremental load (explicit UPDATE + INSERT)
-
-## 1.4.1 (2018-11-09)
-
-- Add python ParallelRunFunction
-
-## 1.4.0 (2018-09-15)
+## 1.4.0 - 1.4.3 (2018-09-15)
 
 - Use postgresql 10 native partitioning for creating day_id partitions in ParallelReadFile
 - Catch and display exceptions when creating html command documentation
+- Add python ParallelRunFunction
+- Add option to use explicit upsert on incremental load (explicit UPDATE + INSERT)
+- Emit a proper NodeFinished event when the launching of a parallel task failed
+- Add option truncate_partition to parallel tasks
+- Fix bug in run_interactively cli command
+
 
 **required changes**
 
