@@ -33,8 +33,9 @@ class ReadMode(enum.EnumMeta):
 class _ParallelRead(pipelines.ParallelTask):
     def __init__(self, id: str, description: str, file_pattern: str, read_mode: ReadMode, target_table: str,
                  max_number_of_parallel_tasks: int = None, file_dependencies: [str] = None, date_regex: str = None,
-                 partition_target_table_by_day_id: bool = False, commands_before: [pipelines.Command] = None,
-                 commands_after: [pipelines.Command] = None, db_alias: str = None, timezone: str = None) -> None:
+                 partition_target_table_by_day_id: bool = False, truncate_partitions: bool = False,
+                 commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
+                 db_alias: str = None, timezone: str = None) -> None:
         pipelines.ParallelTask.__init__(self, id=id, description=description,
                                         max_number_of_parallel_tasks=max_number_of_parallel_tasks,
                                         commands_before=commands_before, commands_after=commands_after)
@@ -45,6 +46,10 @@ class _ParallelRead(pipelines.ParallelTask):
         self.partition_target_table_by_day_id = partition_target_table_by_day_id
         if self.partition_target_table_by_day_id:
             assert date_regex
+
+        self.truncate_partitions = truncate_partitions
+        if self.truncate_partitions:
+            assert partition_target_table_by_day_id
 
         self.target_table = target_table
         self._db_alias = db_alias
@@ -127,6 +132,9 @@ class _ParallelRead(pipelines.ParallelTask):
                 sql_statement += f' PARTITION OF {self.target_table}'
                 sql_statement += f' FOR VALUES IN ({date.strftime("%Y%m%d")});\n'
 
+                if self.truncate_partitions:
+                    sql_statement += f'TRUNCATE {self.target_table}_{date.strftime("%Y%m%d")};\n'
+
             create_partitions_task = pipelines.Task(id='create_partitions',
                                                     description='Creates required target table partitions',
                                                     commands=[
@@ -166,6 +174,7 @@ class ParallelReadFile(_ParallelRead):
     def __init__(self, id: str, description: str, file_pattern: str, read_mode: ReadMode,
                  compression: files.Compression, target_table: str, file_dependencies: [str] = None,
                  date_regex: str = None, partition_target_table_by_day_id: bool = False,
+                 truncate_partitions: bool = False,
                  commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
                  mapper_script_file_name: str = None, make_unique: bool = False, db_alias: str = None,
                  delimiter_char: str = None, quote_char: str = None, null_value_string: str = None,
@@ -174,6 +183,7 @@ class ParallelReadFile(_ParallelRead):
         _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
                                read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
                                date_regex=date_regex, partition_target_table_by_day_id=partition_target_table_by_day_id,
+                               truncate_partitions=truncate_partitions,
                                commands_before=commands_before, commands_after=commands_after,
                                db_alias=db_alias, timezone=timezone,
                                max_number_of_parallel_tasks=max_number_of_parallel_tasks)
@@ -209,6 +219,7 @@ class ParallelReadFile(_ParallelRead):
                 ('target_table', _.tt[self.target_table]),
                 ('db alias', _.tt[self.db_alias]),
                 ('partion target table by day_id', _.tt[self.partition_target_table_by_day_id]),
+                ('truncate partitions', _.tt[self.truncate_partitions]),
                 ('sql delimiter char',
                  _.tt[json.dumps(self.delimiter_char) if self.delimiter_char != None else None]),
                 ('quote char', _.tt[json.dumps(self.quote_char) if self.quote_char != None else None]),
@@ -220,12 +231,13 @@ class ParallelReadFile(_ParallelRead):
 class ParallelReadSqlite(_ParallelRead):
     def __init__(self, id: str, description: str, file_pattern: str, read_mode: ReadMode, sql_file_name: str,
                  target_table: str, file_dependencies: [str] = None, date_regex: str = None,
-                 partition_target_table_by_day_id: bool = False,
+                 partition_target_table_by_day_id: bool = False, truncate_partitions : bool = False,
                  commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
                  db_alias: str = None, timezone=None, max_number_of_parallel_tasks: int = None) -> None:
         _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
                                read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
                                date_regex=date_regex, partition_target_table_by_day_id=partition_target_table_by_day_id,
+                               truncate_partitions = truncate_partitions,
                                commands_before=commands_before, commands_after=commands_after, db_alias=db_alias,
                                timezone=timezone, max_number_of_parallel_tasks=max_number_of_parallel_tasks)
         self.sql_file_name = sql_file_name
@@ -250,4 +262,5 @@ class ParallelReadSqlite(_ParallelRead):
                 ('target_table', _.tt[self.target_table]),
                 ('db alias', _.tt[self.db_alias]),
                 ('partion target table by day_id', _.tt[self.partition_target_table_by_day_id]),
+                ('truncate partitions', _.tt[self.truncate_partitions]),
                 ('time zone', _.tt[self.timezone])]
