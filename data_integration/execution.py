@@ -167,6 +167,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
                         elif isinstance(next_node, pipelines.ParallelTask):
                             # create sub tasks and queue them
+                            task_start_time = datetime.datetime.now()
                             try:
                                 logger.redirect_output(event_queue, next_node.path())
                                 logger.log('☆ Launching tasks', format=logger.Format.ITALICS)
@@ -179,6 +180,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                            is_error=True)
                                 logger.log(message=traceback.format_exc(),
                                            format=events.Output.Format.VERBATIM, is_error=True)
+                                event_queue.put(events.NodeFinished(
+                                    node_path=next_node.parent.path(), start_time=task_start_time,
+                                    end_time=datetime.datetime.now(), is_pipeline=True, succeeded=False))
+
                                 failed_pipelines.add(next_node.parent)
                             finally:
                                 logger.redirect_output(event_queue, pipeline.path())
