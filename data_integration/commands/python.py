@@ -11,21 +11,26 @@ from mara_page import html, _
 
 
 class RunFunction(pipelines.Command):
-    def __init__(self, function: Callable = None) -> None:
+    def __init__(self, function: Callable = None, args: [str] = None) -> None:
         """
         Runs an arbitrary python function
 
         Args:
             function: The parameterless function to run
-
+            args: A list of arguments to be passed to the script
         Note:
             if you want to pass arguments, then use a lambda function
         """
-        self.run = function
+        self.function = function
+        self.args = args or []
+
+    def run(self) -> bool:
+        return self.function(*self.args)
 
     def html_doc_items(self) -> [(str, str)]:
-        return [('function', _.pre[escape(str(self.run))]),
-                (_.i['implementation'], html.highlight_syntax(inspect.getsource(self.run), 'python'))]
+        return [('function', _.pre[escape(str(self.function))]),
+                ('args', _.tt[repr(self.args)]),
+                (_.i['implementation'], html.highlight_syntax(inspect.getsource(self.function), 'python'))]
 
 
 class ExecutePython(pipelines.Command):
