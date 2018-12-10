@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 1.4.0 - 1.4.3 (2018-09-15)
+## 1.4.0 - 1.4.4 (2018-09-15)
 
 - Use postgresql 10 native partitioning for creating day_id partitions in ParallelReadFile
 - Catch and display exceptions when creating html command documentation
@@ -10,6 +10,8 @@
 - Emit a proper NodeFinished event when the launching of a parallel task failed
 - Add option truncate_partition to parallel tasks
 - Fix bug in run_interactively cli command
+- Make it possible to run the ExecuteSQL command outside of a pipeline via .run()
+- Add args parameter to RunFunction command
 
 
 **required changes**
