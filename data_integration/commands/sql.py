@@ -105,13 +105,15 @@ class ExecuteSQL(_SQLCommand):
             logger.log(self.sql_file_name, logger.Format.ITALICS)
 
         dependency_type = 'ExecuteSQL ' + (self.sql_file_name or self.sql_statement)
-        pipeline_base_path = self.parent.parent.base_path()
 
-        if self.file_dependencies and not file_dependencies.is_modified(self.node_path(), dependency_type,
-                                                                        pipeline_base_path,
-                                                                        self.file_dependencies):
-            logger.log('no changes')
-            return True
+        if self.file_dependencies:
+            assert (self.parent)
+            pipeline_base_path = self.parent.parent.base_path()
+            if not file_dependencies.is_modified(self.node_path(), dependency_type,
+                                                 pipeline_base_path,
+                                                 self.file_dependencies):
+                logger.log('no changes')
+                return True
 
         if not super().run():
             return False
@@ -226,7 +228,7 @@ class CopyIncrementally(_SQLCommand):
             return False
 
         # be flexible with different output formats: remove the column header & remove whitespace & quotes
-        max_modification_value = ''.join(result).replace('maxval','').strip().strip('"')
+        max_modification_value = ''.join(result).replace('maxval', '').strip().strip('"')
         logger.log(repr(max_modification_value), format=logger.Format.VERBATIM)
 
         # check whether target table is empty
@@ -290,7 +292,7 @@ class CopyIncrementally(_SQLCommand):
                     key_definition = ' AND '.join([f'dst."{k}" = src."{k}"' for k in self.primary_keys])
                 else:
                     set_clause = ', '.join([f'"{col[0]}" = EXCLUDED."{col[0]}"' for col in cursor.fetchall()])
-                    key_definition = ', '.join(['"' + primary_key +'"' for primary_key in self.primary_keys])
+                    key_definition = ', '.join(['"' + primary_key + '"' for primary_key in self.primary_keys])
 
             if self.use_explicit_upsert:
                 update_query = f"""
@@ -307,10 +309,11 @@ LEFT JOIN {self.target_table} dst
   ON {key_definition}
 WHERE dst.* IS NULL"""
                 if not shell.run_shell_command(f'echo {shlex.quote(update_query)} \\\n  | '
-                                           + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
+                                               + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
                     return False
                 elif not shell.run_shell_command(f'echo {shlex.quote(insert_query)} \\\n  | '
-                                           + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
+                                                 + mara_db.shell.query_command(self.target_db_alias,
+                                                                               echo_queries=True)):
                     return False
             else:
                 upsery_query = f"""
