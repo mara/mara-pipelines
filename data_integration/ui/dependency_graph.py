@@ -44,8 +44,18 @@ def dependency_graph(nodes: {str: pipelines.Node},
         An svg representation of the graph
     """
     graph = graphviz.Digraph(graph_attr={'rankdir': 'TD', 'ranksep': '0.25', 'nodesep': '0.1'})
-    for node in nodes.values():
 
+    # for finding redundant edges
+    @functools.lru_cache(maxsize=None)
+    def all_transitive_upstream_ids(node: pipelines.Node, first_level: bool = True):
+        upstream_ids = set()
+        for upstream in node.upstreams:
+            if not first_level:
+                upstream_ids.add(upstream.id)
+            upstream_ids.update(all_transitive_upstream_ids(upstream, False))
+        return upstream_ids
+
+    for node in nodes.values():
         node_attributes = {'fontname': ' ',  # use website default
                            'fontsize': '10.5px'  # fontsize unfortunately must be set
                            }
@@ -68,7 +78,14 @@ def dependency_graph(nodes: {str: pipelines.Node},
 
         for upstream in node.upstreams:
             if upstream.id in nodes:
-                graph.edge(upstream.id, node.id, _attributes={'color': '#888888', 'arrowsize': '0.7'})
+                style = 'solid'
+                color = '#888888'
+
+                if upstream.id in all_transitive_upstream_ids(node):
+                    style = 'dashed'
+                    color = '#cccccc'
+                graph.edge(upstream.id, node.id,
+                           _attributes={'color': color, 'arrowsize': '0.7', 'style': style})
             elif (not current_node) or node in current_node.upstreams:
                 graph.node(name=f'{upstream.id}_{node.id}',
                            _attributes={'style': 'invis', 'label': '', 'height': '0.1', 'fixedsize': 'true'})
