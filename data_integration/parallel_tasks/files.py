@@ -64,7 +64,7 @@ class _ParallelRead(pipelines.ParallelTask):
         data_dir = config.data_dir()
         first_date = config.first_date()
 
-        for file in glob.iglob(str(pathlib.Path(data_dir / self.file_pattern))):
+        for file in glob.iglob(str(pathlib.Path(data_dir, self.file_pattern))):
             file = str(pathlib.Path(file).relative_to(pathlib.Path(data_dir)))
             if self.date_regex:
                 match = re.match(self.date_regex, file)
