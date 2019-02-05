@@ -272,6 +272,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
         except:
             yield events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
                                 format=logger.Format.ITALICS, is_error=True)
+            return
         if not run_process.is_alive():
             break
         time.sleep(0.001)
