@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 1.4.0 - 1.4.5 (2018-09-15)
+## 1.4.0 - 1.4.6 (2018-09-15)
 
 - Use postgresql 10 native partitioning for creating day_id partitions in ParallelReadFile
 - Catch and display exceptions when creating html command documentation
