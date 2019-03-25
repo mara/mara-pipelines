@@ -18,11 +18,6 @@ setup(
         'requests>=2.19.1'
     ],
 
-    dependency_links=[
-        'git+https://github.com/mara/mara-page.git@1.3.0#egg=mara-page-1.3.0',
-        'git+https://github.com/mara/mara-db.git@3.0.0#egg=mara-db-3.0.0'
-    ],
-
     packages=find_packages(),
 
     author='Mara contributors',
