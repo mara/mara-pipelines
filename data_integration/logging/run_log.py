@@ -5,8 +5,8 @@ import sqlalchemy.orm
 from sqlalchemy.ext.declarative import declarative_base
 
 import mara_db.postgresql
-from data_integration.logging import events, system_statistics
-from data_integration import config
+from .. import config
+from ..logging import events, system_statistics
 
 Base = declarative_base()
 
@@ -125,7 +125,6 @@ VALUES ''' + ','.join([cursor.mogrify('(%s,%s,%s,%s,%s)', (node_run_id, output_e
 UPDATE data_integration_run 
 SET end_time={"%s"}, succeeded={"%s"}
 WHERE run_id={"%s"}''', (event.end_time, event.succeeded, self.run_id))
-
 
                 cursor.execute(f'''
 DELETE FROM data_integration_node_output WHERE node_run_id IN (

@@ -4,7 +4,7 @@ import datetime
 import multiprocessing
 import pathlib
 
-from data_integration import pipelines
+from . import pipelines
 
 
 def root_pipeline() -> 'pipelines.Pipeline':

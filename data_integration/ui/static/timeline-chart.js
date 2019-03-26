@@ -112,6 +112,7 @@ function drawTimelineChart(divId, nodes) {
         div.empty().append(container);
         $('[data-toggle="tooltip"]').tooltip();
     }
+
     draw();
 
     $(window).resize(function () {

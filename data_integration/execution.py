@@ -12,8 +12,8 @@ import time
 import traceback
 from multiprocessing import queues
 
-from data_integration import pipelines, config
-from data_integration.logging import logger, events, system_statistics, run_log, node_cost, slack
+from . import pipelines, config
+from .logging import logger, events, system_statistics, run_log, node_cost, slack
 
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,

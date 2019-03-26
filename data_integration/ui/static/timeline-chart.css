@@ -16,14 +16,14 @@ div.timeline a.timeline-node {
     position: absolute;
     top: 0px;
     padding: 0px;
-    padding-left:5px;
-    padding-right:5px;
+    padding-left: 5px;
+    padding-right: 5px;
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
     color: white;
     opacity: 0.9;
-    z-index:1;
+    z-index: 1;
 }
 
 div.timeline a.timeline-node.status-running {
@@ -55,16 +55,16 @@ div.timeline > div.timeline-axis {
 
 div.timeline-axis > div.timeline-axis-label {
     position: absolute;
-    bottom:-3px;
+    bottom: -3px;
     /*padding-left:3px;*/
     color: #888;
 }
 
 div.timeline > div.timeline-grid-line {
     position: absolute;
-    top:0px;
-    height:100%;
-    width:1px;
+    top: 0px;
+    height: 100%;
+    width: 1px;
     border-left: 1px dashed #888;
     z-index: 0;
 }

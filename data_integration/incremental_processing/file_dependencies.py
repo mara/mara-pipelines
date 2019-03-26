@@ -3,10 +3,11 @@ import datetime
 import hashlib
 import pathlib
 
-import data_integration.config
-import mara_db.postgresql
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
+
+import mara_db.postgresql
+from .. import config
 
 Base = declarative_base()
 
@@ -72,7 +73,7 @@ def hash(pipeline_base_path: pathlib.Path, file_dependencies: [str]) -> str:
 
     Returns: a combined content hash
     """
-    hash = str(data_integration.config.first_date()) + ' ' + str(data_integration.config.last_date())
+    hash = str(config.first_date()) + ' ' + str(config.last_date())
     for file_dependency in file_dependencies:
         hash += ' ' + hashlib.md5((pipeline_base_path / pathlib.Path(file_dependency)).read_text().encode()).hexdigest()
     return hash

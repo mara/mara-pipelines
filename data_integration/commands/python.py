@@ -6,8 +6,8 @@ import sys
 from html import escape
 from typing import Union, Callable
 
-from data_integration import pipelines
 from mara_page import html, _
+from .. import pipelines
 
 
 class RunFunction(pipelines.Command):
@@ -55,7 +55,7 @@ class ExecutePython(pipelines.Command):
         return self._args() if callable(self._args) else self._args
 
     def shell_command(self):
-        return f'{shlex.quote(sys.executable)} -u "{self.parent.parent.base_path() / self.file_name}" {" ".join(map(str,self.args))}'
+        return f'{shlex.quote(sys.executable)} -u "{self.parent.parent.base_path() / self.file_name}" {" ".join(map(str, self.args))}'
 
     def html_doc_items(self):
         path = self.parent.parent.base_path() / self.file_name

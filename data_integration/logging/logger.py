@@ -48,7 +48,6 @@ def redirect_output(event_queue: multiprocessing.Queue, node_path: [str]):
     global _event_queue
     _event_queue = event_queue
 
-
     global _node_path
     _node_path = node_path
 

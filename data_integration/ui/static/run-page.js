@@ -181,4 +181,4 @@ function processRunEvents(baseUrl, streamUrl, nodePath) {
     $(window).resize(resize);
 
     resize();
-};
+}

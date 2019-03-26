@@ -23,9 +23,8 @@ function PipelineRunButtons() {
 }
 
 
-
 /** Manages the content of the #last-runs-card div */
-function NodePage (baseUrl, nodePath) {
+function NodePage(baseUrl, nodePath) {
     var self = this;
     self.runId = null;
 
@@ -33,7 +32,7 @@ function NodePage (baseUrl, nodePath) {
         $('#run-output').css('height', $('#run-output').height());
         $('#run-output').empty().append(spinner());
         loadContentAsynchronously('run-output', baseUrl
-            + (nodeUrlPath? '/' + nodeUrlPath : '')
+            + (nodeUrlPath ? '/' + nodeUrlPath : '')
             + '/run-output' + (limited ? '-limited' : '') + (self.runId ? '/' + self.runId : ''));
     }
 
@@ -41,7 +40,7 @@ function NodePage (baseUrl, nodePath) {
         $('#system-stats').css('height', $('#system-stats').height());
         $('#system-stats').empty().append(spinner());
         loadContentAsynchronously('system-stats', baseUrl
-            + (nodeUrlPath? '/' + nodeUrlPath : '')
+            + (nodeUrlPath ? '/' + nodeUrlPath : '')
             + '/system-stats' + (self.runId ? '/' + self.runId : ''));
     }
 
@@ -49,7 +48,7 @@ function NodePage (baseUrl, nodePath) {
         $('#timeline-chart').css('height', $('#system-stats').height());
         $('#timeline-chart').empty().append(spinner());
         loadContentAsynchronously('timeline-chart', baseUrl
-            + (nodeUrlPath? '/' + nodeUrlPath : '')
+            + (nodeUrlPath ? '/' + nodeUrlPath : '')
             + '/timeline-chart' + (self.runId ? '/' + self.runId : ''));
     }
 

@@ -2,9 +2,9 @@ import inspect
 import re
 import typing
 
-from data_integration import config, pipelines
-from data_integration.commands import sql
 from mara_page import _, html
+from .. import config, pipelines
+from ..commands import sql
 
 
 class ParallelExecuteSQL(pipelines.ParallelTask, sql._SQLCommand):

@@ -12,7 +12,7 @@ def MARA_FLASK_BLUEPRINTS():
 
 
 def MARA_AUTOMIGRATE_SQLALCHEMY_MODELS():
-    from data_integration.incremental_processing import file_dependencies, processed_files, incremental_copy_status
+    from .incremental_processing import file_dependencies, processed_files, incremental_copy_status
     from .logging import run_log
 
     return [

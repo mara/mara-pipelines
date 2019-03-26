@@ -3,8 +3,9 @@
 import functools
 
 import flask
-from data_integration import config, pipelines
+
 from mara_page import acl, navigation, _
+from .. import config, pipelines
 
 blueprint = flask.Blueprint('data_integration', __name__, url_prefix='/data-integration', static_folder='static')
 
@@ -32,7 +33,7 @@ def navigation_entry():
             children=([navigation.NavigationEntry(label='Overview', icon='list',
                                                   uri_fn=functools.partial(lambda: node_url(node)))]
                       + [node_entry(node) for node in node.nodes.values()]
-            if isinstance(node, pipelines.Pipeline) else None))
+                      if isinstance(node, pipelines.Pipeline) else None))
 
     entry = node_entry(config.root_pipeline())
     entry.label = 'Data Integration'

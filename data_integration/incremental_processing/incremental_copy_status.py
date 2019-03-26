@@ -1,12 +1,14 @@
 """Tracks the last comparison value of an incremental copy"""
 
-import mara_db.config
-import mara_db.dbs
-import mara_db.postgresql
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
 
+import mara_db.config
+import mara_db.dbs
+import mara_db.postgresql
+
 Base = declarative_base()
+
 
 class IncrementalCopyStatus(Base):
     """The last `modification_value` for a table that is incrementally loaded"""
@@ -38,7 +40,7 @@ DO UPDATE SET last_comparison_value = EXCLUDED.last_comparison_value
 ''', (node_path, f'{source_db_alias}.{source_table}', last_comparison_value))
 
 
-def get_last_comparison_value(node_path: [str], source_db_alias: str, source_table:str):
+def get_last_comparison_value(node_path: [str], source_db_alias: str, source_table: str):
     """
     Returns the last comparison value for a pipeline node and table
     Args:
@@ -56,5 +58,3 @@ FROM data_integration_incremental_copy_status
 WHERE node_path = {'%s'} AND source_table = {'%s'}""", (node_path, f'{source_db_alias}.{source_table}'))
         result = cursor.fetchone()
         return result[0] if result else None
-
-

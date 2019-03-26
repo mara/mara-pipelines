@@ -8,11 +8,11 @@ from typing import Callable, Union
 
 import mara_db.dbs
 import mara_db.shell
-from data_integration import config, shell, pipelines
-from data_integration.incremental_processing import file_dependencies
-from data_integration.incremental_processing import incremental_copy_status
-from data_integration.logging import logger
 from mara_page import _, html
+from .. import config, shell, pipelines
+from ..incremental_processing import file_dependencies
+from ..incremental_processing import incremental_copy_status
+from ..logging import logger
 
 
 class _SQLCommand(pipelines.Command):

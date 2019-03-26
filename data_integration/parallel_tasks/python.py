@@ -3,9 +3,9 @@ import re
 import typing
 from html import escape
 
-from data_integration import pipelines
-from data_integration.commands import python
 from mara_page import _, html
+from .. import pipelines
+from ..commands import python
 
 
 class ParallelExecutePython(pipelines.ParallelTask):

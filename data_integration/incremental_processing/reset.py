@@ -1,8 +1,10 @@
 """Resetting incremental copy status"""
 
-import mara_db.postgresql
 import mara_db.config
-def reset_incremental_processing(node_path:[str]):
+import mara_db.postgresql
+
+
+def reset_incremental_processing(node_path: [str]):
     """
     Recursively resets all incremental processing status information that is stored in the mara db
     Args:
@@ -40,4 +42,3 @@ ORDER BY 1, 2''', (len(node_path), node_path))
         for table in ['data_integration_processed_file', 'data_integration_file_dependency',
                       'data_integration_incremental_copy_status']:
             cursor.execute(f'''DELETE FROM {table} WHERE node_path [1:{'%s'}] = {'%s'}''', (len(node_path), node_path))
-

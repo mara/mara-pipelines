@@ -6,9 +6,9 @@ import psycopg2.extensions
 
 import mara_db.config
 import mara_db.postgresql
-from data_integration import pipelines
-from data_integration.ui import views
 from mara_page import acl, bootstrap, html, _
+from . import views
+from .. import pipelines
 
 
 def card(node: pipelines.Node):
@@ -38,7 +38,7 @@ def run_time_chart(path: str):
             number_of_child_runs = len(rows[0]['child_runs']) if rows[0]['child_runs'] else 0
 
             return str(_.div[_.div(id='run-time-chart', class_='google-chart',
-                                   style=f'height:{100+15*number_of_child_runs}px')[' '],
+                                   style=f'height:{100 + 15 * number_of_child_runs}px')[' '],
                              _.script[f'''
 drawRunTimeChart('run-time-chart', '{path}', {json.dumps(rows)});
     ''']])

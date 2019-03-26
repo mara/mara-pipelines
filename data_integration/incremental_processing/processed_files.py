@@ -2,11 +2,12 @@
 
 import datetime
 
+import sqlalchemy
+from sqlalchemy.ext.declarative import declarative_base
+
 import mara_db.config
 import mara_db.dbs
 import mara_db.postgresql
-import sqlalchemy
-from sqlalchemy.ext.declarative import declarative_base
 
 Base = declarative_base()
 

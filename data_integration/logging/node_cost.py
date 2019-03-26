@@ -5,7 +5,7 @@ import math
 
 import mara_db.config
 import mara_db.postgresql
-from data_integration import pipelines
+from .. import pipelines
 
 
 def node_durations_and_run_times(path: [str]) -> {tuple: [float, float]}:
@@ -100,8 +100,8 @@ def format_duration(duration: float) -> str:
     seconds = math.floor(duration)
 
     if hours:
-        return f"{hours}:{str(minutes).rjust(2,'0')[:2]}h"
+        return f"{hours}:{str(minutes).rjust(2, '0')[:2]}h"
     elif minutes:
-        return f"{minutes}:{str(seconds).rjust(2,'0')[:2]}m"
+        return f"{minutes}:{str(seconds).rjust(2, '0')[:2]}m"
     else:
         return f"{round(duration, 1)}s"

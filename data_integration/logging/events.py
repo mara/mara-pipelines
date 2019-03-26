@@ -2,8 +2,9 @@
 
 import abc
 import datetime
-import enum
 import json
+
+import enum
 
 
 class Event():

@@ -19,7 +19,7 @@ var SystemStatsChart = function (divId) {
         chartArea: {left: 0, top: 18, width: '100%', height: '100%'},
 
         // legend at the top
-        legend: { position: 'top', textStyle: { color: '#888'} },
+        legend: {position: 'top', textStyle: {color: '#888'}},
 
         fontName: '"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif',
         fontSize: '14',
@@ -49,7 +49,7 @@ var SystemStatsChart = function (divId) {
             textPosition: 'none',
             gridlines: {color: 'transparent'},
             baselineColor: 'transparent',
-            viewWindow: { min: 0 }
+            viewWindow: {min: 0}
         },
 
         hAxis: {
@@ -90,14 +90,14 @@ var SystemStatsChart = function (divId) {
             var processed_rows = rows.map(function (row) {
                 [timestamp, cpuUsage, discRead, discWrite, netRecv, netSent, memUsage, swapUsage, ioWait] = row;
                 return [new Date(timestamp),
-                    cpuUsage, cpuUsage != null ? cpuUsage.toFixed(1) + ' %': '',
-                    discRead, discRead != null ? discRead.toFixed(1) + ' MB/s': '',
-                    discWrite, discWrite != null ? discWrite.toFixed(1) + ' MB/s': '',
-                    netRecv, netRecv != null ? netRecv.toFixed(1) + ' MB/s': '',
+                    cpuUsage, cpuUsage != null ? cpuUsage.toFixed(1) + ' %' : '',
+                    discRead, discRead != null ? discRead.toFixed(1) + ' MB/s' : '',
+                    discWrite, discWrite != null ? discWrite.toFixed(1) + ' MB/s' : '',
+                    netRecv, netRecv != null ? netRecv.toFixed(1) + ' MB/s' : '',
                     netSent, netSent != null ? netSent.toFixed(1) + ' MB/s' : '',
-                    memUsage, memUsage != null ? memUsage.toFixed(1) + ' %': '',
-                    swapUsage, swapUsage != null ? swapUsage.toFixed(1) + ' %': '',
-                    ioWait, ioWait != null ? ioWait.toFixed(1) + ' %':'']
+                    memUsage, memUsage != null ? memUsage.toFixed(1) + ' %' : '',
+                    swapUsage, swapUsage != null ? swapUsage.toFixed(1) + ' %' : '',
+                    ioWait, ioWait != null ? ioWait.toFixed(1) + ' %' : '']
             });
             if (data) {
                 data.addRows(processed_rows);

@@ -100,6 +100,6 @@ function drawRunTimeChart(divId, nodeUrlPath, runs) {
             chart.draw(data, options);
         });
     }
-};
+}
 
 

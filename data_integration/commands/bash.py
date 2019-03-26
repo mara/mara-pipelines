@@ -2,8 +2,8 @@
 
 from typing import Union, Callable
 
-from data_integration import pipelines
 from mara_page import html
+from .. import pipelines
 
 
 class RunBash(pipelines.Command):
