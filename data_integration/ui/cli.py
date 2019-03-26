@@ -4,7 +4,7 @@ import sys
 
 import click
 
-from data_integration import config, pipelines
+from .. import config, pipelines
 
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
@@ -18,8 +18,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     Return:
         True when the pipeline run succeeded
     """
-    from data_integration.logging import logger, events
-    from data_integration import execution
+    from ..logging import logger, events
+    from .. import execution
 
     succeeded = True
     for event in execution.run_pipeline(pipeline, nodes, with_upstreams):
@@ -100,7 +100,6 @@ def run_interactively():
             requests.post('https://hooks.slack.com/services/' + config.slack_token(),
                           json={'text': ':hatched_chick: succeeded'})
 
-
     def menu(node: pipelines.Node):
         if isinstance(node, pipelines.Pipeline):
 
@@ -133,7 +132,7 @@ def run_interactively():
               help='The parent ids of of the node to reset. Example: "pipeline-id,sub-pipeline-id".')
 def reset_incremental_processing(path):
     """Reset status of incremental processing for a node"""
-    from data_integration.incremental_processing import reset
+    from ..incremental_processing import reset
 
     path = path.split(',') if path else []
     node, found = pipelines.find_node(path)

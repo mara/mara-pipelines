@@ -6,10 +6,9 @@ import flask
 import psycopg2.extensions
 
 import mara_db.postgresql
-from data_integration import pipelines
-from data_integration.ui import views
-from data_integration.logging import node_cost
 from mara_page import bootstrap, html, acl, _
+from . import views
+from .. import pipelines
 
 
 def card(node: pipelines.Node) -> str:
@@ -45,6 +44,8 @@ def last_runs_selector(path: str):
     Returns:
         A `<select..><option ../><option ../></select>` element
     """
+    from ..logging import node_cost
+
     node, __ = pipelines.find_node(path.split('/'))
 
     with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
@@ -169,7 +170,6 @@ WHERE node_path [1 :{'%(level)s'}] = {'%(node_path)s'}
                   'end': end_time.isoformat()}
                  for node_path, start_time, end_time, succeeded, is_pipeline
                  in cursor.fetchall()]
-
 
         if nodes:
             return str(_.script[f"drawTimelineChart('timeline-chart', {json.dumps(nodes)})"])

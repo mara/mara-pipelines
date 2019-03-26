@@ -1,9 +1,7 @@
 """Slack notifications for failed node runs"""
 
-import requests
-
-from data_integration import config
-from data_integration.logging import events
+from .. import config
+from ..logging import events
 
 
 class Slack(events.EventHandler):
@@ -15,6 +13,8 @@ class Slack(events.EventHandler):
         Args:
             event: The current event of interest
         """
+        import requests
+
         if isinstance(event, events.Output):
             key = tuple(event.node_path)
 

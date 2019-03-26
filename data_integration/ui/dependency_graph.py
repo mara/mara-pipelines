@@ -3,11 +3,10 @@
 import functools
 
 import flask
-import graphviz
 
-from data_integration import pipelines
-from data_integration.ui import views
 from mara_page import acl, html, bootstrap, _
+from . import views
+from .. import pipelines
 
 
 def card(node: pipelines.Pipeline):
@@ -43,6 +42,8 @@ def dependency_graph(nodes: {str: pipelines.Node},
     Returns:
         An svg representation of the graph
     """
+    import graphviz
+
     graph = graphviz.Digraph(graph_attr={'rankdir': 'TD', 'ranksep': '0.25', 'nodesep': '0.1'})
 
     # for finding redundant edges

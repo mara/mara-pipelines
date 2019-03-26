@@ -3,8 +3,7 @@ import pathlib
 import re
 import typing
 
-from data_integration import shell, config
-
+from . import config
 
 
 class Node():
@@ -59,6 +58,7 @@ class Command():
         Returns:
             False on failure
         """
+        from . import shell
         shell_command = self.shell_command()
 
         # logger.log(f'{config.bash_command_string()} -c {shlex.quote(shell_command)}', format=logger.Format.ITALICS)
@@ -308,7 +308,7 @@ def find_node(path: [str]) -> (Node, bool):
 
 def demo_pipeline():
     """Returns a demo pipeline"""
-    from data_integration.commands import bash, python
+    from .commands import bash, python
     pipeline = Pipeline(id='demo',
                         description='A small pipeline that demonstrates the interplay between pipelines, tasks and commands')
 

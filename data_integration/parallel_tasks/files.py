@@ -1,5 +1,4 @@
 import datetime
-import enum
 import glob
 import json
 import math
@@ -8,17 +7,17 @@ import pathlib
 import re
 from html import escape
 
-import more_itertools
+import enum
 
 import mara_db.config
 import mara_db.dbs
 import mara_db.postgresql
-from data_integration import config, pipelines
-from data_integration.commands import python, sql, files
-from data_integration.incremental_processing import file_dependencies as _file_dependencies
-from data_integration.incremental_processing import processed_files as _processed_files
-from data_integration.logging import logger
 from mara_page import _, html
+from .. import config, pipelines
+from ..commands import python, sql, files
+from ..incremental_processing import file_dependencies as _file_dependencies
+from ..incremental_processing import processed_files as _processed_files
+from ..logging import logger
 
 
 class ReadMode(enum.EnumMeta):
@@ -60,6 +59,8 @@ class _ParallelRead(pipelines.ParallelTask):
         return self._db_alias or config.default_db_alias()
 
     def add_parallel_tasks(self, sub_pipeline: 'pipelines.Pipeline') -> None:
+        import more_itertools
+
         files = []  # A list of (file_name, date_or_file_name) tuples
         data_dir = config.data_dir()
         first_date = config.first_date()
@@ -230,13 +231,13 @@ class ParallelReadFile(_ParallelRead):
 class ParallelReadSqlite(_ParallelRead):
     def __init__(self, id: str, description: str, file_pattern: str, read_mode: ReadMode, sql_file_name: str,
                  target_table: str, file_dependencies: [str] = None, date_regex: str = None,
-                 partition_target_table_by_day_id: bool = False, truncate_partitions : bool = False,
+                 partition_target_table_by_day_id: bool = False, truncate_partitions: bool = False,
                  commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
                  db_alias: str = None, timezone=None, max_number_of_parallel_tasks: int = None) -> None:
         _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
                                read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
                                date_regex=date_regex, partition_target_table_by_day_id=partition_target_table_by_day_id,
-                               truncate_partitions = truncate_partitions,
+                               truncate_partitions=truncate_partitions,
                                commands_before=commands_before, commands_after=commands_after, db_alias=db_alias,
                                timezone=timezone, max_number_of_parallel_tasks=max_number_of_parallel_tasks)
         self.sql_file_name = sql_file_name

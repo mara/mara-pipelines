@@ -5,10 +5,9 @@ import json
 
 import flask
 
-from data_integration import pipelines, config
-from data_integration.logging import node_cost
-from data_integration.ui import views, last_runs, dependency_graph, run_time_chart
 from mara_page import _, bootstrap, html, response, acl
+from . import views, last_runs, dependency_graph, run_time_chart
+from .. import pipelines, config
 
 
 @views.blueprint.route('/<path:path>')
@@ -158,6 +157,8 @@ def __(pipeline: pipelines.Pipeline):
 @acl.require_permission(views.acl_resource, do_abort=False)
 def pipeline_children_table(path: str):
     """Creates a table that documents all child nodes of a table"""
+    from ..logging import node_cost
+
     pipeline, __ = pipelines.find_node(path.split('/'))
     assert (isinstance(pipeline, pipelines.Pipeline))
 
@@ -178,7 +179,7 @@ def pipeline_children_table(path: str):
                      node_cost.compute_cost(node, node_durations_and_run_times))],
                  _.td[(_.input(class_='pipeline-node-checkbox', type='checkbox',
                                value=node.id, name='ids[]', onchange='runButtons.update()')
-                 if config.allow_run_from_web_ui() else '')]])
+                       if config.allow_run_from_web_ui() else '')]])
 
     return \
         str(_.script['var runButtons = new PipelineRunButtons();']) \

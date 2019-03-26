@@ -4,9 +4,8 @@ import datetime
 import multiprocessing
 import time
 
-import psutil
-from data_integration import config
-from data_integration.logging import events
+from .. import config
+from ..logging import events
 
 
 class SystemStatistics(events.Event):
@@ -52,6 +51,7 @@ def generate_system_statistics(event_queue: multiprocessing.Queue) -> None:
 
     :param event_queue: The queue to write the events to
     """
+    import psutil
 
     def cpu_usage():
         cpu_times = psutil.cpu_times_percent()

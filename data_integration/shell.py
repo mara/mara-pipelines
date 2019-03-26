@@ -1,12 +1,9 @@
 """Command execution in bash shells"""
 
-import shlex
-import subprocess
-import threading
 import time
 
-from data_integration import config
-from data_integration.logging import logger
+from . import config
+from .logging import logger
 
 
 def run_shell_command(command: str, log_command: bool = True):
@@ -23,6 +20,8 @@ def run_shell_command(command: str, log_command: bool = True):
         - True when there was no output to stdout
         - The output to stdout, as an array of lines
     """
+    import shlex, subprocess, threading
+
     if log_command:
         logger.log(command, format=logger.Format.ITALICS)
 
@@ -70,8 +69,9 @@ def sed_command(replace: {str: str}) -> str:
     >>> print(sed_command({'foo':'a','bar':'b'}))
     sed "s/foo/a/g; s/bar/b/g"
     """
+
     def quote(s):
-        return str(s).replace('/', '\/').replace('"', '\\\"').replace('\n','\\\\\n')
+        return str(s).replace('/', '\/').replace('"', '\\\"').replace('\n', '\\\\\n')
 
     return 'sed "' + \
            ';'.join(

@@ -4,8 +4,7 @@ import multiprocessing
 import sys
 from datetime import datetime
 
-import dateutil.relativedelta
-from data_integration.logging import events
+from ..logging import events
 
 Format = events.Output.Format
 
@@ -72,6 +71,8 @@ def format_time_difference(t1: datetime, t2: datetime):
     Displays the time difference from t1 to t2 in a human - readable form.
     Inspired by https://stackoverflow.com/a/11157649/243519
     """
+    import dateutil.relativedelta
+
     difference = dateutil.relativedelta.relativedelta(t2, t1)
     return ', '.join([str(getattr(difference, attr)) + ' ' + attr for attr in
                       ['years', 'months', 'days', 'hours', 'minutes', 'seconds']

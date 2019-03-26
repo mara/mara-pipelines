@@ -4,9 +4,9 @@ import json
 
 import flask
 
-from data_integration import pipelines, execution, config
-from data_integration.ui import views
 from mara_page import _, bootstrap, response, acl
+from . import views
+from .. import pipelines, config
 
 
 @views.blueprint.route('/run-', defaults={'path': '', 'with_upstreams': False, 'ids': None})
@@ -94,6 +94,8 @@ document.addEventListener('DOMContentLoaded', function() {
 @views.blueprint.route('/<path:path>/do-run-with-upstreams/<path:ids>', defaults={'with_upstreams': True})
 @acl.require_permission(views.acl_resource)
 def do_run(path: str, with_upstreams: bool, ids: str):
+    from .. import execution
+
     if not config.allow_run_from_web_ui():
         flask.abort(403, 'Running piplelines from web ui is disabled for this instance')
     pipeline, found = pipelines.find_node(path.split('/'))
