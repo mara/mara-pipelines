@@ -171,9 +171,10 @@ class Copy(_SQLCommand):
 class CopyIncrementally(_SQLCommand):
     def __init__(self, source_db_alias: str, source_table: str,
                  modification_comparison: str, comparison_value_placeholder: str,
-                 target_table: str, primary_keys: [str],
+                 target_table: str, primary_keys: [str] = None,
                  sql_file_name: Union[str, Callable] = None, sql_statement: Union[str, Callable] = None,
                  target_db_alias: str = None, timezone: str = None, replace: {str: str} = None,
+                 append: bool = False,
                  use_explicit_upsert: bool = False) -> None:
         """
         Incrementally loads data from one database into another.
@@ -196,6 +197,7 @@ class CopyIncrementally(_SQLCommand):
             target_table: The table for loading data into
             primary_keys: A combination of primary key columns that are used for upserting into the target table
             timezone: How to interpret timestamps in the target db
+            append: When True, appends data to target table
             use_explicit_upsert: When True, uses an Update + Insert query combination. Otherwise ON CONFLICT DO UPDATE.
         """
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
@@ -208,7 +210,9 @@ class CopyIncrementally(_SQLCommand):
         self.target_table = target_table
         self.primary_keys = primary_keys
         self.timezone = timezone
+        self.append = append
         self.use_explicit_upsert = use_explicit_upsert
+
 
     @property
     def target_db_alias(self):
@@ -261,6 +265,13 @@ class CopyIncrementally(_SQLCommand):
             replace = {self.comparison_value_placeholder: '(1=1)'}
             complete_copy_command = self._copy_command(self.target_table, replace)
             if not shell.run_shell_command(complete_copy_command):
+                return False
+
+        elif self.append:
+            logger.log('incremental copy, append to fda')
+            replace = {self.comparison_value_placeholder:
+                           f'({self.modification_comparison} >= \'{last_comparison_value}\')'}
+            if not shell.run_shell_command(self._copy_command(self.target_table, replace)):
                 return False
 
         else:
