@@ -126,20 +126,19 @@ class _ParallelRead(pipelines.ParallelTask):
                 else:
                     files_per_day[date] = [file]
 
-            sql_statement = ''
+            sql_statements = []
             for date in files_per_day.keys():
-                sql_statement += f'CREATE TABLE IF NOT EXISTS {self.target_table}_{date.strftime("%Y%m%d")}'
-                sql_statement += f' PARTITION OF {self.target_table}'
-                sql_statement += f' FOR VALUES IN ({date.strftime("%Y%m%d")});\n'
+                sql_statements.append(f'CREATE TABLE IF NOT EXISTS {self.target_table}_{date.strftime("%Y%m%d")}'
+                 + f' PARTITION OF {self.target_table} FOR VALUES IN ({date.strftime("%Y%m%d")});')
 
                 if self.truncate_partitions:
-                    sql_statement += f'TRUNCATE {self.target_table}_{date.strftime("%Y%m%d")};\n'
+                    sql_statements.append(f'TRUNCATE {self.target_table}_{date.strftime("%Y%m%d")};')
 
-            create_partitions_task = pipelines.Task(id='create_partitions',
-                                                    description='Creates required target table partitions',
-                                                    commands=[
-                                                        sql.ExecuteSQL(sql_statement=sql_statement, echo_queries=False,
-                                                                       db_alias=self.db_alias)])
+            create_partitions_task = pipelines.Task(
+                id='create_partitions',
+                description='Creates required target table partitions',
+                commands=[sql.ExecuteSQL(sql_statement='\n'.join(slice), echo_queries=False, db_alias=self.db_alias)
+                          for slice in more_itertools.sliced(sql_statements, 50)])
 
             sub_pipeline.add(create_partitions_task)
 

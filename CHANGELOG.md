@@ -1,7 +1,7 @@
 # Changelog
 
 
-## 1.4.0 - 1.4.6 (2018-09-15)
+## 1.4.0 - 1.4.7 (2018-09-15)
 
 - Use postgresql 10 native partitioning for creating day_id partitions in ParallelReadFile
 - Catch and display exceptions when creating html command documentation
@@ -13,6 +13,7 @@
 - Make it possible to run the ExecuteSQL command outside of a pipeline via .run()
 - Add args parameter to RunFunction command
 - Show redundant node upstreams as dashed line in pipeline graphs
+- Fix problems with too long bash commands by using multiple commands for partition generation in ParallelReadXXX tasks
 
 **required changes**
 
