@@ -3,6 +3,7 @@
 import datetime
 import multiprocessing
 import pathlib
+import typing
 
 from . import pipelines
 
@@ -69,3 +70,15 @@ def slack_token() -> str:
     channel's app "Incoming WebHooks" configuration as part part of the Webhook URL
     """
     return None
+
+def password_masks() -> typing.List[str]:
+    """Any passwords which should be masked in the UI or logs"""
+
+    # If you don't want to show the passwords in the password dialog, use something like this
+    # to hide them there as well:
+    #
+    # class MasksList(list):
+    #     def __repr__(self):
+    #         return f"<MasksList with {len(self)} elements>"
+
+    return []

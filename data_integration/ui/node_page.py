@@ -116,8 +116,18 @@ def __(task: pipelines.ParallelTask):
 
 def _render_command(command: pipelines.Command):
     """Creates a html documentation for a command"""
+    from mara_page.xml import render
+
+    def __mask_passwords(content):
+        masks = config.password_masks()
+        if masks:
+            content = ''.join(render(content))
+            for mask in masks:
+                content = content.replace(mask, "***")
+        return content
+
     try:
-        doc = bootstrap.table([], [_.tr[_.td[_.div[section]], _.td(style='width:90%')[content]]
+        doc = bootstrap.table([], [_.tr[_.td[_.div[section]], _.td(style='width:90%')[__mask_passwords(content)]]
                                    for section, content in command.html_doc_items()])
     except Exception as e:
         import traceback

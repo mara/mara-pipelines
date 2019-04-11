@@ -1,10 +1,15 @@
 # Changelog
 
-## 2.0.0 (2019-04-12)
+## 2.0.0 - 2.0.1 (2019-04-12)
 
 - Remove dependency_links from setup.py to regain compatibility with recent pip versions
 - Change MARA_XXX variables to functions to delay importing of imports
 - move some imports into the functions that use them in order to improve loading speed
+- Add ability to mask passwords in `Command`s, so they cannot show up in the UI anymore
+  or are not written to the database in saved Events (config
+  `data_integration.config.password_masks()`). See the example in the original function
+  how to not let passwords show up in the settings UI.
+  ([gh #14](https://github.com/mara/data-integration/pull/14))
 
 **required changes** 
 
