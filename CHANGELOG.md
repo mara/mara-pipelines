@@ -1,5 +1,15 @@
 # Changelog
 
+## 2.0.0 (2019-04-12)
+
+- Remove dependency_links from setup.py to regain compatibility with recent pip versions
+- Change MARA_XXX variables to functions to delay importing of imports
+- move some imports into the functions that use them in order to improve loading speed
+
+**required changes** 
+
+- Update `mara-app` to `>=2.0.0`
+
 
 ## 1.4.0 - 1.4.7 (2018-09-15)
 
