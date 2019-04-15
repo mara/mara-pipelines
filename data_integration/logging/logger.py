@@ -5,6 +5,7 @@ import sys
 from datetime import datetime
 
 from ..logging import events
+import data_integration.config
 
 Format = events.Output.Format
 
@@ -15,13 +16,20 @@ def log(message: str, format: events.Output.Format = Format.STANDARD,
     Logs text messages.
 
     When run inside a pipeline, this will send a log message to the parent process.
-    Otherwise, messages will be printed to `sys.stdout` and `sys.stderr`
+    Otherwise, messages will be printed to `sys.stdout` and `sys.stderr`.
+
+    Any string in `data_integration.config.password_masks()` will be replaced by '***'.
+
     Args:
         message: The message to display
         format: How to format the message
         is_error: Whether the message is considered an error message
     """
     message = message.rstrip()
+    masks = data_integration.config.password_masks()
+    if masks:
+        for mask in masks:
+            message = message.replace(mask, '***')
     if message:
         if _event_queue:
             _event_queue.put(events.Output(_node_path, message, format, is_error))
