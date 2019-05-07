@@ -3,6 +3,7 @@
 import inspect
 import shlex
 import sys
+import json
 from html import escape
 from typing import Union, Callable
 
@@ -61,6 +62,7 @@ class ExecutePython(pipelines.Command):
         path = self.parent.parent.base_path() / self.file_name
         return [
             ('file name', _.i[self.file_name]),
+            ('args', _.tt[json.dumps(self.args)]),
             (_.i['content'], html.highlight_syntax(path.read_text().strip('\n') if path.exists() else '',
                                                    'python'))
         ]

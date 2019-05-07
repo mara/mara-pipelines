@@ -81,6 +81,8 @@ class ReadFile(pipelines.Command):
                 ('make unique', _.tt[self.make_unique]),
                 ('target_table', _.tt[self.target_table]),
                 ('db alias', _.tt[self.db_alias()]),
+                ('csv format', _.tt[self.csv_format]),
+                ('skip header', _.tt[self.skip_header]),
                 ('delimiter char',
                  _.tt[json.dumps(self.delimiter_char) if self.delimiter_char != None else None]),
                 ('quote char', _.tt[json.dumps(self.quote_char) if self.quote_char != None else None]),
