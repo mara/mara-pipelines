@@ -32,8 +32,8 @@ class NodeRun(Base):
 
     node_path = sqlalchemy.Column(sqlalchemy.ARRAY(sqlalchemy.TEXT), index=True)
     start_time = sqlalchemy.Column(sqlalchemy.TIMESTAMP, nullable=False)
-    end_time = sqlalchemy.Column(sqlalchemy.TIMESTAMP, nullable=False)
-    succeeded = sqlalchemy.Column(sqlalchemy.BOOLEAN, nullable=False)
+    end_time = sqlalchemy.Column(sqlalchemy.TIMESTAMP)
+    succeeded = sqlalchemy.Column(sqlalchemy.BOOLEAN)
     is_pipeline = sqlalchemy.Column(sqlalchemy.BOOLEAN)
 
 
@@ -91,6 +91,14 @@ RETURNING run_id;''', (event.node_path, event.pid, event.start_time))
             else:
                 self.node_output[key] = [event]
 
+        elif isinstance(event, events.NodeStarted):
+            with mara_db.postgresql.postgres_cursor_context(
+                    'mara') as cursor:  # type: psycopg2.extensions.cursor
+                cursor.execute(f'''
+INSERT INTO data_integration_node_run (run_id, node_path, start_time, is_pipeline)
+VALUES  ({"%s, %s, %s, %s"})
+RETURNING node_run_id''', (self.run_id, event.node_path, event.start_time, event.is_pipeline))
+
         elif isinstance(event, system_statistics.SystemStatistics):
             with mara_db.postgresql.postgres_cursor_context(
                     'mara') as cursor:  # type: psycopg2.extensions.cursor
@@ -105,10 +113,10 @@ VALUES ({"%s, %s, %s, %s, %s, %s, %s, %s, %s"})''',
             with mara_db.postgresql.postgres_cursor_context(
                     'mara') as cursor:  # type: psycopg2.extensions.cursor
                 cursor.execute(f'''
-INSERT INTO data_integration_node_run (run_id, node_path, start_time, end_time, succeeded, is_pipeline)
-VALUES  ({"%s, %s, %s, %s, %s, %s"})
-RETURNING node_run_id''', (self.run_id, event.node_path, event.start_time, event.end_time,
-                           event.succeeded, event.is_pipeline))
+UPDATE data_integration_node_run
+SET end_time={"%s"}, succeeded={"%s"}
+WHERE run_id={"%s"} AND node_path={"%s"}
+RETURNING node_run_id''', (event.end_time, event.succeeded, self.run_id, event.node_path))
                 node_run_id = cursor.fetchone()[0]
 
                 cursor.execute('''

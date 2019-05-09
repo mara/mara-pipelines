@@ -1,5 +1,6 @@
 """Functions for visualizing the last runs of a pipeline node"""
 
+import datetime
 import json
 
 import flask
@@ -63,7 +64,10 @@ ORDER BY run_id DESC;''', (node.path(),))
             _.select(id='last-runs-selector', class_='custom-select', style="border:none",
                      onchange=f"nodePage.switchRun(this.value, '{path}')")[
                 [_.option(value=str(run_id))[
-                     f'{start_time}  ({node_cost.format_duration(duration)}, {"succeeded" if succeeded else "failed"})']
+                     start_time, ' (',
+                     f'{node_cost.format_duration(duration)}, {"succeeded" if succeeded else "failed"}'
+                     if succeeded is not None else 'unfinished',
+                     ')']
                  for run_id, start_time, duration, succeeded in cursor.fetchall()]])
 
 
@@ -156,19 +160,19 @@ def timeline_chart(path: str, run_id: int):
 
     with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
         cursor.execute(f'''
-SELECT node_path, start_time, end_time, succeeded, is_pipeline
+SELECT node_path, start_time, end_time, max(end_time) over () AS max_end_time, succeeded, is_pipeline 
 FROM data_integration_node_run
 WHERE node_path [1 :{'%(level)s'}] = {'%(node_path)s'}
       AND array_length(node_path, 1) > {'%(level)s'}  
       AND run_id = {'%(run_id)s'};''', {'level': len(node.path()), 'node_path': node.path(), 'run_id': run_id})
 
         nodes = [{'label': ' / '.join(node_path[len(node.path()):]),
-                  'status': 'succeeded' if succeeded else 'failed',
+                  'status': {None: 'running', True: 'succeeded', False: 'failed'}[succeeded],
                   'type': 'pipeline' if is_pipeline else 'task',
                   'url': flask.url_for('data_integration.node_page', path='/'.join(node_path)),
                   'start': start_time.isoformat(),
-                  'end': end_time.isoformat()}
-                 for node_path, start_time, end_time, succeeded, is_pipeline
+                  'end': (end_time or ((max_end_time or start_time) + datetime.timedelta(seconds=1))).isoformat()}
+                 for node_path, start_time, end_time, max_end_time, succeeded, is_pipeline
                  in cursor.fetchall()]
 
         if nodes:
