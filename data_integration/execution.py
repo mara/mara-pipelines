@@ -176,15 +176,18 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                 queue([sub_pipeline])
 
                             except Exception as e:
+                                event_queue.put(events.NodeStarted(
+                                    node_path=next_node.path(), start_time=task_start_time, is_pipeline=True))
                                 logger.log(message=f'Could not launch parallel tasks', format=logger.Format.ITALICS,
                                            is_error=True)
                                 logger.log(message=traceback.format_exc(),
                                            format=events.Output.Format.VERBATIM, is_error=True)
                                 event_queue.put(events.NodeFinished(
-                                    node_path=next_node.parent.path(), start_time=task_start_time,
+                                    node_path=next_node.path(), start_time=task_start_time,
                                     end_time=datetime.datetime.now(), is_pipeline=True, succeeded=False))
 
                                 failed_pipelines.add(next_node.parent)
+                                processed_nodes.add(next_node)
                             finally:
                                 logger.redirect_output(event_queue, pipeline.path())
 
