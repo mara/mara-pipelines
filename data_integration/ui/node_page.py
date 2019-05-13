@@ -172,7 +172,7 @@ def pipeline_children_table(path: str):
     pipeline, __ = pipelines.find_node(path.split('/'))
     assert (isinstance(pipeline, pipelines.Pipeline))
 
-    node_durations_and_run_times = node_cost.node_durations_and_run_times(pipeline.path())
+    node_durations_and_run_times = node_cost.node_durations_and_run_times(pipeline)
 
     rows = []
     for node in pipeline.nodes.values():

@@ -52,7 +52,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             node_queue: [pipelines.Node] = []
 
             # data needed for computing cost
-            node_durations_and_run_times = node_cost.node_durations_and_run_times(pipeline.path())
+            node_durations_and_run_times = node_cost.node_durations_and_run_times(pipeline)
 
             # Putting nodes into the node queue
             def queue(nodes: [pipelines.Node]):
@@ -152,6 +152,9 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                 for pipeline_node in next_node.nodes.values():
                                     if not pipeline_node.downstreams:
                                         next_node.add_dependency(pipeline_node, downstream)
+
+                            # get cost information for children
+                            node_durations_and_run_times.update(node_cost.node_durations_and_run_times(next_node))
 
                             # queue all child nodes
                             queue(list(next_node.nodes.values()))
