@@ -25,7 +25,8 @@ WITH node_runs AS ( -- runs of the node itself
              'duration', round((extract(EPOCH FROM end_time - start_time)) :: NUMERIC, 2)) AS data
 
   FROM data_integration_node_run
-  WHERE node_path = path),
+  WHERE node_path = path
+    AND succeeded IS NOT NULL),
 
      top_children AS ( -- top top x children by average run time
        SELECT avg(extract(EPOCH FROM end_time - start_time)) AS average_duration,
@@ -35,6 +36,7 @@ WITH node_runs AS ( -- runs of the node itself
        FROM data_integration_node_run
        WHERE array_length(node_path, 1) = coalesce(array_length(path, 1), 0) + 1
          AND node_path [ 0 : coalesce(array_length(path, 1), 0)] = path
+         AND succeeded IS NOT NULL
        GROUP BY node_path
        ORDER BY 1 DESC
        LIMIT 8),
