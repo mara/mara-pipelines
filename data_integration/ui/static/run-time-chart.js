@@ -18,7 +18,7 @@ function drawRunTimeChart(divId, nodeUrlPath, runs) {
         curveType: 'function',
         fontName: '"Segoe UI",Roboto,"Helvetica Neue",Arial,sans-serif',
         fontSize: '14',
-        focusTarget: "category",
+        focusTarget: "datum",
         tooltip: {showColorCode: true, textStyle: {bold: false, color: '#333'}},
         series: {
             0: {lineWidth: 1.5, color: '#0275d8'}
@@ -45,7 +45,6 @@ function drawRunTimeChart(divId, nodeUrlPath, runs) {
 
         data.addColumn('number', runs[0].node_name);
         data.addColumn({type: 'boolean', role: 'certainty'});
-        data.addColumn({type: 'string', role: 'tooltip'});
 
         if (runs[0].child_names) {
             var number_of_child_nodes = runs[0].child_names.length;
@@ -54,7 +53,6 @@ function drawRunTimeChart(divId, nodeUrlPath, runs) {
             for (var i = 0; i < number_of_child_nodes; i++) {
                 data.addColumn('number', runs[0].child_names[i]);
                 data.addColumn({type: 'boolean', role: 'certainty'});
-                data.addColumn({type: 'string', role: 'tooltip'});
 
                 options.series[i + 1] = {lineWidth: 1, color: colors.get(i).getHex()};
             }
@@ -62,17 +60,17 @@ function drawRunTimeChart(divId, nodeUrlPath, runs) {
 
         // the run IDs for each row
         var runIDs = [];
-        for (n in runs) {
+        for (var n in runs) {
             var run = runs[n];
             runIDs.push(run.run_id);
             var row = [new Date(run.start_time)];
 
             function add_node(node_run) {
                 if (node_run) {
-                    row = row.concat([node_run.duration, node_run.succeeded,
-                        (node_run.succeeded ? 'succeeded' : 'failed') + ', ' + formatDuration(1000 * node_run.duration)]);
+                    var label = (node_run.succeeded ? 'succeeded' : 'failed') + ', ' + formatDuration(1000 * node_run.duration);
+                    row = row.concat([{v: node_run.duration, f: label}, node_run.succeeded]);
                 } else {
-                    row = row.concat([null, null, null]);
+                    row = row.concat([null, null]);
                 }
             }
 
