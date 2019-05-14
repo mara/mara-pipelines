@@ -21,7 +21,6 @@ WITH node_runs AS ( -- runs of the node itself
          start_time,
          jsonb_build_object(
              'succeeded', succeeded,
-             'name', path [ array_upper(path, 1)],
              'duration', round((extract(EPOCH FROM end_time - start_time)) :: NUMERIC, 2)) AS data
 
   FROM data_integration_node_run
@@ -53,7 +52,6 @@ WITH node_runs AS ( -- runs of the node itself
               node_name,
               jsonb_build_object(
                   'duration', round((extract(EPOCH FROM end_time - start_time)) :: NUMERIC, 2),
-                  'start_time', start_time,
                   'succeeded', succeeded) AS data,
               min(start_time)
                   OVER (
