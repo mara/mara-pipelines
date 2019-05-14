@@ -31,7 +31,8 @@ function drawRunTimeChart(divId, nodeUrlPath, runs) {
         vAxis: {
             textPosition: 'in', format: 'short', gridlines: {color: 'transparent'},
             textStyle: {color: '#888'},
-            baselineColor: 'transparent', viewWindow: {min: 0}
+            baselineColor: 'transparent', viewWindow: {min: 0},
+            ticks: []
         }
     };
 
@@ -81,6 +82,12 @@ function drawRunTimeChart(divId, nodeUrlPath, runs) {
             }
             data.addRow(row);
         }
+
+        durationAxisTicks($('#' + divId).innerHeight(), 40, data.getColumnRange(1).max * 1000)
+            .forEach(function (tick) {
+                options.vAxis.ticks.push({v: tick[1] / 1000, f: tick[2]});
+            });
+
 
         chart = new google.visualization.LineChart(document.getElementById(divId));
         chart.draw(data, options);
