@@ -30,6 +30,11 @@ div.timeline a.timeline-node.status-running {
     background-color: #666;
 }
 
+div.timeline a.timeline-node.status-unfinished {
+    background-color: #666;
+    background: linear-gradient(90deg, #666 0%, #bbb 100%);
+}
+
 div.timeline a.timeline-node.status-succeeded {
     background-color: green;
 }

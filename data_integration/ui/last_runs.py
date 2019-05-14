@@ -167,7 +167,7 @@ WHERE node_path [1 :{'%(level)s'}] = {'%(node_path)s'}
       AND run_id = {'%(run_id)s'};''', {'level': len(node.path()), 'node_path': node.path(), 'run_id': run_id})
 
         nodes = [{'label': ' / '.join(node_path[len(node.path()):]),
-                  'status': {None: 'running', True: 'succeeded', False: 'failed'}[succeeded],
+                  'status': {None: 'unfinished', True: 'succeeded', False: 'failed'}[succeeded],
                   'type': 'pipeline' if is_pipeline else 'task',
                   'url': flask.url_for('data_integration.node_page', path='/'.join(node_path)),
                   'start': start_time.isoformat(),
