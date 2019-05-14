@@ -67,3 +67,45 @@ function formatDuration(duration) {
 }
 
 formatDuration.cache = {};
+
+
+
+/**
+ * Computes meaningful tick positions for a duration axis based on time range and available space
+ * @param availableSpace The width or height of the chart axis in pixels
+ * @param minTickDistance the minimum distance between two ticks in pixels
+ * @param totalDuration The overal length of the time range in ms
+ * @returns {*} An array of `[position, duration, label]` entries
+ */
+function durationAxisTicks(availableSpace, minTickDistance, totalDuration) {
+
+    // generate a tick at every multiple of divisor, stop at max width
+    function generate_ticks(multiple, divisor, suffix) {
+        var result = [];
+        var t = 0;
+        while (true) {
+            result.push([Math.round(availableSpace * t / totalDuration), t, t / divisor + suffix]);
+            if (t > totalDuration) {
+                break;
+            }
+            t += multiple * divisor;
+        }
+        return result;
+    }
+
+    var magnitudes = [[10, 1, 'ms'], [20, 1, 'ms'], [50, 1, 'ms'], [100, 1, 'ms'], [200, 1, 'ms'],
+        [1, 1000, 's'], [2, 1000, 's'], [5, 1000, 's'], [10, 1000, 's'], [20, 1000, 's'],
+        [1, 60 * 1000, 'm'], [2, 60 * 1000, 'm'], [5, 60 * 1000, 'm'], [10, 60 * 1000, 'm'], [20, 60 * 1000, 'm'],
+        [1, 60 * 60 * 1000, 'h'], [2, 60 * 60 * 1000, 'h'], [4, 60 * 60 * 1000, 'h'], [12, 60 * 60 * 1000, 'h']];
+
+    for (var i in magnitudes) {
+        [multiple, divisor, suffix] = magnitudes[i];
+        if (minTickDistance * totalDuration / (multiple * divisor) < availableSpace) {
+            return generate_ticks(multiple, divisor, suffix);
+        }
+    }
+    // by default, display days
+    return generate_ticks(1, 24 * 60 * 60 * 1000, 'd');
+
+}
+
