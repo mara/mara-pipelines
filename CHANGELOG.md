@@ -1,5 +1,14 @@
 # Changelog
 
+## 2.1.0 (2019-05-15)
+
+- Track and visualize also unfinished pipeline runs
+- Speed up computation of node durations and node cost
+- Improve error handling in launching of parallel tasks
+- Improve run times visualization (better axis labels, independent tooltips) 
+- Smaller ui improvements
+
+
 ## 2.0.0 - 2.0.1 (2019-04-12)
 
 - Remove dependency_links from setup.py to regain compatibility with recent pip versions
