@@ -140,12 +140,14 @@ class Copy(_SQLCommand):
 
     def __init__(self, source_db_alias: str, target_table: str, target_db_alias: str = None,
                  sql_statement: str = None, sql_file_name: Union[Callable, str] = None, replace: {str: str} = None,
-                 timezone: str = None) -> None:
+                 timezone: str = None, csv_format: bool = None, delimiter_char: str = None) -> None:
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
         self.source_db_alias = source_db_alias
         self.target_table = target_table
         self._target_db_alias = target_db_alias
         self.timezone = timezone
+        self.csv_format = csv_format
+        self.delimiter_char = delimiter_char
 
     @property
     def target_db_alias(self):
@@ -157,7 +159,7 @@ class Copy(_SQLCommand):
     def shell_command(self):
         return _SQLCommand.shell_command(self) \
                + '  | ' + mara_db.shell.copy_command(self.source_db_alias, self.target_db_alias, self.target_table,
-                                                     self.timezone)
+                                                     self.timezone, self.csv_format, self.delimiter_char)
 
     def html_doc_items(self) -> [(str, str)]:
         return [('source db', _.tt[self.source_db_alias])] \
@@ -165,6 +167,8 @@ class Copy(_SQLCommand):
                + [('target db', _.tt[self.target_db_alias]),
                   ('target table', _.tt[self.target_table]),
                   ('timezone', _.tt[self.timezone or '']),
+                  ('csv format', _.tt[self.csv_format or '']),
+                  ('delimiter char', _.tt[self.delimiter_char or '']),
                   (_.i['shell command'], html.highlight_syntax(self.shell_command(), 'bash'))]
 
 
