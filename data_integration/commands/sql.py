@@ -178,7 +178,8 @@ class CopyIncrementally(_SQLCommand):
                  target_table: str, primary_keys: [str],
                  sql_file_name: Union[str, Callable] = None, sql_statement: Union[str, Callable] = None,
                  target_db_alias: str = None, timezone: str = None, replace: {str: str} = None,
-                 use_explicit_upsert: bool = False) -> None:
+                 use_explicit_upsert: bool = False,
+                 csv_format: bool = None, delimiter_char: str = None) -> None:
         """
         Incrementally loads data from one database into another.
 
@@ -213,6 +214,8 @@ class CopyIncrementally(_SQLCommand):
         self.primary_keys = primary_keys
         self.timezone = timezone
         self.use_explicit_upsert = use_explicit_upsert
+        self.csv_format = csv_format
+        self.delimiter_char = delimiter_char
 
     @property
     def target_db_alias(self):
@@ -340,7 +343,8 @@ DO UPDATE SET {set_clause}"""
         return (_SQLCommand.shell_command(self)
                 + '  | ' + shell.sed_command(replace)
                 + '  | ' + mara_db.shell.copy_command(self.source_db_alias, self.target_db_alias,
-                                                      target_table, timezone=self.timezone))
+                                                      target_table, timezone=self.timezone,
+                                                      csv_format=self.csv_format, delimiter_char=self.delimiter_char))
 
     def html_doc_items(self) -> [(str, str)]:
         return [('source db', _.tt[self.source_db_alias]),
@@ -352,6 +356,8 @@ DO UPDATE SET {set_clause}"""
                   ('target table', _.tt[self.target_table]),
                   ('primary_keys', _.tt[repr(self.primary_keys)]),
                   ('timezone', _.tt[self.timezone or '']),
+                  ('csv format', _.tt[self.csv_format or '']),
+                  ('delimiter char', _.tt[self.delimiter_char or '']),
                   ('use explicit upsert', _.tt[repr(self.use_explicit_upsert)])]
 
 
