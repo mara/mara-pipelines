@@ -4,7 +4,7 @@ DROP TYPE IF EXISTS pg_temp.RUN_STAT CASCADE;
 
 CREATE TYPE pg_temp.RUN_STAT AS (
   run_id INTEGER, -- for debugging
-  start_time TIMESTAMP, -- either the start time of the node or the first of its child nodes
+  start_time TIMESTAMPTZ, -- either the start time of the node or the first of its child nodes
   node_name TEXT, -- the name of the node that is run
   node_run JSONB, -- data about the run of the node itself
   child_names TEXT[], -- names of all child nodes
