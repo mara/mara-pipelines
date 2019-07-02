@@ -18,7 +18,7 @@ class ProcessedFile(Base):
 
     node_path = sqlalchemy.Column(sqlalchemy.ARRAY(sqlalchemy.Text), primary_key=True)
     file_name = sqlalchemy.Column(sqlalchemy.Text, primary_key=True)
-    last_modified_timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP)
+    last_modified_timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True))
 
 
 def track_processed_file(node_path: str, file_name: str, last_modified_timestamp: datetime):

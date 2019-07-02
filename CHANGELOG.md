@@ -1,5 +1,32 @@
 # Changelog
 
+## 2.2.0 (2019-07-02)
+- Changed all `TIMSTAMP` to `TIMSTAMPTZ` in the mara tables. You have to manually run the
+  below migration commands as `make migrate-mara-db` won't pick up this change.
+
+**required changes**
+You need to manually convert the mara tables to `TIMESTAMPTZ`:
+
+```SQL
+-- Change the timezone to whatever your ETL process is running in
+ALTER TABLE data_integration_run ALTER start_time TYPE timestamptz
+  USING start_time AT TIME ZONE 'Europe/Berlin';
+ALTER TABLE data_integration_run ALTER end_time TYPE timestamptz
+  USING end_time AT TIME ZONE 'Europe/Berlin';
+ALTER TABLE data_integration_processed_file ALTER last_modified_timestamp TYPE timestamptz
+  USING last_modified_timestamp AT TIME ZONE 'Europe/Berlin';
+ALTER TABLE data_integration_node_run ALTER start_time TYPE timestamptz
+  USING start_time AT TIME ZONE 'Europe/Berlin';
+ALTER TABLE data_integration_node_run ALTER end_time TYPE timestamptz
+  USING end_time AT TIME ZONE 'Europe/Berlin';
+ALTER TABLE data_integration_node_output ALTER timestamp TYPE timestamptz
+  USING timestamp AT TIME ZONE 'Europe/Berlin';
+ALTER TABLE data_integration_file_dependency ALTER timestamp TYPE timestamptz
+  USING timestamp AT TIME ZONE 'Europe/Berlin';
+ALTER TABLE data_integration_system_statistics ALTER timestamp TYPE timestamptz
+  USING timestamp AT TIME ZONE 'Europe/Berlin';
+```
+
 ## 2.1.0 (2019-05-15)
 
 - Track and visualize also unfinished pipeline runs

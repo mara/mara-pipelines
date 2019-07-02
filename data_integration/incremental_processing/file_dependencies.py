@@ -19,7 +19,7 @@ class FileDependency(Base):
     node_path = sqlalchemy.Column(sqlalchemy.ARRAY(sqlalchemy.TEXT), primary_key=True)
     dependency_type = sqlalchemy.Column(sqlalchemy.String, primary_key=True)
     hash = sqlalchemy.Column(sqlalchemy.String)
-    timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP)
+    timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True))
 
 
 def update(node_path: [str], dependency_type: str, pipeline_base_path: str, file_dependencies: [str]):

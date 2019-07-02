@@ -18,8 +18,8 @@ class Run(Base):
     run_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     node_path = sqlalchemy.Column(sqlalchemy.ARRAY(sqlalchemy.TEXT), nullable=False, index=True)
     pid = sqlalchemy.Column(sqlalchemy.Integer, nullable=False)
-    start_time = sqlalchemy.Column(sqlalchemy.TIMESTAMP, nullable=False)
-    end_time = sqlalchemy.Column(sqlalchemy.TIMESTAMP)
+    start_time = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True), nullable=False)
+    end_time = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True))
     succeeded = sqlalchemy.Column(sqlalchemy.BOOLEAN)
 
 
@@ -31,8 +31,8 @@ class NodeRun(Base):
     run_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey('data_integration_run.run_id'), index=True)
 
     node_path = sqlalchemy.Column(sqlalchemy.ARRAY(sqlalchemy.TEXT), index=True)
-    start_time = sqlalchemy.Column(sqlalchemy.TIMESTAMP, nullable=False)
-    end_time = sqlalchemy.Column(sqlalchemy.TIMESTAMP)
+    start_time = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True), nullable=False)
+    end_time = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True))
     succeeded = sqlalchemy.Column(sqlalchemy.BOOLEAN)
     is_pipeline = sqlalchemy.Column(sqlalchemy.BOOLEAN)
 
@@ -44,7 +44,7 @@ class NodeOutput(Base):
     node_output_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True)
     node_run_id = sqlalchemy.Column(sqlalchemy.Integer, sqlalchemy.ForeignKey('data_integration_node_run.node_run_id'),
                                     index=True)
-    timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP, nullable=False)
+    timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True), nullable=False)
     message = sqlalchemy.Column(sqlalchemy.TEXT, nullable=False)
     format = sqlalchemy.Column(sqlalchemy.TEXT, nullable=False)
     is_error = sqlalchemy.Column(sqlalchemy.BOOLEAN, nullable=False)
@@ -54,7 +54,7 @@ class SystemStatistics(Base):
     """System stats measurements"""
     __tablename__ = 'data_integration_system_statistics'
 
-    timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP, primary_key=True, index=True)
+    timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True), primary_key=True, index=True)
     disc_read = sqlalchemy.Column(sqlalchemy.FLOAT)
     disc_write = sqlalchemy.Column(sqlalchemy.FLOAT)
     net_recv = sqlalchemy.Column(sqlalchemy.FLOAT)
