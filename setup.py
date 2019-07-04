@@ -1,10 +1,18 @@
 from setuptools import setup, find_packages
+import re
+
+def get_long_description():
+    with open('README.md') as f:
+        return re.sub('!\[(.*?)\]\(docs/(.*?)\)', r'![\1](https://github.com/mara/data-integration/raw/master/docs/\2)', f.read())
 
 setup(
     name='data-integration',
-    version='2.3.0',
+    version='2.4.0',
 
     description='Opinionated lightweight ETL pipeline framework',
+
+    long_description=get_long_description(),
+    long_description_content_type='text/markdown',
 
     install_requires=[
         'mara-db>=4.2.0',
@@ -17,6 +25,8 @@ setup(
         'wheel>=0.31',
         'requests>=2.19.1'
     ],
+
+    python_requires='>=3.6',
 
     packages=find_packages(),
 

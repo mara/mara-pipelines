@@ -1,0 +1,21 @@
+language: python
+matrix:
+  include:
+  - python: '3.6'
+  - python: '3.7'
+    env: UPLOAD=True
+  - python: 3.7-dev
+install:
+- pip install .[test]
+script: echo hello world
+deploy:
+  provider: pypi
+  distributions: sdist
+  user: mara-pypi-upload-account
+  password:
+    secure: 0TQCqyHghdxbOQgpBRlJJzReA/Ksys/YB01T8B7Kxn8rNHwxjcY/PBv1/IrlfSz7Qn2QVrQwloYWQfiGlG7vzyPn7GdMElNEDQDWN4TvtjT93hpsWM5kn7MPI1eZTo2Ua0u+FDoMcMkTPB/qYJWttCQGm+Cd3SwQFJUW4lgXRw1k5GPujDZjxgHrNg5tshV1Ss7hB52wxfaSeqJU4Xu/9AuKfC4xITuXn15w0EOV/hvrXFuYNl03LhOTPAfiyAL+QqlBOEZq9DOAYd5bYSFkjhfwyM14Kp7AUvq1ZOwLWe8o/6sG0F8SUIEte7CncsAXC3WV64nTrIDUvg82YaRu5cx9mtRtiKFGHQJQpVaTQD87EBZ+hgZG7j2vlgI74jRyG9V7gbxj3JBgDzsET4eiIPGX/RQM7THvUdCB2nSPGGAvkcf+DwLtm/n0JDBJhUEtDq5pCcP/IcM3ij/q3qSzO9CgbE/uoLVfh1DQwQKT944Ls0ArCgpUw9Pc3iidlx1/3xOy6N7MONwSXBSX6SilV098QfTkQ0AHRCxg86YUZ8ijnJnF+UguDM7C1NMRXA/ir+FFZUU7rSuQppHDZK8eBNL1a5G4t8W2PftL0tAonEJESB8SW6rLnLHRqY2UWw7PelwZ3kQvUJAg0V1mow3nsekloZWmpaGo5PJFzUXjSD4=
+  on:
+    tags: true
+    branch: master
+    repo: mara/data-integration
+    condition: "$UPLOAD == True"

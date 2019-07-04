@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.4.0 (2019-07-04)
+
+- Add travis integration and PyPi upload
+
+
 ## 2.3.0 (2019-07-04)
 
 - Add parameter `csv_format` and `delimiter_char` to `Copy` and `CopyIncrementally` commands.
