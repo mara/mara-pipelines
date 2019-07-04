@@ -2,12 +2,12 @@ from setuptools import setup, find_packages
 
 setup(
     name='data-integration',
-    version='2.1.0',
+    version='2.3.0',
 
     description='Opinionated lightweight ETL pipeline framework',
 
     install_requires=[
-        'mara-db>=3.0.0',
+        'mara-db>=4.2.0',
         'mara-page>=1.3.0',
         'graphviz>=0.8',
         'python-dateutil>=2.6.1',

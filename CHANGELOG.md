@@ -1,6 +1,12 @@
 # Changelog
 
+## 2.3.0 (2019-07-04)
+
+- Add parameter `csv_format` and `delimiter_char` to `Copy` and `CopyIncrementally` commands.
+
+
 ## 2.2.0 (2019-07-02)
+
 - Changed all `TIMSTAMP` to `TIMSTAMPTZ` in the mara tables. You have to manually run the
   below migration commands as `make migrate-mara-db` won't pick up this change.
 
