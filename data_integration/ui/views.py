@@ -49,5 +49,5 @@ def node_url(node: pipelines.Node) -> str:
 
 def format_labels(node: pipelines.Node):
     """Html markup that comma-separates labels of a node"""
-    return ', '.join([str(_.span[label, ': ', _.tt(style='white-space:nowrap')[value]])
+    return ', '.join([str(_.span[label, ': ', _.tt(style='white-space:nowrap')[repr(value)]])
                       for label, value in node.labels.items()]) or ''
