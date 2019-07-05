@@ -1,12 +1,13 @@
 language: python
+dist: xenial
 matrix:
   include:
-  - python: '3.6'
-  - python: '3.7'
-    env: UPLOAD=True
-  - python: 3.7-dev
+    - python: '3.6'
+    - python: '3.7'
+      env: UPLOAD=True
+    - python: 3.7-dev
 install:
-- pip install .[test]
+  - pip install .[test]
 script: echo hello world
 deploy:
   provider: pypi
