@@ -1,6 +1,6 @@
 # Changelog
 
-## 2.4.0 (2019-07-04)
+## 2.4.0 - 2.4.1 (2019-07-04)
 
 - Add travis integration and PyPi upload
 
