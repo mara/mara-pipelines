@@ -14,6 +14,8 @@ setup(
     long_description=get_long_description(),
     long_description_content_type='text/markdown',
 
+    url = 'https://github.com/mara/data-integration',
+
     install_requires=[
         'mara-db>=4.2.0',
         'mara-page>=1.3.0',
