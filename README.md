@@ -1,7 +1,7 @@
 # Mara Data Integration
 
 [![Build Status](https://travis-ci.org/mara/data-integration.svg?branch=master)](https://travis-ci.org/mara/data-integration)
-![PyPI - License](https://img.shields.io/pypi/l/data-integration.svg)
+[![PyPI - License](https://img.shields.io/pypi/l/data-integration.svg)](https://github.com/mara/data-integration/blob/master/LICENSE)
 [![PyPI version](https://badge.fury.io/py/data-integration.svg)](https://badge.fury.io/py/data-integration)
 [![Slack Status](https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social)](https://communityinviter.com/apps/mara-users/public-invite)
 
