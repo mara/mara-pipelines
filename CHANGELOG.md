@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.0 (2019-07-07)
+
+- Bug fix: make last modification timestamp of parallel file reading time zone aware (fixes `TypeError: can't compare offset-naive and offset-aware datetimes` error) 
+
+
 ## 2.4.0 - 2.4.2 (2019-07-04)
 
 - Add travis integration and PyPi upload

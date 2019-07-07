@@ -1,4 +1,5 @@
 import datetime
+import enum
 import glob
 import json
 import math
@@ -7,12 +8,11 @@ import pathlib
 import re
 from html import escape
 
-import enum
-
 import mara_db.config
 import mara_db.dbs
 import mara_db.postgresql
 from mara_page import _, html
+
 from .. import config, pipelines
 from ..commands import python, sql, files
 from ..incremental_processing import file_dependencies as _file_dependencies
@@ -130,7 +130,7 @@ class _ParallelRead(pipelines.ParallelTask):
             sql_statements = []
             for date in files_per_day.keys():
                 sql_statements.append(f'CREATE TABLE IF NOT EXISTS {self.target_table}_{date.strftime("%Y%m%d")}'
-                 + f' PARTITION OF {self.target_table} FOR VALUES IN ({date.strftime("%Y%m%d")});')
+                                      + f' PARTITION OF {self.target_table} FOR VALUES IN ({date.strftime("%Y%m%d")});')
 
                 if self.truncate_partitions:
                     sql_statements.append(f'TRUNCATE {self.target_table}_{date.strftime("%Y%m%d")};')
@@ -167,7 +167,8 @@ class _ParallelRead(pipelines.ParallelTask):
         raise NotImplementedError
 
     def _last_modification_timestamp(self, file_name):
-        return datetime.datetime.fromtimestamp(os.path.getmtime(pathlib.Path(config.data_dir()) / file_name))
+        return datetime.datetime.fromtimestamp(
+            os.path.getmtime(pathlib.Path(config.data_dir()) / file_name)).astimezone()
 
 
 class ParallelReadFile(_ParallelRead):
