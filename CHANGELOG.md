@@ -1,5 +1,10 @@
 # Changelog
 
+## 2.5.1 (2019-08-01)
+
+- Include file_dependencies as variable for Copy Commands: This could handle cases in ETL pipeline, where the copy command shall be skipped if the sql_files stay the same.
+
+
 ## 2.5.0 (2019-07-07)
 
 - Bug fix: make last modification timestamp of parallel file reading time zone aware (fixes `TypeError: can't compare offset-naive and offset-aware datetimes` error) 
