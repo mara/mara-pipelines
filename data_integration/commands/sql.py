@@ -321,6 +321,9 @@ class CopyIncrementally(_SQLCommand):
                 if self.use_explicit_upsert:
                     set_clause = ', '.join([f'"{col[0]}" = src."{col[0]}"' for col in cursor.fetchall()])
                     key_definition = ' AND '.join([f'dst."{k}" = src."{k}"' for k in self.primary_keys])
+                    # one could also use dst.* IS NULL but this somehow prevents pg10 from using parallel aggregate
+                    # which means a lot slow down on highly partitioned tables (e.g. chuncked)
+                    where_null_condition = ' OR '.join([f'dst."{k}" IS NULL' for k in self.primary_keys])
                 else:
                     set_clause = ', '.join([f'"{col[0]}" = EXCLUDED."{col[0]}"' for col in cursor.fetchall()])
                     key_definition = ', '.join(['"' + primary_key + '"' for primary_key in self.primary_keys])
@@ -338,7 +341,7 @@ SELECT src.*
 FROM {self.target_table}_upsert src
 LEFT JOIN {self.target_table} dst
   ON {key_definition}
-WHERE dst.* IS NULL"""
+WHERE {where_null_condition}"""
                 if not shell.run_shell_command(f'echo {shlex.quote(update_query)} \\\n  | '
                                                + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
                     return False
