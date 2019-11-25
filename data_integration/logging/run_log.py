@@ -65,6 +65,26 @@ class SystemStatistics(Base):
     iowait = sqlalchemy.Column(sqlalchemy.FLOAT)
 
 
+def close_open_run_after_error(run_id: int):
+    """Closes all open run and node_run for this run_id as failed"""
+    if run_id is None:
+        return
+    print(f'Run aborted, cleaning up (run_id = {run_id})')
+    _close_run = f'''
+UPDATE  data_integration_run
+SET end_time = now(), succeeded = FALSE
+WHERE run_id = {"%s"} and end_time IS NULL
+    '''
+    _close_node_run = f'''
+UPDATE  data_integration_node_run
+SET end_time = now(), succeeded = FALSE
+WHERE run_id = {"%s"} and end_time IS NULL
+        '''
+    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
+        cursor.execute(_close_node_run, (run_id,))
+        cursor.execute(_close_run, (run_id,))
+
+
 class RunLogger(events.EventHandler):
     run_id: int = None
     node_output: {tuple: [events.Output]} = None
@@ -72,8 +92,7 @@ class RunLogger(events.EventHandler):
     def handle_event(self, event: events.Event):
 
         if isinstance(event, events.RunStarted):
-            with mara_db.postgresql.postgres_cursor_context(
-                    'mara') as cursor:  # type: psycopg2.extensions.cursor
+            with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
                 cursor.execute(f'''
 INSERT INTO data_integration_run (node_path, pid, start_time)
 VALUES ({"%s, %s, %s"})
@@ -92,16 +111,14 @@ RETURNING run_id;''', (event.node_path, event.pid, event.start_time))
                 self.node_output[key] = [event]
 
         elif isinstance(event, events.NodeStarted):
-            with mara_db.postgresql.postgres_cursor_context(
-                    'mara') as cursor:  # type: psycopg2.extensions.cursor
+            with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
                 cursor.execute(f'''
 INSERT INTO data_integration_node_run (run_id, node_path, start_time, is_pipeline)
 VALUES  ({"%s, %s, %s, %s"})
 RETURNING node_run_id''', (self.run_id, event.node_path, event.start_time, event.is_pipeline))
 
         elif isinstance(event, system_statistics.SystemStatistics):
-            with mara_db.postgresql.postgres_cursor_context(
-                    'mara') as cursor:  # type: psycopg2.extensions.cursor
+            with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
                 cursor.execute(f'''
 INSERT INTO data_integration_system_statistics (timestamp, disc_read, disc_write, net_recv, net_sent, 
                                   cpu_usage, mem_usage, swap_usage, iowait)
@@ -110,8 +127,7 @@ VALUES ({"%s, %s, %s, %s, %s, %s, %s, %s, %s"})''',
                                 event.net_sent, event.cpu_usage, event.mem_usage, event.swap_usage, event.iowait))
 
         elif isinstance(event, events.NodeFinished):
-            with mara_db.postgresql.postgres_cursor_context(
-                    'mara') as cursor:  # type: psycopg2.extensions.cursor
+            with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
                 cursor.execute(f'''
 UPDATE data_integration_node_run
 SET end_time={"%s"}, succeeded={"%s"}
@@ -127,8 +143,7 @@ VALUES ''' + ','.join([cursor.mogrify('(%s,%s,%s,%s,%s)', (node_run_id, output_e
                        for output_event in self.node_output.get(tuple(event.node_path))]))
 
         elif isinstance(event, events.RunFinished):
-            with mara_db.postgresql.postgres_cursor_context(
-                    'mara') as cursor:  # type: psycopg2.extensions.cursor
+            with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
                 cursor.execute(f'''
 UPDATE data_integration_run 
 SET end_time={"%s"}, succeeded={"%s"}

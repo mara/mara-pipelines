@@ -101,10 +101,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 """
                 for node in node_queue:  # type: pipelines.Node
                     if ((not node.upstreams or len(node.upstreams & processed_nodes) == len(node.upstreams))
-                            and (not isinstance(node.parent, pipelines.Pipeline)
-                                 or (not node.parent.max_number_of_parallel_tasks)
-                                 or (not node.parent in running_pipelines)
-                                 or (running_pipelines[node.parent][1] < node.parent.max_number_of_parallel_tasks))):
+                        and (not isinstance(node.parent, pipelines.Pipeline)
+                             or (not node.parent.max_number_of_parallel_tasks)
+                             or (not node.parent in running_pipelines)
+                             or (running_pipelines[node.parent][1] < node.parent.max_number_of_parallel_tasks))):
                         node_queue.remove(node)
                         if node.parent in failed_pipelines and not node.parent.force_run_all_children:
                             # if the parent pipeline failed (and no overwrite), don't launch new nodes
@@ -115,7 +115,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             def track_finished_pipelines():
                 """when all nodes of a pipeline have been processed, then emit events"""
                 for running_pipeline, (start_time, running_children) \
-                        in dict(running_pipelines).items():  # type: pipelines.Pipeline
+                    in dict(running_pipelines).items():  # type: pipelines.Pipeline
                     if len(set(running_pipeline.nodes.values()) & processed_nodes) == len(running_pipeline.nodes):
                         succeeded = running_pipeline not in failed_pipelines
                         event_queue.put(events.Output(
@@ -259,9 +259,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     run_process = multiprocessing.Process(target=run, name='pipeline-' + '-'.join(pipeline.path()))
     run_process.start()
 
-    # todo: make event handlers configurable (e.g. for slack)
-    event_handlers = [run_log.RunLogger()]
+    runlogger = run_log.RunLogger()
+    event_handlers = [runlogger]
 
+    # todo: make event handlers configurable (e.g. for slack)
     if config.slack_token():
         event_handlers.append(slack.Slack())
 
@@ -275,9 +276,19 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 yield event
         except queues.Empty:
             pass
+        except GeneratorExit:
+            # This happens e.g. if the browser window is closed or we reload the page in the middle of a run
+            # As we still have open runs, we need to close them as failed.
+            run_log.close_open_run_after_error(runlogger.run_id)
+            # Catching GeneratorExit needs to end in a return!
+            return
         except:
-            yield events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
+            output_event = events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
                                 format=logger.Format.ITALICS, is_error=True)
+            for event_handler in event_handlers:
+                event_handler.handle_event(output_event)
+            yield output_event
+            run_log.close_open_run_after_error(runlogger.run_id)
             return
         if not run_process.is_alive():
             break
