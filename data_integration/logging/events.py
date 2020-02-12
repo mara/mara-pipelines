@@ -24,7 +24,7 @@ class EventHandler(abc.ABC):
         pass
 
 
-class PipelineEvent():
+class PipelineEvent(Event):
     def __init__(self, node_path: [str]) -> None:
         """
         Base class for events that are emitted during a pipeline run.
@@ -33,6 +33,7 @@ class PipelineEvent():
             node_path: The path of the current node in the data pipeline that is run
 
         """
+        super().__init__()
         self.node_path = node_path
 
     def to_json(self):
