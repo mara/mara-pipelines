@@ -336,9 +336,7 @@ WHERE {key_definition}"""
 INSERT INTO {self.target_table}
 SELECT src.*
 FROM {self.target_table}_upsert src
-LEFT JOIN {self.target_table} dst
-  ON {key_definition}
-WHERE dst.* IS NULL"""
+WHERE NOT EXISTS (SELECT 1 FROM {self.target_table} dst WHERE {key_definition})"""
                 if not shell.run_shell_command(f'echo {shlex.quote(update_query)} \\\n  | '
                                                + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
                     return False
