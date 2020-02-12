@@ -1,5 +1,13 @@
 # Changelog
 
+## 2.6.0 (2019-02-12)
+
+- Python 3.8 compatibility (explicitly set process spawning method to 'fork')
+- Fix open runs after browser reload
+- Add workaround for system statistics on wsl1
+- Speedup incremental insert into partitioned tables
+- Show warning when graphviz is not installed
+
 ## 2.5.1 (2019-08-01)
 
 - Include file_dependencies as variable for Copy Commands: This could handle cases in ETL pipeline, where the copy command shall be skipped if the sql_files stay the same.
