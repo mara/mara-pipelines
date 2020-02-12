@@ -102,7 +102,10 @@ def dependency_graph(nodes: {str: pipelines.Node},
                            _attributes={'color': '#888888', 'arrowsize': '0.7',
                                         'edgetooltip': downstream.id, 'style': 'dotted'})
 
-    return graph.pipe('svg').decode('utf-8')
+    try:
+        return graph.pipe('svg').decode('utf-8')
+    except graphviz.backend.ExecutableNotFound as e:
+        return str(_.tt(style='color:red')[str(e)])
 
 
 @dependency_graph.register(pipelines.Pipeline)

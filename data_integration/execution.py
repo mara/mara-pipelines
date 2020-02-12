@@ -33,6 +33,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     Yields:
         Events emitted during pipeline execution
     """
+    
+    # use forking for starting child processes to avoid cleanup functions and leakage
+    multiprocessing.set_start_method('fork')
+
     # A queue for receiving events from forked sub processes
     event_queue = multiprocessing.Queue()
 
