@@ -5,7 +5,7 @@ matrix:
     - python: '3.6'
     - python: '3.7'
       env: UPLOAD=True
-    - python: 3.7-dev
+    - python: '3.8'
 install:
   - pip install .[test]
 script: echo hello world
