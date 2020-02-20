@@ -40,6 +40,20 @@ ON CONFLICT (node_path, dependency_type)
 DO UPDATE SET timestamp = EXCLUDED.timestamp, hash = EXCLUDED.hash
     """, (node_path, dependency_type, hash(pipeline_base_path, file_dependencies), datetime.datetime.utcnow()))
 
+def delete(node_path: [str], dependency_type: str):
+    """
+    Delets the combined hash of a list of files for that node and dependency type
+
+    Args:
+        node_path: The path of the node that depends on the files
+        dependency_type: An arbitrary string that allows to distinguish between multiple dependencies of a node
+    """
+    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
+        cursor.execute(f"""
+DELETE FROM data_integration_file_dependency
+WHERE node_path = {'%s'} AND dependency_type = {'%s'}
+    """, (node_path, dependency_type))
+
 
 def is_modified(node_path: [str], dependency_type: str, pipeline_base_path: str, file_dependencies: [str]):
     """
@@ -56,8 +70,8 @@ def is_modified(node_path: [str], dependency_type: str, pipeline_base_path: str,
     """
     with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
         cursor.execute("""
-SELECT TRUE  
-FROM data_integration_file_dependency 
+SELECT TRUE
+FROM data_integration_file_dependency
 WHERE node_path=%s AND dependency_type=%s AND hash=%s """,
                        (node_path, dependency_type, hash(pipeline_base_path, file_dependencies)))
         return False if cursor.fetchone() else True

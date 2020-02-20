@@ -114,6 +114,13 @@ class ExecuteSQL(_SQLCommand):
                                                  self.file_dependencies):
                 logger.log('no changes')
                 return True
+            else:
+                # delete any old hash to trigger a run in case the next run is switched back to the old hash
+                # This prevents inconsistent state in case you do a deplyoment with bad SQL which fails and
+                # then revert.
+                # The hash would still be correct for the old state but the results of this file would
+                # probably not be there (usually the first step is a DROP).
+                file_dependencies.delete(self.node_path(), dependency_type)
 
         if not super().run():
             return False
@@ -172,6 +179,12 @@ class Copy(_SQLCommand):
                                                  self.file_dependencies):
                 logger.log('no changes')
                 return True
+            else:
+                # delete any old hash to trigger a run in case the next run is switched back to the old hash
+                # which in most cases would result in an newly created empty table but no load
+                # (see also above in ExecuteSQL)
+                file_dependencies.delete(self.node_path(), dependency_type)
+
 
         if not super().run():
             return False
