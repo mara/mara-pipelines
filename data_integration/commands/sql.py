@@ -141,7 +141,7 @@ class Copy(_SQLCommand):
     def __init__(self, source_db_alias: str, target_table: str, target_db_alias: str = None,
                  sql_statement: str = None, sql_file_name: Union[Callable, str] = None, replace: {str: str} = None,
                  timezone: str = None, csv_format: bool = None, delimiter_char: str = None,
-                 file_dependencies = None) -> None:
+                 file_dependencies=None) -> None:
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
         self.source_db_alias = source_db_alias
         self.target_table = target_table
@@ -287,6 +287,13 @@ class CopyIncrementally(_SQLCommand):
                 logger.log(truncate_query, format=logger.Format.VERBATIM)
                 with mara_db.postgresql.postgres_cursor_context(self.target_db_alias) as cursor:
                     cursor.execute(truncate_query)
+            elif last_comparison_value:
+                # table is empty but we have a last comparison value from earlier runs
+                # If we would crash during load (with some data already in the table), the next run would
+                # not trigger a full load and we would miss data. To prevent that, delete the old
+                # comparison value (we will then set it only on success)
+                logger.log('deleting old comparison value', logger.Format.ITALICS)
+                incremental_copy_status.delete(self.node_path(), self.source_db_alias, self.source_table)
 
             # overwrite the comparison criteria to get everything
             replace = {self.comparison_value_placeholder: '(1=1)'}
