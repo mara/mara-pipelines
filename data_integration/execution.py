@@ -36,10 +36,13 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
     # use forking for starting child processes to avoid cleanup functions and leakage and pickle problems
     # basically only py3.8 on mac uses spawn as default
+    #
     # Using fork on newer macs has it's own disadvantages: you need to set
     #   OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
     # env variable *before* starting python/flask otherwise you will get core dumps when any forked process calls
-    # into certain native code (e.g. requests)!
+    # into certain native code (e.g. requests)! Note that this is done automatically if you create your virtual env
+    # via the scripts from mara-app >= 2.1.1
+    #
     # You can only set this once, otherwise you get "RuntimeError: context has already been set"
     if multiprocessing.get_start_method(allow_none=True) != 'fork':
         multiprocessing.set_start_method('fork')
