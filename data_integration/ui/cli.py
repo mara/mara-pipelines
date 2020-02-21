@@ -91,14 +91,32 @@ def run_interactively():
 
             requests.post('https://hooks.slack.com/services/' + config.slack_token(), json={'text': message})
 
+        if config.teams_token():
+            message_teams = ('&#x1F423; ' + (os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
+                             + ' manually triggered run of ' +
+                             ('pipeline [' + '/'.join(pipeline.path()) + ']' +
+                              '(' + (config.base_url() + '/' + '/'.join(pipeline.path()) + ')'
+                                     if pipeline.parent else 'root pipeline')))
+
+            if nodes:
+                message_teams += ', nodes ' + ', '.join([f'`{node.id}`' for node in nodes])
+
+            requests.post('https://outlook.office.com/webhook/' + config.teams_token(), json={'text': message_teams})
+
         if not run_pipeline(pipeline, nodes):
             if config.slack_token():
                 requests.post('https://hooks.slack.com/services/' + config.slack_token(),
                               json={'text': ':baby_chick: failed'})
+            if config.teams_token():
+                requests.post('https://outlook.office.com/webhook/' + config.teams_token(),
+                              json={'title': '&#x1F424; failed'})
             sys.exit(-1)
         if config.slack_token():
             requests.post('https://hooks.slack.com/services/' + config.slack_token(),
                           json={'text': ':hatched_chick: succeeded'})
+        if config.teams_token():
+            requests.post('https://outlook.office.com/webhook/' + config.teams_token(),
+                          json={'title': '&#x1F425; succeeded'})
 
     def menu(node: pipelines.Node):
         if isinstance(node, pipelines.Pipeline):

@@ -71,6 +71,14 @@ def slack_token() -> str:
     """
     return None
 
+def teams_token() -> str:
+    """
+    When not None, then this teams webhook is notified of failed nodes.
+    Slack channel's token (i.e. THISIS/ASLACK/TOCKEN) can be retrieved from the
+    channel's app "Incoming WebHooks" configuration as part part of the Webhook URL
+    """
+    return None
+
 def password_masks() -> typing.List[str]:
     """Any passwords which should be masked in the UI or logs"""
 
