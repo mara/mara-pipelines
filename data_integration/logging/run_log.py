@@ -137,7 +137,8 @@ RETURNING node_run_id''', (event.end_time, event.succeeded, self.run_id, event.n
 
                 cursor.execute('''
 INSERT INTO data_integration_node_output (node_run_id, timestamp, message, format, is_error) 
-VALUES ''' + ','.join([cursor.mogrify('(%s,%s,%s,%s,%s)', (node_run_id, output_event.timestamp, output_event.message,
+VALUES ''' + ','.join([cursor.mogrify('(%s,%s,%s,%s,%s)', (node_run_id, output_event.timestamp,
+                                                           output_event.message.encode('utf-8'),
                                                            output_event.format, output_event.is_error))
                       .decode('utf-8')
                        for output_event in self.node_output.get(tuple(event.node_path))]))
