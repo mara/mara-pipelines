@@ -13,7 +13,7 @@ import traceback
 from multiprocessing import queues
 
 from . import pipelines, config
-from .logging import logger, events, system_statistics, run_log, node_cost, slack
+from .logging import logger, events, system_statistics, run_log, node_cost, slack, teams
 
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
@@ -269,6 +269,9 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     # todo: make event handlers configurable (e.g. for slack)
     if config.slack_token():
         event_handlers.append(slack.Slack())
+
+    if config.teams_token():
+        event_handlers.append(teams.Teams())
 
     # process messages from forked child processes
     while True:
