@@ -109,14 +109,14 @@ def run_interactively():
                               json={'text': ':baby_chick: failed'})
             if config.teams_token():
                 requests.post('https://outlook.office.com/webhook/' + config.teams_token(),
-                              json={'title': '<font size="4">&#x1F424;</font> failed'})
+                              json={'text': '<font size="4">&#x1F424;</font> failed'})
             sys.exit(-1)
         if config.slack_token():
             requests.post('https://hooks.slack.com/services/' + config.slack_token(),
                           json={'text': ':hatched_chick: succeeded'})
         if config.teams_token():
             requests.post('https://outlook.office.com/webhook/' + config.teams_token(),
-                          json={'title': '<font size="4">&#x1F425;</font> succeeded'})
+                          json={'text': '<font size="4">&#x1F425;</font> succeeded'})
 
     def menu(node: pipelines.Node):
         if isinstance(node, pipelines.Pipeline):
