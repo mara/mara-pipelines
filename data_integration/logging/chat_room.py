@@ -8,11 +8,20 @@ class ChatRoom(abc.ABC):
         SLACK = 'Slack'
         TEAMS = 'Teams'
 
-    class MessageType(enum.EnumMeta):
-        ERROR = "Error"
+    @abc.abstractmethod
+    def create_error_msg(self, node_path: []):
+        pass
 
     @abc.abstractmethod
-    def create_msg(self, message_type, node_path: []):
+    def create_run_msg(self, pipeline):
+        pass
+
+    @abc.abstractmethod
+    def create_failure_msg(self):
+        pass
+
+    @abc.abstractmethod
+    def create_success_msg(self):
         pass
 
     @abc.abstractmethod

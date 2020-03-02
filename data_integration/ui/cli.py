@@ -78,45 +78,34 @@ def run_interactively():
     d = Dialog(dialog="dialog", autowidgetsize=True)  # see http://pythondialog.sourceforge.net/doc/widgets.html
 
     def run_pipeline_and_notify(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None):
-        import requests, os
+        from ..logging.slack import Slack
+        from ..logging.teams import Teams
+
+        chat_rooms = []
 
         if config.slack_token():
-            message = (':hatching_chick: *' + (os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
-                       + '* manually triggered run of ' +
-                       ('pipeline <' + config.base_url() + '/' + '/'.join(pipeline.path()) + '|'
-                        + '/'.join(pipeline.path()) + ' >' if pipeline.parent else 'root pipeline'))
-
-            if nodes:
-                message += ', nodes ' + ', '.join([f'`{node.id}`' for node in nodes])
-
-            requests.post('https://hooks.slack.com/services/' + config.slack_token(), json={'text': message})
-
+            chat_rooms.append(Slack())
         if config.teams_token():
-            message_teams = ('<font size="4">&#x1F423;</font> ' + (os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
-                             + ' manually triggered run of ' +
-                             ('pipeline [' + '/'.join(pipeline.path()) + ']' +
-                              '(' + (config.base_url() + '/' + '/'.join(pipeline.path()) + ')'
-                                     if pipeline.parent else 'root pipeline')))
+            chat_rooms.append(Teams())
 
+        for chat_room in chat_rooms:
+            text = chat_room.create_run_msg(pipeline)
             if nodes:
-                message_teams += ', nodes ' + ', '.join([f'`{node.id}`' for node in nodes])
+                text += ', nodes ' + ', '.join([f'`{node.id}`' for node in nodes])
 
-            requests.post('https://outlook.office.com/webhook/' + config.teams_token(), json={'text': message_teams})
+            chat_room.send_msg(message={'text': text})
 
         if not run_pipeline(pipeline, nodes):
-            if config.slack_token():
-                requests.post('https://hooks.slack.com/services/' + config.slack_token(),
-                              json={'text': ':baby_chick: failed'})
-            if config.teams_token():
-                requests.post('https://outlook.office.com/webhook/' + config.teams_token(),
-                              json={'text': '<font size="4">&#x1F424;</font> failed'})
+
+            for chat_room in chat_rooms:
+                text = chat_room.create_failure_msg()
+                chat_room.send_msg(message={'text': text})
+
             sys.exit(-1)
-        if config.slack_token():
-            requests.post('https://hooks.slack.com/services/' + config.slack_token(),
-                          json={'text': ':hatched_chick: succeeded'})
-        if config.teams_token():
-            requests.post('https://outlook.office.com/webhook/' + config.teams_token(),
-                          json={'text': '<font size="4">&#x1F425;</font> succeeded'})
+
+        for chat_room in chat_rooms:
+            text = chat_room.create_success_msg()
+            chat_room.send_msg(message={'text': text})
 
     def menu(node: pipelines.Node):
         if isinstance(node, pipelines.Pipeline):

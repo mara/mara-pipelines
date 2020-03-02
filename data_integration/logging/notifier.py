@@ -37,7 +37,7 @@ class Notifier(events.EventHandler):
                         chat_type = ChatRoom.Type.TEAMS
 
                     message = {}
-                    text = chat_room.create_msg(message_type=ChatRoom.MessageType.ERROR, node_path=event.node_path)
+                    text = chat_room.create_error_msg(node_path=event.node_path)
 
                     error_log1 = ''
                     error_log2 = ''

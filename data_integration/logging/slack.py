@@ -3,16 +3,29 @@
 from .. import config
 from ..logging.chat_room import ChatRoom
 import requests
+import os
+
 
 class Slack(ChatRoom):
 
-    def create_msg(self, message_type: str, node_path: []):
-        text = ''
-        if message_type == self.MessageType.ERROR:
-            path = '/'.join(node_path)
-            text = '\n:baby_chick: Ooops, a hiccup in ' + '_ <' + config.base_url() + '/' + path \
-                   + ' | ' + path + ' > _'
+    def create_error_msg(self, node_path: []):
+        path = '/'.join(node_path)
+        text = '\n:baby_chick: Ooops, a hiccup in ' + '_ <' + config.base_url() + '/' + path \
+               + ' | ' + path + ' > _'
         return text
+
+    def create_run_msg(self, pipeline):
+        msg = (':hatching_chick: *' + (os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
+               + '* manually triggered run of ' +
+               ('pipeline <' + config.base_url() + '/' + '/'.join(pipeline.path()) + '|'
+                + '/'.join(pipeline.path()) + ' >' if pipeline.parent else 'root pipeline'))
+        return msg
+
+    def create_failure_msg(self):
+        return ':baby_chick: failed'
+
+    def create_success_msg(self):
+        return ':hatched_chick: succeeded'
 
     def send_msg(self, message):
         return requests.post(url='https://hooks.slack.com/services/' + config.slack_token(), json=message)
