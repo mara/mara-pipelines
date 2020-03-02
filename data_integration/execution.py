@@ -269,10 +269,12 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     # todo: make event handlers configurable (e.g. for slack)
     chat_rooms = []
     if config.slack_token():
-        chat_rooms.append(slack.Slack())
+        chat_rooms.append(slack.Slack(code_markup_start="```", code_markup_end="```", line_start='\n _',
+                                      line_end=' _ '))
 
     if config.teams_token():
-        chat_rooms.append(teams.Teams())
+        chat_rooms.append(teams.Teams(code_markup_start="<pre>", code_markup_end="</pre>", line_start='\n\n',
+                                      replace_with='\\_'))
 
     notifier_ = notifier.Notifier(chat_rooms=chat_rooms)
     event_handlers.append(notifier_)

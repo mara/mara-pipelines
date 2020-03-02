@@ -42,9 +42,9 @@ class Notifier(events.EventHandler):
                     error_log1 = ''
                     error_log2 = ''
                     if self.node_output[key][False]:
-                        error_log1 = chat_room.format_output(self.node_output[key][False], chat_type=chat_type)
+                        error_log1 = chat_room.format_output(self.node_output[key][False])
                     if self.node_output[key][True]:
-                        error_log2 = chat_room.format_output(self.node_output[key][True], chat_type=chat_type)
+                        error_log2 = chat_room.format_output(self.node_output[key][True])
 
                     if chat_type == ChatRoom.Type.TEAMS:
                         text = text + error_log1 + error_log2

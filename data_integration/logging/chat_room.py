@@ -8,6 +8,15 @@ class ChatRoom(abc.ABC):
         SLACK = 'Slack'
         TEAMS = 'Teams'
 
+    def __init__(self, code_markup_start: str, code_markup_end: str, line_start: str, line_end: str = '',
+                 replace_with: str = '_'):
+        self.code_markup_start = code_markup_start
+        self.code_markup_end = code_markup_end
+        self.line_start = line_start
+        self.line_end = line_end
+        self.replace_with = replace_with
+        self.line_end = line_end
+
     @abc.abstractmethod
     def create_error_msg(self, node_path: []):
         pass
@@ -28,28 +37,19 @@ class ChatRoom(abc.ABC):
     def send_msg(self, message):
         pass
 
-    def format_output(self, output_events: [events.Output], chat_type):
-
-        code_markup_start = '```'
-        code_markup_end = '```'
-        if chat_type == self.Type.TEAMS:
-            code_markup_start = '<pre>'
-            code_markup_end = '</pre>'
+    def format_output(self, output_events: [events.Output]):
 
         output, last_format = '', ''
         for event in output_events:
             if event.format == events.Output.Format.VERBATIM:
                 if last_format == event.format:
                     # append new verbatim line to the already initialized verbatim output
-                    output = output[0:-len(code_markup_end)] + '\n' + event.message + code_markup_end
+                    output = output[0:-len(self.code_markup_end)] + '\n' + event.message + self.code_markup_end
                 else:
-                    output += '\n' + code_markup_start + event.message + code_markup_end
+                    output += '\n' + self.code_markup_start + event.message + self.code_markup_end
             elif event.format == events.Output.Format.ITALICS:
                 for line in event.message.splitlines():
-                    if chat_type == self.Type.TEAMS:
-                        output += '\n\n' + str(line.replace('_', '\\_'))
-                    elif chat_type == self.Type.SLACK:
-                        output += '\n _ ' + str(line) + ' _ '
+                    output += self.line_start + str(line.replace('_', self.replace_with)) + self.line_end
             else:
                 output = '\n' + event.message
 
