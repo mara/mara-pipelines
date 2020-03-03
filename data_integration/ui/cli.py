@@ -86,8 +86,15 @@ def run(path, nodes, with_upstreams):
         else:
             _nodes.add(node)
 
+    start_event = PipelineStartEvent(pipeline, nodes, manually_started=False)
+    event_base.notify_configured_event_handlers(start_event)
+
     if not run_pipeline(pipeline, _nodes, with_upstreams):
+        end_event = PipelineEndEvent(success=False, manually_started=False)
+        event_base.notify_configured_event_handlers(end_event)
         sys.exit(-1)
+    end_event = PipelineEndEvent(success=True, manually_started=False)
+    event_base.notify_configured_event_handlers(end_event)
 
 
 @click.command()
