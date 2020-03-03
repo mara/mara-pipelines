@@ -267,7 +267,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     event_handlers = [runlogger]
 
     # todo: make event handlers configurable (e.g. for slack)
-    event_handlers.append(config.event_handlers()[0])
+    event_handlers.extend(config.event_handlers())
 
     # process messages from forked child processes
     while True:
