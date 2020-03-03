@@ -53,6 +53,26 @@ class Slack(event_base.EventHandler):
                         'Request to slack returned an error %s. The response is:\n%s' % (
                             response.status_code, response.text)
                     )
+        elif isinstance(event, cli.PipelineStartEvent):
+            # default handler only handles manually started runs
+            if event.manually_started:
+                message = f':hatching_chick: *{event.user}* manually triggered run of '
+                message +=  ('pipeline <' + config.base_url() + '/' + '/'.join(event.pipeline.path()) + '|'
+                            + '/'.join(event.pipeline.path()) + ' >' if event.pipeline.parent else 'root pipeline')
+
+                if event.nodes:
+                    message += ', nodes ' + ', '.join([f'`{node.id}`' for node in event.nodes])
+
+                requests.post('https://hooks.slack.com/services/' + config.slack_token(), json={'text': message})
+        elif isinstance(event, cli.PipelineEndEvent):
+            # default handler only handles manually started runs
+            if event.manually_started:
+                if event.success:
+                    msg = ':hatched_chick: succeeded'
+                else:
+                    msg = ':baby_chick: failed'
+                requests.post('https://hooks.slack.com/services/' + config.slack_token(),
+                              json={'text': msg})
 
     def format_output(self, output_events: [events.Output]):
         output, last_format = '', ''

@@ -4,7 +4,27 @@ import sys
 
 import click
 
-from .. import config, pipelines
+from .. import config, pipelines, event_base
+import typing as t
+
+
+class PipelineStartEvent(event_base.Event):
+    def __init__(self,              pipeline: pipelines.Pipeline,
+                 nodes: {pipelines.Node},
+                 user: t.Optional[str] = None,
+                 manually_started: bool = True):
+        super().__init__()
+        self.manually_started = manually_started,
+        self.user = user
+        self.pipeline = pipeline
+        self.nodes = nodes
+
+
+class PipelineEndEvent(event_base.Event):
+    def __init__(self, success: bool, manually_started: bool = True):
+        super().__init__()
+        self.manually_started = manually_started,
+        self.success = success
 
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
@@ -78,27 +98,19 @@ def run_interactively():
     d = Dialog(dialog="dialog", autowidgetsize=True)  # see http://pythondialog.sourceforge.net/doc/widgets.html
 
     def run_pipeline_and_notify(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None):
-        import requests, os
+        import os
 
-        if config.slack_token():
-            message = (':hatching_chick: *' + (os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
-                       + '* manually triggered run of ' +
-                       ('pipeline <' + config.base_url() + '/' + '/'.join(pipeline.path()) + '|'
-                        + '/'.join(pipeline.path()) + ' >' if pipeline.parent else 'root pipeline'))
-
-            if nodes:
-                message += ', nodes ' + ', '.join([f'`{node.id}`' for node in nodes])
-
-            requests.post('https://hooks.slack.com/services/' + config.slack_token(), json={'text': message})
+        user = os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin()
+        start_event = PipelineStartEvent(pipeline, nodes, user=user)
+        event_base.notify_configured_event_handlers(start_event)
 
         if not run_pipeline(pipeline, nodes):
-            if config.slack_token():
-                requests.post('https://hooks.slack.com/services/' + config.slack_token(),
-                              json={'text': ':baby_chick: failed'})
+            end_event = PipelineEndEvent(success=False, manually_started=True)
+            event_base.notify_configured_event_handlers(end_event)
+
             sys.exit(-1)
-        if config.slack_token():
-            requests.post('https://hooks.slack.com/services/' + config.slack_token(),
-                          json={'text': ':hatched_chick: succeeded'})
+        end_event = PipelineEndEvent(success=True, manually_started=True)
+        event_base.notify_configured_event_handlers(end_event)
 
     def menu(node: pipelines.Node):
         if isinstance(node, pipelines.Pipeline):
