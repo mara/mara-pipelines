@@ -9,7 +9,7 @@ import os
 class Teams(ChatRoom):
 
     def __init__(self):
-        super().__init__(chat_type=ChatRoom.ChatType.TEAMS, code_markup_start="<pre>", code_markup_end="</pre>",
+        super().__init__(chat_type="Teams", code_markup_start="<pre>", code_markup_end="</pre>",
                          line_start='\n\n', replace_with='\\_')
 
     def create_error_text(self, node_path: []):

@@ -4,11 +4,8 @@ from data_integration.logging import events
 
 
 class ChatRoom(abc.ABC):
-    class ChatType(enum.EnumMeta):
-        SLACK = 'Slack'
-        TEAMS = 'Teams'
 
-    def __init__(self, chat_type: ChatType, code_markup_start: str, code_markup_end: str, line_start: str,
+    def __init__(self, chat_type, code_markup_start: str, code_markup_end: str, line_start: str,
                  line_end: str = '', replace_with: str = '_'):
         self.chat_type = chat_type
         self.code_markup_start = code_markup_start

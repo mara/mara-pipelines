@@ -8,7 +8,7 @@ import os
 
 class Slack(ChatRoom):
     def __init__(self):
-        super().__init__(chat_type=ChatRoom.ChatType.SLACK, code_markup_start="```", code_markup_end="```",
+        super().__init__(chat_type="Slack", code_markup_start="```", code_markup_end="```",
                          line_start='\n _', line_end=' _ ')
 
     def create_error_text(self, node_path: []):
