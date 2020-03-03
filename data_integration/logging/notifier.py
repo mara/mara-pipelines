@@ -2,7 +2,6 @@
 
 from data_integration.logging import events
 from ..logging.chat_room import ChatRoom
-from ..logging.teams import Teams
 
 class Notifier(events.EventHandler):
 
@@ -32,12 +31,8 @@ class Notifier(events.EventHandler):
             key = tuple(event.node_path)
             if not event.succeeded and event.is_pipeline is False:
                 for chat_room in self.chat_rooms:
-                    chat_type = ChatRoom.Type.SLACK
-                    if isinstance(chat_room, Teams):
-                        chat_type = ChatRoom.Type.TEAMS
 
-                    message = {}
-                    text = chat_room.create_error_msg(node_path=event.node_path)
+                    text = chat_room.create_error_text(node_path=event.node_path)
 
                     error_log1 = ''
                     error_log2 = ''
@@ -46,19 +41,11 @@ class Notifier(events.EventHandler):
                     if self.node_output[key][True]:
                         error_log2 = chat_room.format_output(self.node_output[key][True])
 
-                    if chat_type == ChatRoom.Type.TEAMS:
-                        text = text + error_log1 + error_log2
-                    elif chat_type == ChatRoom.Type.SLACK:
-                        attachments = [{'text': error_log1, 'mrkdwn_in': ['text']},
-                                       {'text': error_log2, 'color': '#eb4d5c', 'mrkdwn_in': ['text']}]
-                        message['attachments'] = attachments
-
-                    message['text'] = text
-
+                    message = chat_room.create_error_msg(text, error_log1, error_log2)
                     response = chat_room.send_msg(message=message)
 
                     if response.status_code != 200:
                         raise ValueError(
                             'Request to %s returned an error %s. The response is:\n%s' % (
-                                chat_type, response.status_code, response.text)
+                                chat_room.chat_type, response.status_code, response.text)
                         )

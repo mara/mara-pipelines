@@ -1,9 +1,12 @@
 """Configuration of data integration pipelines and how to run them"""
 
 import datetime
+import functools
 import multiprocessing
 import pathlib
 import typing
+
+from data_integration.logging import events
 
 from . import pipelines
 
@@ -74,10 +77,20 @@ def slack_token() -> str:
 def teams_token() -> str:
     """
     When not None, then this teams webhook is notified of failed nodes.
-    Slack channel's token (i.e. THISIS/ASLACK/TOCKEN) can be retrieved from the
-    channel's app "Incoming WebHooks" configuration as part part of the Webhook URL
     """
     return None
+
+@functools.lru_cache(maxsize=None)
+def event_handlers() -> [events.EventHandler]:
+    from .logging import slack, teams, notifier
+    chat_rooms = []
+    if slack_token():
+        chat_rooms.append(slack.Slack())
+
+    if teams_token():
+        chat_rooms.append(teams.Teams())
+
+    return [notifier.Notifier(chat_rooms=chat_rooms)]
 
 def password_masks() -> typing.List[str]:
     """Any passwords which should be masked in the UI or logs"""

@@ -2,14 +2,15 @@ import abc
 import enum
 from data_integration.logging import events
 
-class ChatRoom(abc.ABC):
 
-    class Type(enum.EnumMeta):
+class ChatRoom(abc.ABC):
+    class ChatType(enum.EnumMeta):
         SLACK = 'Slack'
         TEAMS = 'Teams'
 
-    def __init__(self, code_markup_start: str, code_markup_end: str, line_start: str, line_end: str = '',
-                 replace_with: str = '_'):
+    def __init__(self, chat_type: ChatType, code_markup_start: str, code_markup_end: str, line_start: str,
+                 line_end: str = '', replace_with: str = '_'):
+        self.chat_type = chat_type
         self.code_markup_start = code_markup_start
         self.code_markup_end = code_markup_end
         self.line_start = line_start
@@ -18,7 +19,11 @@ class ChatRoom(abc.ABC):
         self.line_end = line_end
 
     @abc.abstractmethod
-    def create_error_msg(self, node_path: []):
+    def create_error_text(self, node_path: []):
+        pass
+
+    @abc.abstractmethod
+    def create_error_msg(self, text, error_log1, error_log2):
         pass
 
     @abc.abstractmethod
