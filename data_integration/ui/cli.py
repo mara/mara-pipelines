@@ -26,6 +26,9 @@ class PipelineEndEvent(event_base.Event):
         self.manually_started = manually_started,
         self.success = success
 
+def get_user()-> str:
+    import os
+    return os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin()
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                  with_upstreams: bool = False) -> bool:
@@ -86,7 +89,7 @@ def run(path, nodes, with_upstreams):
         else:
             _nodes.add(node)
 
-    start_event = PipelineStartEvent(pipeline, nodes, manually_started=False)
+    start_event = PipelineStartEvent(pipeline, nodes, manually_started=False, user=get_user())
     event_base.notify_configured_event_handlers(start_event)
 
     if not run_pipeline(pipeline, _nodes, with_upstreams):
@@ -105,10 +108,7 @@ def run_interactively():
     d = Dialog(dialog="dialog", autowidgetsize=True)  # see http://pythondialog.sourceforge.net/doc/widgets.html
 
     def run_pipeline_and_notify(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None):
-        import os
-
-        user = os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin()
-        start_event = PipelineStartEvent(pipeline, nodes, user=user)
+        start_event = PipelineStartEvent(pipeline, nodes, user=get_user())
         event_base.notify_configured_event_handlers(start_event)
 
         if not run_pipeline(pipeline, nodes):
