@@ -2,12 +2,14 @@
 
 from .. import config
 from ..logging import events
+from .. import event_base
+from ..ui import cli
 
 
-class Slack(events.EventHandler):
-    node_output: {tuple: {bool: [events.Event]}} = None
+class Slack(event_base.EventHandler):
+    node_output: {tuple: {bool: [event_base.Event]}} = None
 
-    def handle_event(self, event: events.Event):
+    def handle_event(self, event: event_base.Event):
         """
         Send the output of a node to Slack when the node failed.
         Args:

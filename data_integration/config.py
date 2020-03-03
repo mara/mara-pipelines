@@ -4,8 +4,9 @@ import datetime
 import multiprocessing
 import pathlib
 import typing
+import functools
 
-from . import pipelines
+from . import pipelines, event_base
 
 
 def root_pipeline() -> 'pipelines.Pipeline':
@@ -70,6 +71,15 @@ def slack_token() -> str:
     channel's app "Incoming WebHooks" configuration as part part of the Webhook URL
     """
     return None
+
+@functools.lru_cache(maxsize=None)
+def event_handlers() -> [event_base.EventHandler]:
+    event_handlers = []
+    if slack_token():
+        from .logging import slack
+        event_handlers.append(slack.Slack())
+    return event_handlers
+
 
 def password_masks() -> typing.List[str]:
     """Any passwords which should be masked in the UI or logs"""

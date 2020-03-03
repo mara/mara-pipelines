@@ -13,11 +13,12 @@ import traceback
 from multiprocessing import queues
 
 from . import pipelines, config
-from .logging import logger, events, system_statistics, run_log, node_cost, slack
+from .logging import logger, events, system_statistics, run_log, node_cost
+from . import event_base
 
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
-                 with_upstreams: bool = False) -> [events.Event]:
+                 with_upstreams: bool = False) -> [event_base.Event]:
     """
     Runs a pipeline in a forked sub process. Acts as a generator that yields events from the sub process.
 
@@ -274,19 +275,14 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     run_process.start()
 
     runlogger = run_log.RunLogger()
-    event_handlers = [runlogger]
-
-    # todo: make event handlers configurable (e.g. for slack)
-    if config.slack_token():
-        event_handlers.append(slack.Slack())
 
     # process messages from forked child processes
     while True:
         try:
             while not event_queue.empty():
                 event = event_queue.get(False)
-                for event_handler in event_handlers:
-                    event_handler.handle_event(event)
+                runlogger.handle_event(event)
+                event_base.notify_configured_event_handlers(event)
                 yield event
         except queues.Empty:
             pass
@@ -299,8 +295,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
         except:
             output_event = events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
                                 format=logger.Format.ITALICS, is_error=True)
-            for event_handler in event_handlers:
-                event_handler.handle_event(output_event)
+            runlogger.handle_event(output_event)
+            event_base.notify_configured_event_handlers(output_event)
             yield output_event
             run_log.close_open_run_after_error(runlogger.run_id)
             return
