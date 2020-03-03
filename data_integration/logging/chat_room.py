@@ -1,5 +1,4 @@
 import abc
-import enum
 from data_integration.logging import events
 
 
