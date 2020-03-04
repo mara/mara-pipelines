@@ -35,6 +35,13 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     """
 
     # use forking for starting child processes to avoid cleanup functions and leakage and pickle problems
+    #
+    # On newer macs you need to set
+    #   OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+    # env variable *before* starting python/flask otherwise you will get core dumps when any forked process calls
+    # into certain native code (e.g. requests)! Note that this is done automatically if you create your virtual env
+    # via the scripts from mara-app >= 2.1.1
+    #
     multiprocessing_context = multiprocessing.get_context('fork')
 
     # A queue for receiving events from forked sub processes
