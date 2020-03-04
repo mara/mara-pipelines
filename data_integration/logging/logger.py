@@ -4,13 +4,13 @@ import multiprocessing
 import sys
 from datetime import datetime
 
-from ..logging import events
+from ..logging import pipeline_events
 import data_integration.config
 
-Format = events.Output.Format
+Format = pipeline_events.Output.Format
 
 
-def log(message: str, format: events.Output.Format = Format.STANDARD,
+def log(message: str, format: pipeline_events.Output.Format = Format.STANDARD,
         is_error: bool = False) -> None:
     """
     Logs text messages.
@@ -32,7 +32,7 @@ def log(message: str, format: events.Output.Format = Format.STANDARD,
             message = message.replace(mask, '***')
     if message:
         if _event_queue:
-            _event_queue.put(events.Output(_node_path, message, format, is_error))
+            _event_queue.put(pipeline_events.Output(_node_path, message, format, is_error))
         elif is_error:
             sys.stderr.write(message + '\n')
         else:

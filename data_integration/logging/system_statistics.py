@@ -5,10 +5,10 @@ import multiprocessing
 import time
 
 from .. import config
-from ..logging import events
+from ..logging import pipeline_events
 
 
-class SystemStatistics(events.Event):
+class SystemStatistics(pipeline_events.Event):
     def __init__(self, timestamp: datetime.datetime, *, disc_read: float = None, disc_write: float = None,
                  net_recv: float = None, net_sent: float = None,
                  cpu_usage: float = None, mem_usage: float = None, swap_usage: float = None,

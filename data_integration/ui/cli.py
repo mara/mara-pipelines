@@ -4,55 +4,35 @@ import sys
 
 import click
 
-from .. import config, pipelines, event_base
-import typing as t
+from .. import config, pipelines
 
-
-class PipelineStartEvent(event_base.Event):
-    def __init__(self,              pipeline: pipelines.Pipeline,
-                 nodes: {pipelines.Node},
-                 user: t.Optional[str] = None,
-                 manually_started: bool = True):
-        super().__init__()
-        self.manually_started = manually_started,
-        self.user = user
-        self.pipeline = pipeline
-        self.nodes = nodes
-
-
-class PipelineEndEvent(event_base.Event):
-    def __init__(self, success: bool, manually_started: bool = True):
-        super().__init__()
-        self.manually_started = manually_started,
-        self.success = success
-
-def get_user()-> str:
-    import os
-    return os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin()
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
-                 with_upstreams: bool = False) -> bool:
+                 with_upstreams: bool = False,
+                 interactively_started: bool = False) -> bool:
     """
     Runs a pipeline or parts of it with output printed to stdout
     Args:
         pipeline: The pipeline to run
         nodes: A list of pipeline children that should run
         with_upstreams: When true and `nodes` are provided, then all upstreams of `nodes` in `pipeline` are also run
+        interactively_started: Whether or not this run was started interactively, passed on in RunStarted and
+                               RunFinished events.
     Return:
         True when the pipeline run succeeded
     """
-    from ..logging import logger, events
+    from ..logging import logger, pipeline_events
     from .. import execution
 
     succeeded = True
-    for event in execution.run_pipeline(pipeline, nodes, with_upstreams):
-        if isinstance(event, events.Output):
+    for event in execution.run_pipeline(pipeline, nodes, with_upstreams, interactively_started=interactively_started):
+        if isinstance(event, pipeline_events.Output):
             print(f'\033[36m{" / ".join(event.node_path)}{":" if event.node_path else ""}\033[0m '
                   + {logger.Format.STANDARD: '\033[01m',
                      logger.Format.ITALICS: '\033[02m',
                      logger.Format.VERBATIM: ''}[event.format]
                   + ('\033[91m' if event.is_error else '') + event.message + '\033[0m')
-        elif isinstance(event, events.RunFinished):
+        elif isinstance(event, pipeline_events.RunFinished):
             if not event.succeeded:
                 succeeded = False
 
@@ -89,15 +69,8 @@ def run(path, nodes, with_upstreams):
         else:
             _nodes.add(node)
 
-    start_event = PipelineStartEvent(pipeline, nodes, manually_started=False, user=get_user())
-    event_base.notify_configured_event_handlers(start_event)
-
-    if not run_pipeline(pipeline, _nodes, with_upstreams):
-        end_event = PipelineEndEvent(success=False, manually_started=False)
-        event_base.notify_configured_event_handlers(end_event)
+    if not run_pipeline(pipeline, _nodes, with_upstreams, interactively_started=False):
         sys.exit(-1)
-    end_event = PipelineEndEvent(success=True, manually_started=False)
-    event_base.notify_configured_event_handlers(end_event)
 
 
 @click.command()
@@ -108,16 +81,8 @@ def run_interactively():
     d = Dialog(dialog="dialog", autowidgetsize=True)  # see http://pythondialog.sourceforge.net/doc/widgets.html
 
     def run_pipeline_and_notify(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None):
-        start_event = PipelineStartEvent(pipeline, nodes, user=get_user())
-        event_base.notify_configured_event_handlers(start_event)
-
-        if not run_pipeline(pipeline, nodes):
-            end_event = PipelineEndEvent(success=False, manually_started=True)
-            event_base.notify_configured_event_handlers(end_event)
-
+        if not run_pipeline(pipeline, nodes, interactively_started=True):
             sys.exit(-1)
-        end_event = PipelineEndEvent(success=True, manually_started=True)
-        event_base.notify_configured_event_handlers(end_event)
 
     def menu(node: pipelines.Node):
         if isinstance(node, pipelines.Pipeline):
