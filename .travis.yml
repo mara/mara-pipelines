@@ -10,7 +10,10 @@ services:
   - postgresql
 install:
   - pip install .[test]
-script: python test.py
+before_script:
+  - psql -U postgres -c 'create role root superuser login;'
+script:
+  - python test.py
 deploy:
   provider: pypi
   distributions: sdist
