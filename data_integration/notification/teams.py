@@ -19,8 +19,8 @@ class Teams(ChatRoom):
                '/'.join(node_path) + ')'
         return text
 
-    def create_error_msg(self, text, error_log1, error_log2):
-        return {'text': text + error_log1 + error_log2}
+    def create_error_msg(self, text, log, error_log):
+        return {'text': text + log + error_log}
 
     def create_run_msg(self, node_path: [], is_root_pipeline: bool):
         msg = ('<font size="4">&#x1F423;</font> ' + (

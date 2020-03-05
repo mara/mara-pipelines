@@ -19,7 +19,7 @@ class ChatRoom(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def create_error_msg(self, text, error_log1, error_log2):
+    def create_error_msg(self, text, log, error_log):
         pass
 
     @abc.abstractmethod

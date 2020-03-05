@@ -18,10 +18,10 @@ class Slack(ChatRoom):
                + ' | ' + path + ' > _'
         return text
 
-    def create_error_msg(self, text, error_log1, error_log2):
+    def create_error_msg(self, text, log, error_log):
         message = {'text': text}
-        attachments = [{'text': error_log1, 'mrkdwn_in': ['text']},
-                       {'text': error_log2, 'color': '#eb4d5c', 'mrkdwn_in': ['text']}]
+        attachments = [{'text': log, 'mrkdwn_in': ['text']},
+                       {'text': error_log, 'color': '#eb4d5c', 'mrkdwn_in': ['text']}]
         message['attachments'] = attachments
         return message
 

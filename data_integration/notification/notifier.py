@@ -13,7 +13,7 @@ class Notifier(events.EventHandler):
 
     def handle_event(self, event: events.Event):
         """
-        Send the output of a node when the node failed.
+        Send the output of a node when event occurs.
         Args:
             event: The current event of interest
         """
@@ -36,14 +36,14 @@ class Notifier(events.EventHandler):
 
                     text = chat_room.create_error_text(node_path=event.node_path)
 
-                    error_log1 = ''
-                    error_log2 = ''
+                    log = ''
+                    error_log = ''
                     if self.node_output[key][False]:
-                        error_log1 = chat_room.format_output(self.node_output[key][False])
+                        log = chat_room.format_output(self.node_output[key][False])
                     if self.node_output[key][True]:
-                        error_log2 = chat_room.format_output(self.node_output[key][True])
+                        error_log = chat_room.format_output(self.node_output[key][True])
 
-                    message = chat_room.create_error_msg(text, error_log1, error_log2)
+                    message = chat_room.create_error_msg(text, log, error_log)
                     response = chat_room.send_msg(message=message)
 
                     if response.status_code != 200:
@@ -51,6 +51,7 @@ class Notifier(events.EventHandler):
                             'Request to %s returned an error %s. The response is:\n%s' % (
                                 chat_room.chat_type, response.status_code, response.text)
                         )
+            del self.node_output[key]
 
         elif isinstance(event, pipeline_events.RunStarted):
             # default handler only handles interactively started runs
@@ -70,3 +71,5 @@ class Notifier(events.EventHandler):
                     else:
                         text = chat_room.create_failure_msg()
                     chat_room.send_msg(message={'text': text})
+
+
