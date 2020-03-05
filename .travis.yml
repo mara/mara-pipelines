@@ -10,7 +10,7 @@ services:
   - postgresql
 install:
   - pip install .[test]
-script: psql -c "SELECT version();"
+script: python test.py
 deploy:
   provider: pypi
   distributions: sdist
