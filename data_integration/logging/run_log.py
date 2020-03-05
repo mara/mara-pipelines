@@ -54,7 +54,7 @@ class SystemStatistics(Base):
     """System stats measurements"""
     __tablename__ = 'data_integration_system_statistics'
 
-    run_id = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True), primary_key=True, index=True)
+    run_id = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True), primary_key=True, index=True, nullable=True)
     timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True))
     disc_read = sqlalchemy.Column(sqlalchemy.FLOAT)
     disc_write = sqlalchemy.Column(sqlalchemy.FLOAT)
