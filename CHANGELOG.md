@@ -1,5 +1,8 @@
 # Changelog
 
+## 2.6.1 (2019-02-20)
+- Fix for Python 3.7 ("RuntimeError: context has already been set")
+
 ## 2.6.0 (2019-02-12)
 
 - Python 3.8 compatibility (explicitly set process spawning method to 'fork')
@@ -15,7 +18,7 @@
 
 ## 2.5.0 (2019-07-07)
 
-- Bug fix: make last modification timestamp of parallel file reading time zone aware (fixes `TypeError: can't compare offset-naive and offset-aware datetimes` error) 
+- Bug fix: make last modification timestamp of parallel file reading time zone aware (fixes `TypeError: can't compare offset-naive and offset-aware datetimes` error)
 
 
 ## 2.4.0 - 2.4.2 (2019-07-04)
@@ -61,7 +64,7 @@ ALTER TABLE data_integration_system_statistics ALTER timestamp TYPE timestamptz
 - Track and visualize also unfinished pipeline runs
 - Speed up computation of node durations and node cost
 - Improve error handling in launching of parallel tasks
-- Improve run times visualization (better axis labels, independent tooltips) 
+- Improve run times visualization (better axis labels, independent tooltips)
 - Smaller ui improvements
 
 
@@ -76,7 +79,7 @@ ALTER TABLE data_integration_system_statistics ALTER timestamp TYPE timestamptz
   how to not let passwords show up in the settings UI.
   ([gh #14](https://github.com/mara/data-integration/pull/14))
 
-**required changes** 
+**required changes**
 
 - Update `mara-app` to `>=2.0.0`
 
@@ -98,7 +101,7 @@ ALTER TABLE data_integration_system_statistics ALTER timestamp TYPE timestamptz
 **required changes**
 
 - When using `ParallelReadFile` with parameter `partition_target_table_by_day_id=True`, then make sure the target table is natively partitioned by adding `PARTITION BY LIST (day_id)`.
- 
+
 
 
 ## 1.3.0 (2018-07-17)

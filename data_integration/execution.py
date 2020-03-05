@@ -33,18 +33,25 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     Yields:
         Events emitted during pipeline execution
     """
-    
-    # use forking for starting child processes to avoid cleanup functions and leakage
-    multiprocessing.set_start_method('fork')
+
+    # use forking for starting child processes to avoid cleanup functions and leakage and pickle problems
+    #
+    # On newer macs you need to set
+    #   OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+    # env variable *before* starting python/flask otherwise you will get core dumps when any forked process calls
+    # into certain native code (e.g. requests)! Note that this is done automatically if you create your virtual env
+    # via the scripts from mara-app >= 2.1.1
+    #
+    multiprocessing_context = multiprocessing.get_context('fork')
 
     # A queue for receiving events from forked sub processes
-    event_queue = multiprocessing.Queue()
+    event_queue = multiprocessing_context.Queue()
 
     # The function that is run in a sub process
     def run():
 
         # collect system stats in a separate Process
-        statistics_process = multiprocessing.Process(
+        statistics_process = multiprocessing_context.Process(
             target=lambda: system_statistics.generate_system_statistics(event_queue), name='system_statistics')
         statistics_process.start()
 
@@ -208,7 +215,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                 message='★ ' + node_cost.format_duration(
                                     node_durations_and_run_times.get(tuple(next_node.path()), [0, 0])[0])))
 
-                            status_queue = multiprocessing.Queue()
+                            status_queue = multiprocessing_context.Queue()
                             process = TaskProcess(next_node, event_queue, status_queue)
                             process.start()
                             running_task_processes[next_node] = process
@@ -260,7 +267,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                            succeeded=not failed_pipelines))
 
     # fork the process and run `run`
-    run_process = multiprocessing.Process(target=run, name='pipeline-' + '-'.join(pipeline.path()))
+    run_process = multiprocessing_context.Process(target=run, name='pipeline-' + '-'.join(pipeline.path()))
     run_process.start()
 
     runlogger = run_log.RunLogger()
