@@ -4,8 +4,9 @@ import datetime
 import multiprocessing
 import pathlib
 import typing
+import functools
 
-from . import pipelines
+from . import pipelines, events
 
 
 def root_pipeline() -> 'pipelines.Pipeline':
@@ -63,13 +64,23 @@ def base_url() -> str:
     return 'http://127.0.0.1:5000/data-integration'
 
 
-def slack_token() -> str:
+def slack_token() -> typing.Optional[str]:
     """
     When not None, then this slack webhook is notified of failed nodes.
     Slack channel's token (i.e. THISIS/ASLACK/TOCKEN) can be retrieved from the
     channel's app "Incoming WebHooks" configuration as part part of the Webhook URL
     """
     return None
+
+@functools.lru_cache(maxsize=None)
+def event_handlers() -> [events.EventHandler]:
+    """User specific envent handlers (mainly to notify chat systems)"""
+    configured_handlers = []
+    if slack_token():
+        from data_integration.notification import slack
+        configured_handlers.append(slack.Slack())
+    return configured_handlers
+
 
 def password_masks() -> typing.List[str]:
     """Any passwords which should be masked in the UI or logs"""

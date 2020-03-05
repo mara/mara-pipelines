@@ -13,11 +13,14 @@ import traceback
 from multiprocessing import queues
 
 from . import pipelines, config
-from .logging import logger, events, system_statistics, run_log, node_cost, slack
+from .logging import logger, pipeline_events, system_statistics, run_log, node_cost
+from . import events
 
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
-                 with_upstreams: bool = False) -> [events.Event]:
+                 with_upstreams: bool = False,
+                 interactively_started: bool = False
+                 ) -> [events.Event]:
     """
     Runs a pipeline in a forked sub process. Acts as a generator that yields events from the sub process.
 
@@ -129,17 +132,23 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                     in dict(running_pipelines).items():  # type: pipelines.Pipeline
                     if len(set(running_pipeline.nodes.values()) & processed_nodes) == len(running_pipeline.nodes):
                         succeeded = running_pipeline not in failed_pipelines
-                        event_queue.put(events.Output(
+                        event_queue.put(pipeline_events.Output(
                             node_path=running_pipeline.path(), format=logger.Format.ITALICS, is_error=not succeeded,
                             message=f'{"succeeded" if succeeded else "failed"}, {logger.format_time_difference(run_start_time, datetime.datetime.now())}'))
-                        event_queue.put(events.NodeFinished(
+                        event_queue.put(pipeline_events.NodeFinished(
                             node_path=running_pipeline.path(), start_time=start_time,
                             end_time=datetime.datetime.now(), is_pipeline=True, succeeded=succeeded))
                         del running_pipelines[running_pipeline]
                         processed_nodes.add(running_pipeline)
 
             # announce run start
-            event_queue.put(events.RunStarted(node_path=pipeline.path(), start_time=run_start_time, pid=os.getpid()))
+            event_queue.put(pipeline_events.RunStarted(node_path=pipeline.path(),
+                                                       start_time=run_start_time,
+                                                       pid=os.getpid(),
+                                                       interactively_started=interactively_started,
+                                                       node_ids=[node.id for node in (nodes or [])],
+                                                       is_root_pipeline=(pipeline.parent is None))
+                            )
 
             # run as long
             # - as task processes are still running
@@ -173,8 +182,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             # book keeping and event emission
                             pipeline_start_time = datetime.datetime.now()
                             running_pipelines[next_node] = [pipeline_start_time, 0]
-                            event_queue.put(events.NodeStarted(next_node.path(), pipeline_start_time, True))
-                            event_queue.put(events.Output(
+                            event_queue.put(pipeline_events.NodeStarted(next_node.path(), pipeline_start_time, True))
+                            event_queue.put(pipeline_events.Output(
                                 node_path=next_node.path(), format=logger.Format.ITALICS,
                                 message='★ ' + node_cost.format_duration(
                                     node_durations_and_run_times.get(tuple(next_node.path()), [0, 0])[0])))
@@ -190,13 +199,13 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                 queue([sub_pipeline])
 
                             except Exception as e:
-                                event_queue.put(events.NodeStarted(
+                                event_queue.put(pipeline_events.NodeStarted(
                                     node_path=next_node.path(), start_time=task_start_time, is_pipeline=True))
                                 logger.log(message=f'Could not launch parallel tasks', format=logger.Format.ITALICS,
                                            is_error=True)
                                 logger.log(message=traceback.format_exc(),
-                                           format=events.Output.Format.VERBATIM, is_error=True)
-                                event_queue.put(events.NodeFinished(
+                                           format=pipeline_events.Output.Format.VERBATIM, is_error=True)
+                                event_queue.put(pipeline_events.NodeFinished(
                                     node_path=next_node.path(), start_time=task_start_time,
                                     end_time=datetime.datetime.now(), is_pipeline=True, succeeded=False))
 
@@ -209,8 +218,9 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             # run a task in a subprocess
                             if next_node.parent in running_pipelines:
                                 running_pipelines[next_node.parent][1] += 1
-                            event_queue.put(events.NodeStarted(next_node.path(), datetime.datetime.now(), False))
-                            event_queue.put(events.Output(
+                            event_queue.put(
+                                pipeline_events.NodeStarted(next_node.path(), datetime.datetime.now(), False))
+                            event_queue.put(pipeline_events.Output(
                                 node_path=next_node.path(), format=logger.Format.ITALICS,
                                 message='★ ' + node_cost.format_duration(
                                     node_durations_and_run_times.get(tuple(next_node.path()), [0, 0])[0])))
@@ -238,12 +248,12 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
                         end_time = datetime.datetime.now()
                         event_queue.put(
-                            events.Output(task_process.task.path(),
-                                          ('succeeded' if succeeded else 'failed') + ',  '
-                                          + logger.format_time_difference(task_process.start_time, end_time),
-                                          format=logger.Format.ITALICS, is_error=not succeeded))
-                        event_queue.put(events.NodeFinished(task_process.task.path(), task_process.start_time,
-                                                            end_time, False, succeeded))
+                            pipeline_events.Output(task_process.task.path(),
+                                                   ('succeeded' if succeeded else 'failed') + ',  '
+                                                   + logger.format_time_difference(task_process.start_time, end_time),
+                                                   format=logger.Format.ITALICS, is_error=not succeeded))
+                        event_queue.put(pipeline_events.NodeFinished(task_process.task.path(), task_process.start_time,
+                                                                     end_time, False, succeeded))
 
                 # check if some pipelines finished
                 track_finished_pipelines()
@@ -252,8 +262,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 time.sleep(0.001)
 
         except:
-            event_queue.put(events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
-                                          format=logger.Format.ITALICS, is_error=True))
+            event_queue.put(pipeline_events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
+                                                   format=logger.Format.ITALICS, is_error=True))
 
         # run again because `dequeue` might have moved more nodes to `finished_nodes`
         track_finished_pipelines()
@@ -263,27 +273,23 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
         statistics_process.join()
 
         # run finished
-        event_queue.put(events.RunFinished(node_path=pipeline.path(), end_time=datetime.datetime.now(),
-                                           succeeded=not failed_pipelines))
+        event_queue.put(pipeline_events.RunFinished(node_path=pipeline.path(), end_time=datetime.datetime.now(),
+                                                    succeeded=not failed_pipelines,
+                                                    interactively_started=interactively_started))
 
     # fork the process and run `run`
     run_process = multiprocessing_context.Process(target=run, name='pipeline-' + '-'.join(pipeline.path()))
     run_process.start()
 
     runlogger = run_log.RunLogger()
-    event_handlers = [runlogger]
-
-    # todo: make event handlers configurable (e.g. for slack)
-    if config.slack_token():
-        event_handlers.append(slack.Slack())
 
     # process messages from forked child processes
     while True:
         try:
             while not event_queue.empty():
                 event = event_queue.get(False)
-                for event_handler in event_handlers:
-                    event_handler.handle_event(event)
+                runlogger.handle_event(event)
+                events.notify_configured_event_handlers(event)
                 yield event
         except queues.Empty:
             pass
@@ -294,10 +300,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             # Catching GeneratorExit needs to end in a return!
             return
         except:
-            output_event = events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
-                                format=logger.Format.ITALICS, is_error=True)
-            for event_handler in event_handlers:
-                event_handler.handle_event(output_event)
+            output_event = pipeline_events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
+                                                  format=logger.Format.ITALICS, is_error=True)
+            runlogger.handle_event(output_event)
+            events.notify_configured_event_handlers(output_event)
             yield output_event
             run_log.close_open_run_after_error(runlogger.run_id)
             return

@@ -8,20 +8,20 @@ from . import config
 
 class Node():
     """Base class for pipeline elements"""
-    parent: 'Pipeline' = None
-    upstreams: {'Node'} = None
-    downstreams: {'Node'} = None
-    cost: float = None
 
     def __init__(self, id: str, description: str, labels: {str: str} = None) -> None:
         if not re.match('^[a-z0-9_]+$', id):
             raise ValueError(f'Invalid id "{id}". Should only contain lowercase letters, numbers and "_".')
-        self.id = id
-        self.description = description
-        self.labels = labels or {}
+        self.id: str = id
+        self.description: str = description
+        self.labels: {str: str} = labels or {}
 
-        self.upstreams = set()
-        self.downstreams = set()
+        self.upstreams: {'Node'} = set()
+        self.downstreams: {'Node'} = set()
+
+        self.parent: typing.Optional['Pipeline'] = None
+        self.cost: typing.Optional[float] = None
+
 
     def parents(self):
         """Returns all parents of a node from top to bottom"""
