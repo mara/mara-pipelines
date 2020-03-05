@@ -1,5 +1,5 @@
 import abc
-from data_integration.logging import events
+from data_integration.logging import pipeline_events
 
 
 class ChatRoom(abc.ABC):
@@ -23,7 +23,7 @@ class ChatRoom(abc.ABC):
         pass
 
     @abc.abstractmethod
-    def create_run_msg(self, pipeline):
+    def create_run_msg(self, node_path: [], is_root_pipeline: bool):
         pass
 
     @abc.abstractmethod
@@ -38,17 +38,17 @@ class ChatRoom(abc.ABC):
     def send_msg(self, message):
         pass
 
-    def format_output(self, output_events: [events.Output]):
+    def format_output(self, output_events: [pipeline_events.Output]):
 
         output, last_format = '', ''
         for event in output_events:
-            if event.format == events.Output.Format.VERBATIM:
+            if event.format == pipeline_events.Output.Format.VERBATIM:
                 if last_format == event.format:
                     # append new verbatim line to the already initialized verbatim output
                     output = output[0:-len(self.code_markup_end)] + '\n' + event.message + self.code_markup_end
                 else:
                     output += '\n' + self.code_markup_start + event.message + self.code_markup_end
-            elif event.format == events.Output.Format.ITALICS:
+            elif event.format == pipeline_events.Output.Format.ITALICS:
                 for line in event.message.splitlines():
                     output += self.line_start + str(line.replace('_', self.replace_with)) + self.line_end
             else:

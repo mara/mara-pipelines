@@ -8,28 +8,31 @@ from .. import config, pipelines
 
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
-                 with_upstreams: bool = False) -> bool:
+                 with_upstreams: bool = False,
+                 interactively_started: bool = False) -> bool:
     """
     Runs a pipeline or parts of it with output printed to stdout
     Args:
         pipeline: The pipeline to run
         nodes: A list of pipeline children that should run
         with_upstreams: When true and `nodes` are provided, then all upstreams of `nodes` in `pipeline` are also run
+        interactively_started: Whether or not this run was started interactively, passed on in RunStarted and
+                               RunFinished events.
     Return:
         True when the pipeline run succeeded
     """
-    from ..logging import logger, events
+    from ..logging import logger, pipeline_events
     from .. import execution
 
     succeeded = True
-    for event in execution.run_pipeline(pipeline, nodes, with_upstreams):
-        if isinstance(event, events.Output):
+    for event in execution.run_pipeline(pipeline, nodes, with_upstreams, interactively_started=interactively_started):
+        if isinstance(event, pipeline_events.Output):
             print(f'\033[36m{" / ".join(event.node_path)}{":" if event.node_path else ""}\033[0m '
                   + {logger.Format.STANDARD: '\033[01m',
                      logger.Format.ITALICS: '\033[02m',
                      logger.Format.VERBATIM: ''}[event.format]
                   + ('\033[91m' if event.is_error else '') + event.message + '\033[0m')
-        elif isinstance(event, events.RunFinished):
+        elif isinstance(event, pipeline_events.RunFinished):
             if not event.succeeded:
                 succeeded = False
 
@@ -66,7 +69,7 @@ def run(path, nodes, with_upstreams):
         else:
             _nodes.add(node)
 
-    if not run_pipeline(pipeline, _nodes, with_upstreams):
+    if not run_pipeline(pipeline, _nodes, with_upstreams, interactively_started=False):
         sys.exit(-1)
 
 
@@ -78,34 +81,9 @@ def run_interactively():
     d = Dialog(dialog="dialog", autowidgetsize=True)  # see http://pythondialog.sourceforge.net/doc/widgets.html
 
     def run_pipeline_and_notify(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None):
-        from ..logging.slack import Slack
-        from ..logging.teams import Teams
 
-        chat_rooms = []
-
-        if config.slack_token():
-            chat_rooms.append(Slack())
-        if config.teams_token():
-            chat_rooms.append(Teams())
-
-        for chat_room in chat_rooms:
-            text = chat_room.create_run_msg(pipeline)
-            if nodes:
-                text += ', nodes ' + ', '.join([f'`{node.id}`' for node in nodes])
-
-            chat_room.send_msg(message={'text': text})
-
-        if not run_pipeline(pipeline, nodes):
-
-            for chat_room in chat_rooms:
-                text = chat_room.create_failure_msg()
-                chat_room.send_msg(message={'text': text})
-
+        if not run_pipeline(pipeline, nodes, interactively_started=True):
             sys.exit(-1)
-
-        for chat_room in chat_rooms:
-            text = chat_room.create_success_msg()
-            chat_room.send_msg(message={'text': text})
 
     def menu(node: pipelines.Node):
         if isinstance(node, pipelines.Pipeline):

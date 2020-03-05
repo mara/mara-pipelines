@@ -1,14 +1,12 @@
 """Configuration of data integration pipelines and how to run them"""
 
 import datetime
-import functools
 import multiprocessing
 import pathlib
 import typing
+import functools
 
-from data_integration.logging import events
-
-from . import pipelines
+from . import pipelines, events
 
 
 def root_pipeline() -> 'pipelines.Pipeline':
@@ -66,7 +64,7 @@ def base_url() -> str:
     return 'http://127.0.0.1:5000/data-integration'
 
 
-def slack_token() -> str:
+def slack_token() -> typing.Optional[str]:
     """
     When not None, then this slack webhook is notified of failed nodes.
     Slack channel's token (i.e. THISIS/ASLACK/TOCKEN) can be retrieved from the
@@ -82,7 +80,7 @@ def teams_token() -> str:
 
 @functools.lru_cache(maxsize=None)
 def event_handlers() -> [events.EventHandler]:
-    from .logging import slack, teams, notifier
+    from .notification import slack, teams, notifier
     chat_rooms = []
     if slack_token():
         chat_rooms.append(slack.Slack())

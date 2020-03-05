@@ -1,7 +1,7 @@
 """Teams notifications"""
 
-from .. import config
-from ..logging.chat_room import ChatRoom
+from data_integration import config
+from data_integration.notification.chat_room import ChatRoom
 import requests
 import os
 
@@ -22,13 +22,13 @@ class Teams(ChatRoom):
     def create_error_msg(self, text, error_log1, error_log2):
         return {'text': text + error_log1 + error_log2}
 
-    def create_run_msg(self, pipeline):
+    def create_run_msg(self, node_path: [], is_root_pipeline: bool):
         msg = ('<font size="4">&#x1F423;</font> ' + (
                 os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
                + ' manually triggered run of ' +
-               ('pipeline [' + '/'.join(pipeline.path()) + ']' +
-                '(' + (config.base_url() + '/' + '/'.join(pipeline.path()) + ')'
-                       if pipeline.parent else 'root pipeline')))
+               ('pipeline [' + '/'.join(node_path) + ']' +
+                '(' + (config.base_url() + '/' + '/'.join(node_path) + ')'
+                       if not is_root_pipeline else 'root pipeline')))
         return msg
 
     def create_failure_msg(self):

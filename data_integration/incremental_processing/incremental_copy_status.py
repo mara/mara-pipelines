@@ -33,11 +33,29 @@ def update(node_path: [str], source_db_alias: str, source_table: str, last_compa
     """
     with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
         cursor.execute(f'''
-INSERT INTO data_integration_incremental_copy_status (node_path, source_table, last_comparison_value) 
+INSERT INTO data_integration_incremental_copy_status (node_path, source_table, last_comparison_value)
 VALUES ({'%s,%s,%s'})
-ON CONFLICT (node_path, source_table) 
+ON CONFLICT (node_path, source_table)
 DO UPDATE SET last_comparison_value = EXCLUDED.last_comparison_value
 ''', (node_path, f'{source_db_alias}.{source_table}', last_comparison_value))
+
+
+def delete(node_path: [str], source_db_alias: str, source_table: str):
+    """
+    Deletes the last_comparison_value for a pipeline node and table
+    Args:
+        node_path: The path of the parent pipeline node
+        source_db_alias: The alias of the the db from which data is copied
+        source_table: The table from which is copied
+    Returns:
+
+    """
+    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
+        cursor.execute(f'''
+DELETE FROM data_integration_incremental_copy_status
+WHERE node_path = {'%s'} AND source_table = {'%s'}
+''', (node_path, f'{source_db_alias}.{source_table}'))
+
 
 
 def get_last_comparison_value(node_path: [str], source_db_alias: str, source_table: str):
@@ -53,8 +71,8 @@ def get_last_comparison_value(node_path: [str], source_db_alias: str, source_tab
     """
     with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
         cursor.execute(f"""
-SELECT last_comparison_value 
-FROM data_integration_incremental_copy_status 
+SELECT last_comparison_value
+FROM data_integration_incremental_copy_status
 WHERE node_path = {'%s'} AND source_table = {'%s'}""", (node_path, f'{source_db_alias}.{source_table}'))
         result = cursor.fetchone()
         return result[0] if result else None

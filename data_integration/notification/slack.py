@@ -1,12 +1,13 @@
 """Slack notifications"""
 
-from .. import config
-from ..logging.chat_room import ChatRoom
+from data_integration import config
+from data_integration.notification.chat_room import ChatRoom
 import requests
 import os
 
 
 class Slack(ChatRoom):
+
     def __init__(self):
         super().__init__(chat_type="Slack", code_markup_start="```", code_markup_end="```",
                          line_start='\n _', line_end=' _ ')
@@ -24,11 +25,11 @@ class Slack(ChatRoom):
         message['attachments'] = attachments
         return message
 
-    def create_run_msg(self, pipeline):
+    def create_run_msg(self, node_path: [], is_root_pipeline: bool):
         msg = (':hatching_chick: *' + (os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
                + '* manually triggered run of ' +
-               ('pipeline <' + config.base_url() + '/' + '/'.join(pipeline.path()) + '|'
-                + '/'.join(pipeline.path()) + ' >' if pipeline.parent else 'root pipeline'))
+               ('pipeline <' + config.base_url() + '/' + '/'.join(node_path) + '|'
+                + '/'.join(node_path) + ' >' if not is_root_pipeline else 'root pipeline'))
         return msg
 
     def create_failure_msg(self):
