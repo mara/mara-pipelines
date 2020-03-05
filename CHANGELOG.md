@@ -1,7 +1,22 @@
 # Changelog
 
+
+## 2.7.0 (2019-03-05)
+
+- Make event handlers configurable: this allows for e.g. adding your own notifier for specific events
+- Switch slack to use events for notifications of interactive pipeline runs
+- Fix an edge case bug where reverting a commit after an error in the table creation for an incremental load
+  job would not recreate the original tables leading to a failed load
+- Fix an edge case bug where crashing during a triggered (code change, TRUNCATE) full load of an
+  incremental load job after the table was already loaded would not rerun the full load
+  leading to missing data
+- Optimize how we set the spawning method in multiprocessing
+
+
 ## 2.6.1 (2019-02-20)
+
 - Fix for Python 3.7 ("RuntimeError: context has already been set")
+
 
 ## 2.6.0 (2019-02-12)
 
