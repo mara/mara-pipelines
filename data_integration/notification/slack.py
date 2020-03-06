@@ -20,8 +20,11 @@ class Slack(ChatRoom):
 
     def create_error_msg(self, text, log, error_log):
         message = {'text': text}
-        attachments = [{'text': log, 'mrkdwn_in': ['text']},
-                       {'text': error_log, 'color': '#eb4d5c', 'mrkdwn_in': ['text']}]
+        attachments = []
+        if log:
+            attachments.append({'text': log, 'mrkdwn_in': ['text']})
+        if error_log:
+            attachments.append({'text': error_log, 'color': '#eb4d5c', 'mrkdwn_in': ['text']})
         message['attachments'] = attachments
         return message
 

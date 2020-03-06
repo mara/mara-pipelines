@@ -36,8 +36,8 @@ class Notifier(events.EventHandler):
 
                     text = chat_room.create_error_text(node_path=event.node_path)
 
-                    log = ''
-                    error_log = ''
+                    log = None
+                    error_log = None
                     if self.node_output[key][False]:
                         log = chat_room.format_output(self.node_output[key][False])
                     if self.node_output[key][True]:

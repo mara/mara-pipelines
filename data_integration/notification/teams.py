@@ -23,10 +23,12 @@ class Teams(ChatRoom):
         return {'text': text + log + error_log}
 
     def create_run_msg(self, node_path: [], is_root_pipeline: bool):
+        path = '/'.join(node_path)
+        path = path.replace("_", "\\_")
         msg = ('<font size="4">&#x1F423;</font> ' + (
                 os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
                + ' manually triggered run of ' +
-               ('pipeline [' + '/'.join(node_path) + ']' +
+               ('pipeline [_' + path + '_]' +
                 '(' + (config.base_url() + '/' + '/'.join(node_path) + ')'
                        if not is_root_pipeline else 'root pipeline')))
         return msg
