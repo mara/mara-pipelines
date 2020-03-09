@@ -20,7 +20,13 @@ class Teams(ChatRoom):
         return text
 
     def create_error_msg(self, text, log, error_log):
-        return {'text': text + log + error_log}
+
+        whole_text = text + log + error_log
+        # Shortening message to 2000 because Teams does not display message greater than 28 KB.
+        # https://docs.microsoft.com/en-us/microsoftteams/limits-specifications-teams#chat
+        if len(whole_text) > 2000:
+            whole_text = whole_text[:2000] + '</pre>'
+        return {'text': whole_text}
 
     def create_run_msg(self, node_path: [], is_root_pipeline: bool):
         path = '/'.join(node_path)
