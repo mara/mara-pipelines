@@ -80,12 +80,14 @@ def teams_token() -> str:
 
 @functools.lru_cache(maxsize=None)
 def event_handlers() -> [events.EventHandler]:
-    from .notification import slack, teams, notifier
+    from .notification import notifier
     chat_rooms = []
     if slack_token():
+        from .notification import slack
         chat_rooms.append(slack.Slack())
 
     if teams_token():
+        from .notification import teams
         chat_rooms.append(teams.Teams())
 
     return [notifier.Notifier(chat_rooms=chat_rooms)]
