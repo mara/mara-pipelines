@@ -1,16 +1,17 @@
 """Teams notifications"""
 
 from data_integration import config
-from data_integration.notification.chat_room import ChatRoom
+from data_integration.notification.notifier import ChatNotifier
 import requests
 import os
 
 
-class Teams(ChatRoom):
+class Teams(ChatNotifier):
 
-    def __init__(self):
-        super().__init__(chat_type="Teams", code_markup_start="<pre>", code_markup_end="</pre>",
+    def __init__(self, token):
+        super().__init__(code_markup_start="<pre>", code_markup_end="</pre>",
                          line_start='\n\n', replace_with='\\_')
+        self.token = token
 
     def create_error_text(self, node_path: []):
         path = '/'.join(node_path)
@@ -46,4 +47,4 @@ class Teams(ChatRoom):
         return '<font size="4">&#x1F425;</font> <font color="green">succeeded</font>'
 
     def send_msg(self, message):
-        return requests.post(url='https://outlook.office.com/webhook/' + config.teams_token(), json=message)
+        return requests.post(url='https://outlook.office.com/webhook/' + self.token, json=message)

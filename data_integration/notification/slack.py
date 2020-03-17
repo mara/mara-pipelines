@@ -1,15 +1,15 @@
 """Slack notifications"""
 
 from data_integration import config
-from data_integration.notification.chat_room import ChatRoom
+from data_integration.notification.notifier import ChatNotifier
 import requests
 import os
 
 
-class Slack(ChatRoom):
+class Slack(ChatNotifier):
 
     def __init__(self):
-        super().__init__(chat_type="Slack", code_markup_start="```", code_markup_end="```",
+        super().__init__(code_markup_start="```", code_markup_end="```",
                          line_start='\n _', line_end=' _ ')
 
     def create_error_text(self, node_path: []):
