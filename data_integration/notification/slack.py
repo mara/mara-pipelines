@@ -1,45 +1,77 @@
 """Slack notifications"""
 
-from data_integration import config
-from data_integration.notification.notifier import ChatNotifier
-import requests
 import os
+
+import requests
+from data_integration import config
+from data_integration.logging import pipeline_events
+from data_integration.notification.notifier import ChatNotifier
 
 
 class Slack(ChatNotifier):
 
     def __init__(self):
-        super().__init__(code_markup_start="```", code_markup_end="```",
-                         line_start='\n _', line_end=' _ ')
+        super().__init__()
 
-    def create_error_text(self, node_path: []):
-        path = '/'.join(node_path)
+    def send_run_started_interactively_message(self, event: pipeline_events.RunStarted):
+        text = (':hatching_chick: *' + (os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
+                + '* manually triggered run of ' +
+                ('pipeline <' + config.base_url() + '/' + '/'.join(event.node_path) + '|'
+                 + '/'.join(event.node_path) + ' >' if not event.is_root_pipeline else 'root pipeline'))
+
+        if event.node_ids:
+            text += ', nodes ' + ', '.join([f'`{node}`' for node in event.node_ids])
+        self._send_message({'text': text})
+
+    def send_run_finished_interactively_message(self, event: pipeline_events.RunFinished):
+        if event.succeeded:
+            self._send_message({'text': ':hatched_chick: succeeded'})
+        else:
+            self._send_message({'text': ':baby_chick: failed'})
+
+    def send_task_failed_message(self, event: pipeline_events.NodeFinished):
+        path = '/'.join(event.node_path)
         text = '\n:baby_chick: Ooops, a hiccup in ' + '_ <' + config.base_url() + '/' + path \
                + ' | ' + path + ' > _'
-        return text
 
-    def create_error_msg(self, text, log, error_log):
-        message = {'text': text}
         attachments = []
-        if log:
-            attachments.append({'text': log, 'mrkdwn_in': ['text']})
-        if error_log:
-            attachments.append({'text': error_log, 'color': '#eb4d5c', 'mrkdwn_in': ['text']})
-        message['attachments'] = attachments
-        return message
+        key = tuple(event.node_path)
 
-    def create_run_msg(self, node_path: [], is_root_pipeline: bool):
-        msg = (':hatching_chick: *' + (os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
-               + '* manually triggered run of ' +
-               ('pipeline <' + config.base_url() + '/' + '/'.join(node_path) + '|'
-                + '/'.join(node_path) + ' >' if not is_root_pipeline else 'root pipeline'))
-        return msg
+        if self.node_output[key][False]:
+            attachments.append({
+                'text': self._format_output(self.node_output[key][False]),
+                'mrkdwn_in': ['text']
+            })
 
-    def create_failure_msg(self):
-        return ':baby_chick: failed'
+        if self.node_output[key][True]:
+            attachments.append({
+                'text': self._format_output(self.node_output[key][True]),
+                'color': '#eb4d5c',
+                'mrkdwn_in': ['text']
+            })
 
-    def create_success_msg(self):
-        return ':hatched_chick: succeeded'
+        self._send_message({'text': text, 'attachments': attachments})
 
-    def send_msg(self, message):
-        return requests.post(url='https://hooks.slack.com/services/' + config.slack_token(), json=message)
+    def _send_message(self, message):
+        response = requests.post(url='https://hooks.slack.com/services/' + config.slack_token(), json=message)
+        if response.status_code != 200:
+            raise ValueError(f'Could not send message. Status {response.status_code}, response "{response.text}"')
+
+
+    def _format_output(self, output_events: [pipeline_events.Output]):
+        output, last_format = '', ''
+        for event in output_events:
+            if event.format == pipeline_events.Output.Format.VERBATIM:
+                if last_format == event.format:
+                    # append new verbatim line to the already initialized verbatim output
+                    output = output[0:-3] + f'\n{event.message}```'
+                else:
+                    output += f'```{event.message}```'
+            elif event.format == pipeline_events.Output.Format.ITALICS:
+                for line in event.message.splitlines():
+                    output += f'\n _{line} _ '
+            else:
+                output = f'\n{event.message}'
+
+            last_format = event.format
+        return output
