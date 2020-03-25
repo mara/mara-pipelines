@@ -1,7 +1,3 @@
-"""Slack notifications"""
-
-import os
-
 import requests
 from data_integration import config
 from data_integration.logging import pipeline_events
@@ -56,7 +52,6 @@ class Slack(ChatNotifier):
         response = requests.post(url='https://hooks.slack.com/services/' + config.slack_token(), json=message)
         if response.status_code != 200:
             raise ValueError(f'Could not send message. Status {response.status_code}, response "{response.text}"')
-
 
     def _format_output(self, output_events: [pipeline_events.Output]):
         output, last_format = '', ''
