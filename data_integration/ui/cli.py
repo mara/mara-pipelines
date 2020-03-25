@@ -81,7 +81,6 @@ def run_interactively():
     d = Dialog(dialog="dialog", autowidgetsize=True)  # see http://pythondialog.sourceforge.net/doc/widgets.html
 
     def run_pipeline_and_notify(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None):
-
         if not run_pipeline(pipeline, nodes, interactively_started=True):
             sys.exit(-1)
 
