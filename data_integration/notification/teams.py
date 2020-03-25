@@ -1,5 +1,3 @@
-"""Microsoft Teams notifications"""
-
 import requests
 from data_integration import config
 from data_integration.logging import pipeline_events

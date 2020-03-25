@@ -6,8 +6,15 @@ from data_integration.notification.notifier import ChatNotifier
 
 class Slack(ChatNotifier):
 
-    def __init__(self):
+    def __init__(self, token):
+        """
+        Pipeline notifications via Slack
+
+        Args:
+            token: The incoming webhook id to send data to, e.g. '123ABC/123ABC/123abc123abc123abc'
+        """
         super().__init__()
+        self.token = token
 
     def send_run_started_interactively_message(self, event: pipeline_events.RunStarted):
         text = (':hatching_chick: *' + event.user
@@ -49,7 +56,7 @@ class Slack(ChatNotifier):
         self._send_message({'text': text, 'attachments': attachments})
 
     def _send_message(self, message):
-        response = requests.post(url='https://hooks.slack.com/services/' + config.slack_token(), json=message)
+        response = requests.post(url='https://hooks.slack.com/services/' + self.token, json=message)
         if response.status_code != 200:
             raise ValueError(f'Could not send message. Status {response.status_code}, response "{response.text}"')
 
