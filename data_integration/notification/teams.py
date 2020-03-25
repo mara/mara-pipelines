@@ -15,8 +15,7 @@ class Teams(ChatNotifier):
         self.token = token
 
     def send_run_started_interactively_message(self, event: pipeline_events.RunStarted):
-        text = ('<font size="4">&#x1F423;</font> ' + (
-                os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
+        text = ('<font size="4">&#x1F423;</font> ' + event.user
                 + ' manually triggered run of ' +
                 ('pipeline [_' + '/'.join(event.node_path).replace("_", "\\_") + '_]' +
                  '(' + (config.base_url() + '/' + '/'.join(event.node_path) + ')'
@@ -28,7 +27,7 @@ class Teams(ChatNotifier):
 
     def send_run_finished_interactively_message(self, event: pipeline_events.RunFinished):
         if event.succeeded:
-            self._send_message({{'text': '<font size="4">&#x1F425;</font> <font color="green">succeeded</font>'}})
+            self._send_message({'text': '<font size="4">&#x1F425;</font> <font color="green">succeeded</font>'})
         else:
             self._send_message({'text': '<font size="4">&#x1F424;</font> <font color="red">failed</font>'})
 

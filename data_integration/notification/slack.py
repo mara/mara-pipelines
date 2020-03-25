@@ -14,7 +14,7 @@ class Slack(ChatNotifier):
         super().__init__()
 
     def send_run_started_interactively_message(self, event: pipeline_events.RunStarted):
-        text = (':hatching_chick: *' + (os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
+        text = (':hatching_chick: *' + event.user
                 + '* manually triggered run of ' +
                 ('pipeline <' + config.base_url() + '/' + '/'.join(event.node_path) + '|'
                  + '/'.join(event.node_path) + ' >' if not event.is_root_pipeline else 'root pipeline'))
