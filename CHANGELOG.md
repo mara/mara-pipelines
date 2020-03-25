@@ -1,7 +1,12 @@
 # Changelog
 
+## 2.8.0 (2020-03-25)
 
-## 2.7.0 (2019-03-05)
+- Implement pipeline notifications via Microsoft Teams #28
+- Make it possible to disable output coloring in command line etl runs (#31)
+
+
+## 2.7.0 (2020-03-05)
 
 - Make event handlers configurable: this allows for e.g. adding your own notifier for specific events
 - Switch slack to use events for notifications of interactive pipeline runs
@@ -13,12 +18,12 @@
 - Optimize how we set the spawning method in multiprocessing
 
 
-## 2.6.1 (2019-02-20)
+## 2.6.1 (2020-02-20)
 
 - Fix for Python 3.7 ("RuntimeError: context has already been set")
 
 
-## 2.6.0 (2019-02-12)
+## 2.6.0 (2020-02-12)
 
 - Python 3.8 compatibility (explicitly set process spawning method to 'fork')
 - Fix open runs after browser reload
