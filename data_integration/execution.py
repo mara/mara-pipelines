@@ -7,6 +7,7 @@ import datetime
 import functools
 import multiprocessing
 import os
+import sys
 import signal
 import time
 import traceback
@@ -313,9 +314,28 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
         except:
             output_event = pipeline_events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
                                                   format=logger.Format.ITALICS, is_error=True)
-            _notify_all(output_event)
+            exception_events = []
+            try:
+                _notify_all(output_event)
+            except BaseException as e:
+                # we are already in the generic exception handler, so we cannot do anything
+                # if we still fail, as we have to get to the final close_open_run_after_error()
+                # and 'return'...
+                msg = "Could not notify about final output event"
+                exception_events.append(events.GenericExceptionEvent(e, msg))
             yield output_event
-            run_log.close_open_run_after_error(runlogger.run_id)
+            try:
+                run_log.close_open_run_after_error(runlogger.run_id)
+            except BaseException as e:
+                msg = "Exception during 'close_open_run_after_error()'"
+                exception_events.append(events.GenericExceptionEvent(e, msg))
+
+            # At least try to notify the UI
+            for e in exception_events:
+                print(f"{repr(e)}", file=sys.stderr)
+                yield e
+                events.notify_configured_event_handlers(e)
+
             return
         if not run_process.is_alive():
             break

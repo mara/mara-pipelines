@@ -92,6 +92,15 @@ function processRunEvents(baseUrl, streamUrl, nodePath) {
         }
     }, false);
 
+        source.addEventListener('GenericExceptionEvent', function (e) {
+        var output = JSON.parse(e.data);
+        var msg = output._repr + '\n' + output.exception_traceback;
+        var message = formatNodeOutput(msg, 'italics', true);
+
+        mainOutputArea.append($('<div/>').append(message.clone()));
+        scrollContainersWithNewOutput.add('#main-output-area');
+    }, false);
+
     source.addEventListener('NodeStarted', function (e) {
         var event = JSON.parse(e.data);
         if (event.node_path.length == nodePath.length) {
