@@ -150,8 +150,8 @@ class ParallelTask(Node):
 
 class Pipeline(Node):
     nodes: {str: Node} = None
-    initial_node: Node = None
-    final_node: Node = None
+    initial_node: Task = None
+    final_node: Task = None
 
     def __init__(self, id: str,
                  description: str,
@@ -264,14 +264,14 @@ class Pipeline(Node):
         upstream.downstreams.discard(downstream)
         downstream.upstreams.discard(upstream)
 
-    def add_initial(self, node: Node) -> 'Pipeline':
+    def add_initial(self, node: Task) -> 'Pipeline':
         self.initial_node = node
         for downstream in self.nodes.values():
             if not downstream.upstreams and downstream != self.final_node:
                 self.add_dependency(node, downstream)
         self.add(node)
 
-    def add_final(self, node: Node) -> 'Pipeline':
+    def add_final(self, node: Task) -> 'Pipeline':
         self.final_node = node
         for upstream in self.nodes.values():
             if not upstream.downstreams and upstream != self.initial_node:
