@@ -119,7 +119,7 @@ class _ParallelRead(pipelines.ParallelTask):
             if not isinstance(mara_db.dbs.db(self.db_alias), mara_db.dbs.PostgreSQLDB):
                 raise NotImplementedError(
                     f'Partitioning by day_id has only been implemented for postgresql so far, \n'
-                    f'not for {mara_db.postgresql.engine(self.db_alias).name}')
+                    f'not for {mara_db.dbs.db(self.db_alias).__class__.__name__}')
             files_per_day = {}
             for (file, date) in files:
                 if date in files_per_day:
