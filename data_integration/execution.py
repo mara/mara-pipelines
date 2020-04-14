@@ -283,13 +283,24 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
     runlogger = run_log.RunLogger()
 
+    def _notify_all(event):
+        try:
+            runlogger.handle_event(event)
+        except BaseException as e:
+            # This includes the case when the mara DB is not reachable when writing the event.
+            # Not sure if we should just ignore that, but at least get other notifications
+            # out in case of an error
+            events.notify_configured_event_handlers(event)
+            # this will notify the UI in case of a problem later on
+            raise e
+        events.notify_configured_event_handlers(event)
+
     # process messages from forked child processes
     while True:
         try:
             while not event_queue.empty():
                 event = event_queue.get(False)
-                runlogger.handle_event(event)
-                events.notify_configured_event_handlers(event)
+                _notify_all(event)
                 yield event
         except queues.Empty:
             pass
@@ -302,8 +313,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
         except:
             output_event = pipeline_events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
                                                   format=logger.Format.ITALICS, is_error=True)
-            runlogger.handle_event(output_event)
-            events.notify_configured_event_handlers(output_event)
+            _notify_all(output_event)
             yield output_event
             run_log.close_open_run_after_error(runlogger.run_id)
             return
