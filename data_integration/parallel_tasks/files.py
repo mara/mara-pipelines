@@ -7,6 +7,7 @@ import os.path
 import pathlib
 import re
 from html import escape
+import typing as t
 
 import mara_db.config
 import mara_db.dbs
@@ -62,20 +63,23 @@ class _ParallelRead(pipelines.ParallelTask):
         import more_itertools
 
         files = []  # A list of (file_name, date_or_file_name) tuples
-        data_dir = config.data_dir()
         first_date = config.first_date()
 
-        for file in glob.iglob(str(pathlib.Path(data_dir, self.file_pattern))):
-            file = str(pathlib.Path(file).relative_to(pathlib.Path(data_dir)))
+        looked_at = 0
+        for file in self._iterate_all_files():
             if self.date_regex:
                 match = re.match(self.date_regex, file)
                 if not match:
                     raise Exception(f'file name "{file}" \ndoes not match date regex "{self.date_regex}"')
                 date = datetime.date(*[int(group) for group in match.groups()])
                 if date >= first_date:
+                    looked_at += 1
                     files.append((file, date))
             else:
+                looked_at += 1
                 files.append((file, file))
+
+        logger.log(f"found {looked_at} files which might need importing")
 
         # sort by date when regex provided or by filename otherwise
         files.sort(key=lambda x: x[1], reverse=True)
@@ -91,9 +95,10 @@ class _ParallelRead(pipelines.ParallelTask):
         # for incremental loading, determine which files already have been processed
         # reprocess all when file dependencies changed
         if (self.read_mode not in (ReadMode.ALL, ReadMode.ONLY_LATEST)
-                and (not self.file_dependencies
-                     or not _file_dependencies.is_modified(self.path(), 'ParallelReadFile', self.parent.base_path(),
-                                                           self.file_dependencies))):
+            and (not self.file_dependencies
+                 or not _file_dependencies.is_modified(self.path(), str(self.__class__.__name__),
+                                                       self.parent.base_path(),
+                                                       self.file_dependencies))):
             processed_files = _processed_files.already_processed_files(self.path())
 
             files = [x for x in files
@@ -105,9 +110,11 @@ class _ParallelRead(pipelines.ParallelTask):
             logger.log('No newer files', format=logger.Format.ITALICS)
             return
 
+        logger.log(f"Found {len(files)} files which are not yet importet")
+
         if self.read_mode != ReadMode.ALL and self.file_dependencies:
             def update_file_dependencies():
-                _file_dependencies.update(self.path(), 'ParallelReadFile', self.parent.base_path(),
+                _file_dependencies.update(self.path(), str(self.__class__.__name__), self.parent.base_path(),
                                           self.file_dependencies)
                 return True
 
@@ -163,12 +170,18 @@ class _ParallelRead(pipelines.ParallelTask):
                 self.path(), file_name, self._last_modification_timestamp(file_name)))]
             if self.read_mode != ReadMode.ALL else [])
 
-    def read_command(self) -> pipelines.Command:
+    def read_command(self, file_name: str) -> pipelines.Command:
         raise NotImplementedError
 
     def _last_modification_timestamp(self, file_name):
         return datetime.datetime.fromtimestamp(
             os.path.getmtime(pathlib.Path(config.data_dir()) / file_name)).astimezone()
+
+    def _iterate_all_files(self):
+        data_dir = config.data_dir()
+        for file in glob.iglob(str(pathlib.Path(data_dir, self.file_pattern))):
+            file = str(pathlib.Path(file).relative_to(pathlib.Path(data_dir)))
+            yield file
 
 
 class ParallelReadFile(_ParallelRead):
@@ -205,28 +218,33 @@ class ParallelReadFile(_ParallelRead):
                               csv_format=self.csv_format, timezone=self.timezone)
 
     def html_doc_items(self) -> [(str, str)]:
-        path = self.parent.base_path() / self.mapper_script_file_name if self.mapper_script_file_name else ''
-        return [('file pattern', _.i[self.file_pattern]),
-                ('compression', _.tt[self.compression]),
-                ('read mode', _.tt[self.read_mode]),
-                ('date regex', _.tt[escape(self.date_regex)] if self.date_regex else None),
-                ('file dependencies', [_.i[dependency, _.br] for dependency in self.file_dependencies]),
-                ('mapper script file name', _.i[self.mapper_script_file_name]),
-                (_.i['mapper script'], html.highlight_syntax(path.read_text().strip('\n')
-                                                             if self.mapper_script_file_name and path.exists()
-                                                             else '', 'python')),
-                ('make unique', _.tt[repr(self.make_unique)]),
-                ('skip header', _.tt[self.skip_header]),
-                ('target_table', _.tt[self.target_table]),
-                ('db alias', _.tt[self.db_alias]),
-                ('partion target table by day_id', _.tt[self.partition_target_table_by_day_id]),
-                ('truncate partitions', _.tt[self.truncate_partitions]),
-                ('sql delimiter char',
-                 _.tt[json.dumps(self.delimiter_char) if self.delimiter_char != None else None]),
-                ('quote char', _.tt[json.dumps(self.quote_char) if self.quote_char != None else None]),
-                ('null value string',
-                 _.tt[json.dumps(self.null_value_string) if self.null_value_string != None else None]),
-                ('time zone', _.tt[self.timezone])]
+        return _common_html_doc_items(self)
+
+
+def _common_html_doc_items(command: t.Union[ParallelReadFile, ParallelReadS3File]):
+    path = command.parent.base_path() / command.mapper_script_file_name if command.mapper_script_file_name else ''
+
+    return [('file pattern', _.i[command.file_pattern]),
+            ('compression', _.tt[command.compression]),
+            ('read mode', _.tt[command.read_mode]),
+            ('date regex', _.tt[escape(command.date_regex)] if command.date_regex else None),
+            ('file dependencies', [_.i[dependency, _.br] for dependency in command.file_dependencies]),
+            ('mapper script file name', _.i[command.mapper_script_file_name]),
+            (_.i['mapper script'], html.highlight_syntax(path.read_text().strip('\n')
+                                                         if command.mapper_script_file_name and path.exists()
+                                                         else '', 'python')),
+            ('make unique', _.tt[repr(command.make_unique)]),
+            ('skip header', _.tt[command.skip_header]),
+            ('target_table', _.tt[command.target_table]),
+            ('db alias', _.tt[command.db_alias]),
+            ('partion target table by day_id', _.tt[command.partition_target_table_by_day_id]),
+            ('truncate partitions', _.tt[command.truncate_partitions]),
+            ('sql delimiter char',
+             _.tt[json.dumps(command.delimiter_char) if command.delimiter_char != None else None]),
+            ('quote char', _.tt[json.dumps(command.quote_char) if command.quote_char != None else None]),
+            ('null value string',
+             _.tt[json.dumps(command.null_value_string) if command.null_value_string != None else None]),
+            ('time zone', _.tt[command.timezone])]
 
 
 class ParallelReadSqlite(_ParallelRead):

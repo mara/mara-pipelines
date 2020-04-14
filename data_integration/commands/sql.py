@@ -8,6 +8,7 @@ from typing import Callable, Union
 
 import mara_db.dbs
 import mara_db.shell
+import mara_db.postgresql
 from mara_page import _, html
 from .. import config, shell, pipelines
 from ..incremental_processing import file_dependencies
