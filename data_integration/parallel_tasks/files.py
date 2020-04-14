@@ -221,6 +221,94 @@ class ParallelReadFile(_ParallelRead):
         return _common_html_doc_items(self)
 
 
+class ParallelReadS3File(_ParallelRead):
+    def __init__(self, id: str, description: str, s3_bucket_name: str, file_pattern: str, read_mode: ReadMode,
+                 compression: files.Compression, target_table: str, file_dependencies: [str] = None,
+                 date_regex: str = None, partition_target_table_by_day_id: bool = False,
+                 truncate_partitions: bool = False,
+                 commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
+                 mapper_script_file_name: str = None, make_unique: bool = False, db_alias: str = None,
+                 delimiter_char: str = None, quote_char: str = None, null_value_string: str = None,
+                 skip_header: bool = None, csv_format: bool = False,
+                 timezone: str = None, max_number_of_parallel_tasks: int = None,
+                 aws_access_key_id: str = None, aws_secret_access_key: str = None, aws_profile: str = None
+                 ) -> None:
+        _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
+                               read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
+                               date_regex=date_regex, partition_target_table_by_day_id=partition_target_table_by_day_id,
+                               truncate_partitions=truncate_partitions,
+                               commands_before=commands_before, commands_after=commands_after,
+                               db_alias=db_alias, timezone=timezone,
+                               max_number_of_parallel_tasks=max_number_of_parallel_tasks)
+        self.compression = compression
+        self.mapper_script_file_name = mapper_script_file_name or ''
+        self.make_unique = make_unique
+        self.delimiter_char = delimiter_char
+        self.quote_char = quote_char
+        self.skip_header = skip_header
+        self.csv_format = csv_format
+        self.null_value_string = null_value_string
+        self.s3_bucket_name = s3_bucket_name
+        self.aws_access_key_id = aws_access_key_id
+        self.aws_secret_access_key = aws_secret_access_key
+        self.aws_profile = aws_profile
+        self._s3_client = None
+
+    def _get_s3_client(self):
+        if not self._s3_client:
+            import boto3
+            # profile will load credentials from ~.aws/credentials
+            # if non of them is set, both boto3 and aws cli will be take then from environment variables
+            # or the magic stuff on AWS hosts
+            session = boto3.session.Session(profile_name=self.aws_profile,
+                                            aws_access_key_id=self.aws_secret_access_key,
+                                            aws_secret_access_key=self.aws_secret_access_key,
+                                            )
+            self._s3_client = session.client('s3')
+
+        return self._s3_client
+
+    def _iterate_all_files(self):
+        # more or less from https://alexwlchan.net/2019/07/listing-s3-keys/
+        s3 = self._get_s3_client()
+        paginator = s3.get_paginator("list_objects_v2")
+        kwargs = {'Bucket': self.s3_bucket_name}
+
+        for page in paginator.paginate(**kwargs):
+            try:
+                contents = page["Contents"]
+            except KeyError:
+                break
+
+            for obj in contents:
+                key = obj["Key"]
+                yield key
+
+    def read_command(self, file_name: str) -> pipelines.Command:
+        s3_url = f's3://{self.s3_bucket_name}/{file_name}'
+        return files.ReadS3File(s3_url=s3_url, compression=self.compression, target_table=self.target_table,
+                                mapper_script_file_name=self.mapper_script_file_name, make_unique=self.make_unique,
+                                db_alias=self.db_alias, delimiter_char=self.delimiter_char,
+                                skip_header=self.skip_header,
+                                quote_char=self.quote_char, null_value_string=self.null_value_string,
+                                csv_format=self.csv_format, timezone=self.timezone,
+                                aws_access_key_id=self.aws_access_key_id,
+                                aws_secret_access_key=self.aws_secret_access_key,
+                                aws_profile=self.aws_profile)
+
+    def _last_modification_timestamp(self, file_name):
+        s3 = self._get_s3_client()
+        s3_obj = s3.head_object(Bucket=self.s3_bucket_name,  Key=file_name)
+        return s3_obj["LastModified"].astimezone()
+
+    def html_doc_items(self) -> [(str, str)]:
+        return [('AWS s3 bucket', _.i[self.s3_bucket_name]),
+                ('AWS credentials', _.i[self.aws_access_key_id] if self.aws_access_key_id else None),
+                ('AWS profile', _.i[self.aws_profile] if self.aws_profile else None),
+                ('class name', _.i[str(self.__class__.__name__)]),
+                ] + _common_html_doc_items(self)
+
+
 def _common_html_doc_items(command: t.Union[ParallelReadFile, ParallelReadS3File]):
     path = command.parent.base_path() / command.mapper_script_file_name if command.mapper_script_file_name else ''
 
