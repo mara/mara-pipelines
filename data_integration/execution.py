@@ -4,6 +4,7 @@ Uses forking (multiprocessing processes) for parallelism and message queues for 
 """
 
 import datetime
+from datetime import timezone as tz
 import functools
 import multiprocessing
 import os
@@ -99,7 +100,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 queue([pipeline])
 
             # book keeping
-            run_start_time = datetime.datetime.now()
+            run_start_time = datetime.datetime.now(tz.utc)
             # all nodes that already ran or that won't be run anymore
             processed_nodes: {pipelines.Node} = set()
             # running pipelines with start times and number of running children
@@ -134,10 +135,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                         succeeded = running_pipeline not in failed_pipelines
                         event_queue.put(pipeline_events.Output(
                             node_path=running_pipeline.path(), format=logger.Format.ITALICS, is_error=not succeeded,
-                            message=f'{"succeeded" if succeeded else "failed"}, {logger.format_time_difference(run_start_time, datetime.datetime.now())}'))
+                            message=f'{"succeeded" if succeeded else "failed"}, {logger.format_time_difference(run_start_time, datetime.datetime.now(tz.utc))}'))
                         event_queue.put(pipeline_events.NodeFinished(
                             node_path=running_pipeline.path(), start_time=start_time,
-                            end_time=datetime.datetime.now(), is_pipeline=True, succeeded=succeeded))
+                            end_time=datetime.datetime.now(tz.utc), is_pipeline=True, succeeded=succeeded))
                         del running_pipelines[running_pipeline]
                         processed_nodes.add(running_pipeline)
 
@@ -180,7 +181,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             queue(list(next_node.nodes.values()))
 
                             # book keeping and event emission
-                            pipeline_start_time = datetime.datetime.now()
+                            pipeline_start_time = datetime.datetime.now(tz.utc)
                             running_pipelines[next_node] = [pipeline_start_time, 0]
                             event_queue.put(pipeline_events.NodeStarted(next_node.path(), pipeline_start_time, True))
                             event_queue.put(pipeline_events.Output(
@@ -190,7 +191,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
                         elif isinstance(next_node, pipelines.ParallelTask):
                             # create sub tasks and queue them
-                            task_start_time = datetime.datetime.now()
+                            task_start_time = datetime.datetime.now(tz.utc)
                             try:
                                 logger.redirect_output(event_queue, next_node.path())
                                 logger.log('☆ Launching tasks', format=logger.Format.ITALICS)
@@ -207,7 +208,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                            format=pipeline_events.Output.Format.VERBATIM, is_error=True)
                                 event_queue.put(pipeline_events.NodeFinished(
                                     node_path=next_node.path(), start_time=task_start_time,
-                                    end_time=datetime.datetime.now(), is_pipeline=True, succeeded=False))
+                                    end_time=datetime.datetime.now(tz.utc), is_pipeline=True, succeeded=False))
 
                                 failed_pipelines.add(next_node.parent)
                                 processed_nodes.add(next_node)
@@ -219,7 +220,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             if next_node.parent in running_pipelines:
                                 running_pipelines[next_node.parent][1] += 1
                             event_queue.put(
-                                pipeline_events.NodeStarted(next_node.path(), datetime.datetime.now(), False))
+                                pipeline_events.NodeStarted(next_node.path(), datetime.datetime.now(tz.utc), False))
                             event_queue.put(pipeline_events.Output(
                                 node_path=next_node.path(), format=logger.Format.ITALICS,
                                 message='★ ' + node_cost.format_duration(
@@ -246,7 +247,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             for parent in task_process.task.parents()[:-1]:
                                 failed_pipelines.add(parent)
 
-                        end_time = datetime.datetime.now()
+                        end_time = datetime.datetime.now(tz.utc)
                         event_queue.put(
                             pipeline_events.Output(task_process.task.path(),
                                                    ('succeeded' if succeeded else 'failed') + ',  '
@@ -273,7 +274,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
         statistics_process.join()
 
         # run finished
-        event_queue.put(pipeline_events.RunFinished(node_path=pipeline.path(), end_time=datetime.datetime.now(),
+        event_queue.put(pipeline_events.RunFinished(node_path=pipeline.path(), end_time=datetime.datetime.now(tz.utc),
                                                     succeeded=not failed_pipelines,
                                                     interactively_started=interactively_started))
 
@@ -326,7 +327,7 @@ class TaskProcess(multiprocessing.Process):
         self.task = task
         self.event_queue = event_queue
         self.status_queue = status_queue
-        self.start_time = datetime.datetime.now()
+        self.start_time = datetime.datetime.now(tz.utc)
 
     def run(self):
         # redirect stdout and stderr to queue
