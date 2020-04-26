@@ -40,6 +40,7 @@ pip install git+https://github.com/mara/data-integration.git
 
 For an example of an integration into a flask application, have a look at the [mara example project](https://github.com/mara/mara-example-project).
 
+Due to the heavy use of forking, Mara Data Integration does not run natively on Windows. If you want to run it on Windows, then please use Docker or the [Windows Subsystem for Linux](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux). 
 
 &nbsp;
 
