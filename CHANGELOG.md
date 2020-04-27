@@ -1,10 +1,13 @@
 # Changelog
 
+## 2.8.1 (2020-04-27)
+
+- Fix Problems when frontend and database are in a different timezone (#34)
+
 ## 2.8.0 (2020-03-25)
 
 - Implement pipeline notifications via Microsoft Teams #28
 - Make it possible to disable output coloring in command line etl runs (#31)
-
 
 ## 2.7.0 (2020-03-05)
 
