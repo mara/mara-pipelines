@@ -118,6 +118,8 @@ class _ParallelRead(pipelines.ParallelTask):
                                           self.file_dependencies)
                 return True
 
+            # No one should have a way to changes this away from a task and this makes my editor happy
+            assert isinstance(sub_pipeline.final_node, pipelines.Task)
             sub_pipeline.final_node.commands.append(python.RunFunction(update_file_dependencies))
 
         chunk_size = math.ceil(len(files) / (2 * config.max_number_of_parallel_tasks()))
