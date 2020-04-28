@@ -4,7 +4,7 @@ import sys
 
 import click
 
-from .. import config, pipelines, events
+from .. import config, pipelines
 
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
@@ -48,9 +48,6 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             print(f'{theme[PATH_COLOR]}{" / ".join(event.node_path)}{":" if event.node_path else ""}{theme[RESET_ALL]} '
                   + theme[event.format] + (theme[ERROR_COLOR] if event.is_error else '')
                   + event.message + theme[RESET_ALL])
-        elif isinstance(event, events.GenericExceptionEvent):
-            print(theme[ERROR_COLOR] + repr(event) + theme[RESET_ALL])
-            print(theme[ERROR_COLOR] + event.exception_traceback + theme[RESET_ALL])
         elif isinstance(event, pipeline_events.RunFinished):
             if event.succeeded:
                 succeeded = True

@@ -312,8 +312,13 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             # Catching GeneratorExit needs to end in a return!
             return
         except:
-            output_event = pipeline_events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
-                                                  format=logger.Format.ITALICS, is_error=True)
+            def _create_exception_output_event(msg: str = ''):
+                if msg:
+                    msg = msg + '\n'
+                return pipeline_events.Output(node_path=pipeline.path(), message=msg + traceback.format_exc(),
+                                              format=logger.Format.ITALICS, is_error=True)
+
+            output_event = _create_exception_output_event()
             exception_events = []
             try:
                 _notify_all(output_event)
@@ -322,13 +327,13 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 # if we still fail, as we have to get to the final close_open_run_after_error()
                 # and 'return'...
                 msg = "Could not notify about final output event"
-                exception_events.append(events.GenericExceptionEvent(e, msg))
+                exception_events.append(_create_exception_output_event(msg))
             yield output_event
             try:
                 run_log.close_open_run_after_error(runlogger.run_id)
             except BaseException as e:
                 msg = "Exception during 'close_open_run_after_error()'"
-                exception_events.append(events.GenericExceptionEvent(e, msg))
+                exception_events.append(_create_exception_output_event(msg))
 
             # At least try to notify the UI
             for e in exception_events:
