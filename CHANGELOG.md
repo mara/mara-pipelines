@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.8.2 (2020-05-04)
+
+- Ignore not succeeded executions in cost calculation (#36)
+- Ensure we log errors via events in case of error/shutdown (#33)
+- Fix a bug where we reported the wrong error to chat channels when running in
+  the browser and did not restart between failed runs (#33)
+
 ## 2.8.1 (2020-04-27)
 
 - Fix Problems when frontend and database are in a different timezone (#34)
