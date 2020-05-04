@@ -1,6 +1,7 @@
 import json
 import abc
 import datetime
+import sys
 
 
 class Event():
@@ -23,6 +24,14 @@ class EventHandler(abc.ABC):
 
 def notify_configured_event_handlers(event: Event):
     from . import config
-    all_handlers = config.event_handlers()
+    try:
+        all_handlers = config.event_handlers()
+    except BaseException as e:
+        print(f"Exception while getting configured event handlers: {repr(e)}", file=sys.stderr)
+        return
+
     for handler in all_handlers:
-        handler.handle_event(event)
+        try:
+            handler.handle_event(event)
+        except BaseException as e:
+            print(f"Handler {repr(handler)} could report about {repr(event)}: {repr(e)}", file=sys.stderr)

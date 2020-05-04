@@ -42,15 +42,15 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
     theme = plain if disable_colors else colorful
 
-    succeeded = True
+    succeeded = False
     for event in execution.run_pipeline(pipeline, nodes, with_upstreams, interactively_started=interactively_started):
         if isinstance(event, pipeline_events.Output):
             print(f'{theme[PATH_COLOR]}{" / ".join(event.node_path)}{":" if event.node_path else ""}{theme[RESET_ALL]} '
                   + theme[event.format] + (theme[ERROR_COLOR] if event.is_error else '')
                   + event.message + theme[RESET_ALL])
         elif isinstance(event, pipeline_events.RunFinished):
-            if not event.succeeded:
-                succeeded = False
+            if event.succeeded:
+                succeeded = True
 
     return succeeded
 

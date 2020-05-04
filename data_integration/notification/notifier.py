@@ -9,7 +9,7 @@ class ChatNotifier(events.EventHandler, abc.ABC):
     def __init__(self):
         """ Abstract class for sending notifications to chat bots when pipeline errors occur"""
 
-        # keep a list of log messages and error log messsages for each node
+        # keep a list of log messages and error log messages for each node
         self.node_output: {tuple: {bool: [events.Event]}} = None
 
 
@@ -41,10 +41,14 @@ class ChatNotifier(events.EventHandler, abc.ABC):
         elif isinstance(event, pipeline_events.RunStarted):
             if event.interactively_started:
                 self.send_run_started_interactively_message(event)
+            # reset the saved outputs, just to be sure...
+            self.node_output = None
 
         elif isinstance(event, pipeline_events.RunFinished):
             if event.interactively_started:
                 self.send_run_finished_interactively_message(event)
+            # reset the saved outputs
+            self.node_output = None
 
     @abc.abstractmethod
     def send_run_started_interactively_message(self, event: pipeline_events.RunStarted):
