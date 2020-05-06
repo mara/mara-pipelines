@@ -56,7 +56,9 @@ class SystemStatistics(Base):
     __tablename__ = 'data_integration_system_statistics'
 
     timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True), primary_key=True, index=True)
-    run_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
+    # server_default needs to be here to support the migration to -1 for old runs
+    run_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, nullable=False,
+                               server_default=sqlalchemy.text('-1'))
     disc_read = sqlalchemy.Column(sqlalchemy.FLOAT)
     disc_write = sqlalchemy.Column(sqlalchemy.FLOAT)
     net_recv = sqlalchemy.Column(sqlalchemy.FLOAT)
@@ -65,8 +67,6 @@ class SystemStatistics(Base):
     mem_usage = sqlalchemy.Column(sqlalchemy.FLOAT)
     swap_usage = sqlalchemy.Column(sqlalchemy.FLOAT)
     iowait = sqlalchemy.Column(sqlalchemy.FLOAT)
-
-    __table_args__ = (sqlalchemy.UniqueConstraint('timestamp', 'run_id', name='timestamp+run_id'), )
 
 
 def close_open_run_after_error(run_id: int):
@@ -125,7 +125,7 @@ RETURNING node_run_id''', (self.run_id, event.node_path, event.start_time, event
             with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
                 cursor.execute(f'''
 
-INSERT INTO data_integration_system_statistics (timestamp, run_id, disc_read, disc_write, net_recv, net_sent, 
+INSERT INTO data_integration_system_statistics (timestamp, run_id, disc_read, disc_write, net_recv, net_sent,
                                   cpu_usage, mem_usage, swap_usage, iowait)
 VALUES ({"%s, %s, %s, %s, %s, %s, %s, %s, %s, %s"})''',
                                (event.timestamp, self.run_id, event.disc_read, event.disc_write, event.net_recv,
