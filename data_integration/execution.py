@@ -39,11 +39,6 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     # The function that is run in a sub process
     def run():
 
-        # collect system stats in a separate Process
-        statistics_process = multiprocessing.Process(
-            target=lambda: system_statistics.generate_system_statistics(event_queue), name='system_statistics')
-        statistics_process.start()
-
         try:
             # capture output of print statements and other unplanned output
             logger.redirect_output(event_queue, pipeline.path())
@@ -129,6 +124,11 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
             # announce run start
             event_queue.put(events.RunStarted(node_path=pipeline.path(), start_time=run_start_time, pid=os.getpid()))
+
+            # collect system stats in a separate Process
+            statistics_process = multiprocessing.Process(
+                target=lambda: system_statistics.generate_system_statistics(event_queue), name='system_statistics')
+            statistics_process.start()
 
             # run as long
             # - as task processes are still running
