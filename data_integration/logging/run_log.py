@@ -66,8 +66,6 @@ class SystemStatistics(Base):
     swap_usage = sqlalchemy.Column(sqlalchemy.FLOAT)
     iowait = sqlalchemy.Column(sqlalchemy.FLOAT)
 
-    __table_args__ = (sqlalchemy.UniqueConstraint('timestamp', 'run_id', name='timestamp+run_id'), )
-
 
 def close_open_run_after_error(run_id: int):
     """Closes all open run and node_run for this run_id as failed"""
