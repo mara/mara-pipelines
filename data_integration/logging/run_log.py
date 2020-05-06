@@ -54,8 +54,8 @@ class SystemStatistics(Base):
     """System stats measurements"""
     __tablename__ = 'data_integration_system_statistics'
 
-    run_id = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True), primary_key=True, index=True, nullable=True)
-    timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True))
+    timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True), primary_key=True, index=True)
+    run_id = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True), unique=True, nullable=True)
     disc_read = sqlalchemy.Column(sqlalchemy.FLOAT)
     disc_write = sqlalchemy.Column(sqlalchemy.FLOAT)
     net_recv = sqlalchemy.Column(sqlalchemy.FLOAT)
@@ -104,7 +104,7 @@ RETURNING node_run_id''', (self.run_id, event.node_path, event.start_time, event
             with mara_db.postgresql.postgres_cursor_context(
                     'mara') as cursor:  # type: psycopg2.extensions.cursor
                 cursor.execute(f'''
-INSERT INTO data_integration_system_statistics (timestamp, disc_read, disc_write, net_recv, net_sent, 
+INSERT INTO data_integration_system_statistics (timestamp, run_id, disc_read, disc_write, net_recv, net_sent, 
                                   cpu_usage, mem_usage, swap_usage, iowait)
 VALUES ({"%s, %s, %s, %s, %s, %s, %s, %s, %s"})''',
                                (event.timestamp, event.disc_read, event.disc_write, event.net_recv,
