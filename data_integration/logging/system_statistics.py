@@ -5,10 +5,10 @@ import multiprocessing
 import time
 
 from .. import config
-from ..logging import events
+from ..logging import pipeline_events
 
 
-class SystemStatistics(events.Event):
+class SystemStatistics(pipeline_events.Event):
     def __init__(self, timestamp: datetime.datetime, *, disc_read: float = None, disc_write: float = None,
                  net_recv: float = None, net_sent: float = None,
                  cpu_usage: float = None, mem_usage: float = None, swap_usage: float = None,
@@ -72,14 +72,21 @@ def generate_system_statistics(event_queue: multiprocessing.Queue) -> None:
 
     n = 0
 
+    # some counters on WSL1 return None because psutil thinks it's linux,
+    # but the linux kernel API is not implemented and fails
+    # This lets it always return 0 for all attributes on that counter and lets at least CPU show up
+    class _zero():
+        def __getattr__(self, item): return 0
+    zero = _zero()
+
     # capture current disc and net state for later diff
-    discs_last = psutil.disk_io_counters()
-    nets_last = psutil.net_io_counters()
+    discs_last = psutil.disk_io_counters() or zero
+    nets_last = psutil.net_io_counters() or zero
     mb = 1024 * 1024
     time.sleep(period)
     while True:
-        discs_cur = psutil.disk_io_counters()
-        nets_cur = psutil.net_io_counters()
+        discs_cur = psutil.disk_io_counters() or zero
+        nets_cur = psutil.net_io_counters() or zero
         event_queue.put(SystemStatistics(
             datetime.datetime.now(),
             disc_read=(discs_cur.read_bytes - discs_last.read_bytes) / mb / period,

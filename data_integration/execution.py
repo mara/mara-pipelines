@@ -4,20 +4,25 @@ Uses forking (multiprocessing processes) for parallelism and message queues for 
 """
 
 import datetime
+from datetime import timezone as tz
 import functools
 import multiprocessing
 import os
+import sys
 import signal
 import time
 import traceback
 from multiprocessing import queues
 
 from . import pipelines, config
-from .logging import logger, events, system_statistics, run_log, node_cost, slack
+from .logging import logger, pipeline_events, system_statistics, run_log, node_cost
+from . import events
 
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
-                 with_upstreams: bool = False) -> [events.Event]:
+                 with_upstreams: bool = False,
+                 interactively_started: bool = False
+                 ) -> [events.Event]:
     """
     Runs a pipeline in a forked sub process. Acts as a generator that yields events from the sub process.
 
@@ -33,8 +38,19 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     Yields:
         Events emitted during pipeline execution
     """
+
+    # use forking for starting child processes to avoid cleanup functions and leakage and pickle problems
+    #
+    # On newer macs you need to set
+    #   OBJC_DISABLE_INITIALIZE_FORK_SAFETY=YES
+    # env variable *before* starting python/flask otherwise you will get core dumps when any forked process calls
+    # into certain native code (e.g. requests)! Note that this is done automatically if you create your virtual env
+    # via the scripts from mara-app >= 2.1.1
+    #
+    multiprocessing_context = multiprocessing.get_context('fork')
+
     # A queue for receiving events from forked sub processes
-    event_queue = multiprocessing.Queue()
+    event_queue = multiprocessing_context.Queue()
 
     # The function that is run in a sub process
     def run():
@@ -80,7 +96,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 queue([pipeline])
 
             # book keeping
-            run_start_time = datetime.datetime.now()
+            run_start_time = datetime.datetime.now(tz.utc)
             # all nodes that already ran or that won't be run anymore
             processed_nodes: {pipelines.Node} = set()
             # running pipelines with start times and number of running children
@@ -96,10 +112,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 """
                 for node in node_queue:  # type: pipelines.Node
                     if ((not node.upstreams or len(node.upstreams & processed_nodes) == len(node.upstreams))
-                            and (not isinstance(node.parent, pipelines.Pipeline)
-                                 or (not node.parent.max_number_of_parallel_tasks)
-                                 or (not node.parent in running_pipelines)
-                                 or (running_pipelines[node.parent][1] < node.parent.max_number_of_parallel_tasks))):
+                        and (not isinstance(node.parent, pipelines.Pipeline)
+                             or (not node.parent.max_number_of_parallel_tasks)
+                             or (not node.parent in running_pipelines)
+                             or (running_pipelines[node.parent][1] < node.parent.max_number_of_parallel_tasks))):
                         node_queue.remove(node)
                         if node.parent in failed_pipelines and not node.parent.force_run_all_children:
                             # if the parent pipeline failed (and no overwrite), don't launch new nodes
@@ -110,20 +126,26 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             def track_finished_pipelines():
                 """when all nodes of a pipeline have been processed, then emit events"""
                 for running_pipeline, (start_time, running_children) \
-                        in dict(running_pipelines).items():  # type: pipelines.Pipeline
+                    in dict(running_pipelines).items():  # type: pipelines.Pipeline
                     if len(set(running_pipeline.nodes.values()) & processed_nodes) == len(running_pipeline.nodes):
                         succeeded = running_pipeline not in failed_pipelines
-                        event_queue.put(events.Output(
+                        event_queue.put(pipeline_events.Output(
                             node_path=running_pipeline.path(), format=logger.Format.ITALICS, is_error=not succeeded,
-                            message=f'{"succeeded" if succeeded else "failed"}, {logger.format_time_difference(run_start_time, datetime.datetime.now())}'))
-                        event_queue.put(events.NodeFinished(
+                            message=f'{"succeeded" if succeeded else "failed"}, {logger.format_time_difference(run_start_time, datetime.datetime.now(tz.utc))}'))
+                        event_queue.put(pipeline_events.NodeFinished(
                             node_path=running_pipeline.path(), start_time=start_time,
-                            end_time=datetime.datetime.now(), is_pipeline=True, succeeded=succeeded))
+                            end_time=datetime.datetime.now(tz.utc), is_pipeline=True, succeeded=succeeded))
                         del running_pipelines[running_pipeline]
                         processed_nodes.add(running_pipeline)
 
             # announce run start
-            event_queue.put(events.RunStarted(node_path=pipeline.path(), start_time=run_start_time, pid=os.getpid()))
+            event_queue.put(pipeline_events.RunStarted(node_path=pipeline.path(),
+                                                       start_time=run_start_time,
+                                                       pid=os.getpid(),
+                                                       interactively_started=interactively_started,
+                                                       node_ids=[node.id for node in (nodes or [])],
+                                                       is_root_pipeline=(pipeline.parent is None))
+                            )
 
             # collect system stats in a separate Process
             statistics_process = multiprocessing.Process(
@@ -160,17 +182,17 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             queue(list(next_node.nodes.values()))
 
                             # book keeping and event emission
-                            pipeline_start_time = datetime.datetime.now()
+                            pipeline_start_time = datetime.datetime.now(tz.utc)
                             running_pipelines[next_node] = [pipeline_start_time, 0]
-                            event_queue.put(events.NodeStarted(next_node.path(), pipeline_start_time, True))
-                            event_queue.put(events.Output(
+                            event_queue.put(pipeline_events.NodeStarted(next_node.path(), pipeline_start_time, True))
+                            event_queue.put(pipeline_events.Output(
                                 node_path=next_node.path(), format=logger.Format.ITALICS,
                                 message='★ ' + node_cost.format_duration(
                                     node_durations_and_run_times.get(tuple(next_node.path()), [0, 0])[0])))
 
                         elif isinstance(next_node, pipelines.ParallelTask):
                             # create sub tasks and queue them
-                            task_start_time = datetime.datetime.now()
+                            task_start_time = datetime.datetime.now(tz.utc)
                             try:
                                 logger.redirect_output(event_queue, next_node.path())
                                 logger.log('☆ Launching tasks', format=logger.Format.ITALICS)
@@ -179,15 +201,15 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                 queue([sub_pipeline])
 
                             except Exception as e:
-                                event_queue.put(events.NodeStarted(
+                                event_queue.put(pipeline_events.NodeStarted(
                                     node_path=next_node.path(), start_time=task_start_time, is_pipeline=True))
                                 logger.log(message=f'Could not launch parallel tasks', format=logger.Format.ITALICS,
                                            is_error=True)
                                 logger.log(message=traceback.format_exc(),
-                                           format=events.Output.Format.VERBATIM, is_error=True)
-                                event_queue.put(events.NodeFinished(
+                                           format=pipeline_events.Output.Format.VERBATIM, is_error=True)
+                                event_queue.put(pipeline_events.NodeFinished(
                                     node_path=next_node.path(), start_time=task_start_time,
-                                    end_time=datetime.datetime.now(), is_pipeline=True, succeeded=False))
+                                    end_time=datetime.datetime.now(tz.utc), is_pipeline=True, succeeded=False))
 
                                 failed_pipelines.add(next_node.parent)
                                 processed_nodes.add(next_node)
@@ -198,13 +220,14 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             # run a task in a subprocess
                             if next_node.parent in running_pipelines:
                                 running_pipelines[next_node.parent][1] += 1
-                            event_queue.put(events.NodeStarted(next_node.path(), datetime.datetime.now(), False))
-                            event_queue.put(events.Output(
+                            event_queue.put(
+                                pipeline_events.NodeStarted(next_node.path(), datetime.datetime.now(tz.utc), False))
+                            event_queue.put(pipeline_events.Output(
                                 node_path=next_node.path(), format=logger.Format.ITALICS,
                                 message='★ ' + node_cost.format_duration(
                                     node_durations_and_run_times.get(tuple(next_node.path()), [0, 0])[0])))
 
-                            status_queue = multiprocessing.Queue()
+                            status_queue = multiprocessing_context.Queue()
                             process = TaskProcess(next_node, event_queue, status_queue)
                             process.start()
                             running_task_processes[next_node] = process
@@ -225,14 +248,14 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             for parent in task_process.task.parents()[:-1]:
                                 failed_pipelines.add(parent)
 
-                        end_time = datetime.datetime.now()
+                        end_time = datetime.datetime.now(tz.utc)
                         event_queue.put(
-                            events.Output(task_process.task.path(),
-                                          ('succeeded' if succeeded else 'failed') + ',  '
-                                          + logger.format_time_difference(task_process.start_time, end_time),
-                                          format=logger.Format.ITALICS, is_error=not succeeded))
-                        event_queue.put(events.NodeFinished(task_process.task.path(), task_process.start_time,
-                                                            end_time, False, succeeded))
+                            pipeline_events.Output(task_process.task.path(),
+                                                   ('succeeded' if succeeded else 'failed') + ',  '
+                                                   + logger.format_time_difference(task_process.start_time, end_time),
+                                                   format=logger.Format.ITALICS, is_error=not succeeded))
+                        event_queue.put(pipeline_events.NodeFinished(task_process.task.path(), task_process.start_time,
+                                                                     end_time, False, succeeded))
 
                 # check if some pipelines finished
                 track_finished_pipelines()
@@ -241,8 +264,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 time.sleep(0.001)
 
         except:
-            event_queue.put(events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
-                                          format=logger.Format.ITALICS, is_error=True))
+            event_queue.put(pipeline_events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
+                                                   format=logger.Format.ITALICS, is_error=True))
 
         # run again because `dequeue` might have moved more nodes to `finished_nodes`
         track_finished_pipelines()
@@ -252,32 +275,73 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
         statistics_process.join()
 
         # run finished
-        event_queue.put(events.RunFinished(node_path=pipeline.path(), end_time=datetime.datetime.now(),
-                                           succeeded=not failed_pipelines))
+        event_queue.put(pipeline_events.RunFinished(node_path=pipeline.path(), end_time=datetime.datetime.now(tz.utc),
+                                                    succeeded=not failed_pipelines,
+                                                    interactively_started=interactively_started))
 
     # fork the process and run `run`
-    run_process = multiprocessing.Process(target=run, name='pipeline-' + '-'.join(pipeline.path()))
+    run_process = multiprocessing_context.Process(target=run, name='pipeline-' + '-'.join(pipeline.path()))
     run_process.start()
 
-    # todo: make event handlers configurable (e.g. for slack)
-    event_handlers = [run_log.RunLogger()]
+    runlogger = run_log.RunLogger()
 
-    if config.slack_token():
-        event_handlers.append(slack.Slack())
+    def _notify_all(event):
+        try:
+            runlogger.handle_event(event)
+        except BaseException as e:
+            # This includes the case when the mara DB is not reachable when writing the event.
+            # Not sure if we should just ignore that, but at least get other notifications
+            # out in case of an error
+            events.notify_configured_event_handlers(event)
+            # this will notify the UI in case of a problem later on
+            raise e
+        events.notify_configured_event_handlers(event)
 
     # process messages from forked child processes
     while True:
         try:
             while not event_queue.empty():
                 event = event_queue.get(False)
-                for event_handler in event_handlers:
-                    event_handler.handle_event(event)
+                _notify_all(event)
                 yield event
         except queues.Empty:
             pass
+        except GeneratorExit:
+            # This happens e.g. if the browser window is closed or we reload the page in the middle of a run
+            # As we still have open runs, we need to close them as failed.
+            run_log.close_open_run_after_error(runlogger.run_id)
+            # Catching GeneratorExit needs to end in a return!
+            return
         except:
-            yield events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
-                                format=logger.Format.ITALICS, is_error=True)
+            def _create_exception_output_event(msg: str = ''):
+                if msg:
+                    msg = msg + '\n'
+                return pipeline_events.Output(node_path=pipeline.path(), message=msg + traceback.format_exc(),
+                                              format=logger.Format.ITALICS, is_error=True)
+
+            output_event = _create_exception_output_event()
+            exception_events = []
+            try:
+                _notify_all(output_event)
+            except BaseException as e:
+                # we are already in the generic exception handler, so we cannot do anything
+                # if we still fail, as we have to get to the final close_open_run_after_error()
+                # and 'return'...
+                msg = "Could not notify about final output event"
+                exception_events.append(_create_exception_output_event(msg))
+            yield output_event
+            try:
+                run_log.close_open_run_after_error(runlogger.run_id)
+            except BaseException as e:
+                msg = "Exception during 'close_open_run_after_error()'"
+                exception_events.append(_create_exception_output_event(msg))
+
+            # At least try to notify the UI
+            for e in exception_events:
+                print(f"{repr(e)}", file=sys.stderr)
+                yield e
+                events.notify_configured_event_handlers(e)
+
             return
         if not run_process.is_alive():
             break
@@ -298,7 +362,7 @@ class TaskProcess(multiprocessing.Process):
         self.task = task
         self.event_queue = event_queue
         self.status_queue = status_queue
-        self.start_time = datetime.datetime.now()
+        self.start_time = datetime.datetime.now(tz.utc)
 
     def run(self):
         # redirect stdout and stderr to queue

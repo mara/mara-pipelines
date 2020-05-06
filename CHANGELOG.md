@@ -1,5 +1,46 @@
 # Changelog
 
+## 2.8.2 (2020-05-04)
+
+- Ignore not succeeded executions in cost calculation (#36)
+- Ensure we log errors via events in case of error/shutdown (#33)
+- Fix a bug where we reported the wrong error to chat channels when running in
+  the browser and did not restart between failed runs (#33)
+
+## 2.8.1 (2020-04-27)
+
+- Fix Problems when frontend and database are in a different timezone (#34)
+
+## 2.8.0 (2020-03-25)
+
+- Implement pipeline notifications via Microsoft Teams #28
+- Make it possible to disable output coloring in command line etl runs (#31)
+
+## 2.7.0 (2020-03-05)
+
+- Make event handlers configurable: this allows for e.g. adding your own notifier for specific events
+- Switch slack to use events for notifications of interactive pipeline runs
+- Fix an edge case bug where reverting a commit after an error in the table creation for an incremental load
+  job would not recreate the original tables leading to a failed load
+- Fix an edge case bug where crashing during a triggered (code change, TRUNCATE) full load of an
+  incremental load job after the table was already loaded would not rerun the full load
+  leading to missing data
+- Optimize how we set the spawning method in multiprocessing
+
+
+## 2.6.1 (2020-02-20)
+
+- Fix for Python 3.7 ("RuntimeError: context has already been set")
+
+
+## 2.6.0 (2020-02-12)
+
+- Python 3.8 compatibility (explicitly set process spawning method to 'fork')
+- Fix open runs after browser reload
+- Add workaround for system statistics on wsl1
+- Speedup incremental insert into partitioned tables
+- Show warning when graphviz is not installed
+
 ## 2.5.1 (2019-08-01)
 
 - Include file_dependencies as variable for Copy Commands: This could handle cases in ETL pipeline, where the copy command shall be skipped if the sql_files stay the same.
@@ -7,7 +48,7 @@
 
 ## 2.5.0 (2019-07-07)
 
-- Bug fix: make last modification timestamp of parallel file reading time zone aware (fixes `TypeError: can't compare offset-naive and offset-aware datetimes` error) 
+- Bug fix: make last modification timestamp of parallel file reading time zone aware (fixes `TypeError: can't compare offset-naive and offset-aware datetimes` error)
 
 
 ## 2.4.0 - 2.4.2 (2019-07-04)
@@ -53,7 +94,7 @@ ALTER TABLE data_integration_system_statistics ALTER timestamp TYPE timestamptz
 - Track and visualize also unfinished pipeline runs
 - Speed up computation of node durations and node cost
 - Improve error handling in launching of parallel tasks
-- Improve run times visualization (better axis labels, independent tooltips) 
+- Improve run times visualization (better axis labels, independent tooltips)
 - Smaller ui improvements
 
 
@@ -68,7 +109,7 @@ ALTER TABLE data_integration_system_statistics ALTER timestamp TYPE timestamptz
   how to not let passwords show up in the settings UI.
   ([gh #14](https://github.com/mara/data-integration/pull/14))
 
-**required changes** 
+**required changes**
 
 - Update `mara-app` to `>=2.0.0`
 
@@ -90,7 +131,7 @@ ALTER TABLE data_integration_system_statistics ALTER timestamp TYPE timestamptz
 **required changes**
 
 - When using `ParallelReadFile` with parameter `partition_target_table_by_day_id=True`, then make sure the target table is natively partitioned by adding `PARTITION BY LIST (day_id)`.
- 
+
 
 
 ## 1.3.0 (2018-07-17)

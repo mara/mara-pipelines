@@ -8,42 +8,63 @@ from .. import config, pipelines
 
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
-                 with_upstreams: bool = False) -> bool:
+                 with_upstreams: bool = False,
+                 interactively_started: bool = False,
+                 disable_colors: bool = False) -> bool:
     """
     Runs a pipeline or parts of it with output printed to stdout
     Args:
         pipeline: The pipeline to run
         nodes: A list of pipeline children that should run
         with_upstreams: When true and `nodes` are provided, then all upstreams of `nodes` in `pipeline` are also run
+        interactively_started: Whether or not this run was started interactively, passed on in RunStarted and
+                               RunFinished events.
+        disable_colors: If true, don't use escape sequences to make the log colorful (default: colorful logging)
     Return:
         True when the pipeline run succeeded
     """
-    from ..logging import logger, events
+    from ..logging import logger, pipeline_events
     from .. import execution
 
-    succeeded = True
-    for event in execution.run_pipeline(pipeline, nodes, with_upstreams):
-        if isinstance(event, events.Output):
-            print(f'\033[36m{" / ".join(event.node_path)}{":" if event.node_path else ""}\033[0m '
-                  + {logger.Format.STANDARD: '\033[01m',
-                     logger.Format.ITALICS: '\033[02m',
-                     logger.Format.VERBATIM: ''}[event.format]
-                  + ('\033[91m' if event.is_error else '') + event.message + '\033[0m')
-        elif isinstance(event, events.RunFinished):
-            if not event.succeeded:
-                succeeded = False
+    RESET_ALL = 'reset_all'
+    PATH_COLOR = 'path_color'
+    ERROR_COLOR = 'error_color'
+
+    # https://godoc.org/github.com/whitedevops/colors
+    colorful = {logger.Format.STANDARD: '\033[01m',  # bold
+                logger.Format.ITALICS: '\033[02m',  # dim
+                logger.Format.VERBATIM: '',
+                PATH_COLOR: '\033[36m',  # cyan
+                ERROR_COLOR: '\033[91m',  # light red
+                RESET_ALL: '\033[0m',  # reset all
+                }
+    plain = {key: '' for key in colorful.keys()}
+
+    theme = plain if disable_colors else colorful
+
+    succeeded = False
+    for event in execution.run_pipeline(pipeline, nodes, with_upstreams, interactively_started=interactively_started):
+        if isinstance(event, pipeline_events.Output):
+            print(f'{theme[PATH_COLOR]}{" / ".join(event.node_path)}{":" if event.node_path else ""}{theme[RESET_ALL]} '
+                  + theme[event.format] + (theme[ERROR_COLOR] if event.is_error else '')
+                  + event.message + theme[RESET_ALL])
+        elif isinstance(event, pipeline_events.RunFinished):
+            if event.succeeded:
+                succeeded = True
 
     return succeeded
 
 
 @click.command()
 @click.option('--path', default='',
-              help='The parent ids of of the pipeline to run, separated by comma. Example: "pipeline-id,sub-pipeline-id".')
+              help='The id of of the pipeline to run. Example: "pipeline-id"; "" (default) is the root pipeline.')
 @click.option('--nodes',
-              help='IDs of sub-nodes of the pipeline to run, separated by comma. When provided, then only these nodes are run. Example: "do-this, do-that".')
+              help='IDs of sub-nodes of the pipeline to run, separated by comma. When provided, then only these nodes are run. Example: "do-this,do-that".')
 @click.option('--with_upstreams', default=False, is_flag=True,
               help='Also run all upstreams of --nodes within the pipeline.')
-def run(path, nodes, with_upstreams):
+@click.option('--disable-colors', default=False, is_flag=True,
+              help='Output logs without coloring them.')
+def run(path, nodes, with_upstreams, disable_colors: bool = False):
     """Runs a pipeline or a sub-set of its nodes"""
 
     # the pipeline to run
@@ -66,7 +87,7 @@ def run(path, nodes, with_upstreams):
         else:
             _nodes.add(node)
 
-    if not run_pipeline(pipeline, _nodes, with_upstreams):
+    if not run_pipeline(pipeline, _nodes, with_upstreams, interactively_started=False, disable_colors=disable_colors):
         sys.exit(-1)
 
 
@@ -78,27 +99,8 @@ def run_interactively():
     d = Dialog(dialog="dialog", autowidgetsize=True)  # see http://pythondialog.sourceforge.net/doc/widgets.html
 
     def run_pipeline_and_notify(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None):
-        import requests, os
-
-        if config.slack_token():
-            message = (':hatching_chick: *' + (os.environ.get('SUDO_USER') or os.environ.get('USER') or os.getlogin())
-                       + '* manually triggered run of ' +
-                       ('pipeline <' + config.base_url() + '/' + '/'.join(pipeline.path()) + '|'
-                        + '/'.join(pipeline.path()) + ' >' if pipeline.parent else 'root pipeline'))
-
-            if nodes:
-                message += ', nodes ' + ', '.join([f'`{node.id}`' for node in nodes])
-
-            requests.post('https://hooks.slack.com/services/' + config.slack_token(), json={'text': message})
-
-        if not run_pipeline(pipeline, nodes):
-            if config.slack_token():
-                requests.post('https://hooks.slack.com/services/' + config.slack_token(),
-                              json={'text': ':baby_chick: failed'})
+        if not run_pipeline(pipeline, nodes, interactively_started=True):
             sys.exit(-1)
-        if config.slack_token():
-            requests.post('https://hooks.slack.com/services/' + config.slack_token(),
-                          json={'text': ':hatched_chick: succeeded'})
 
     def menu(node: pipelines.Node):
         if isinstance(node, pipelines.Pipeline):

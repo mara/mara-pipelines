@@ -114,6 +114,13 @@ class ExecuteSQL(_SQLCommand):
                                                  self.file_dependencies):
                 logger.log('no changes')
                 return True
+            else:
+                # delete any old hash to trigger a run in case the next run is switched back to the old hash
+                # This prevents inconsistent state in case you do a deplyoment with bad SQL which fails and
+                # then revert.
+                # The hash would still be correct for the old state but the results of this file would
+                # probably not be there (usually the first step is a DROP).
+                file_dependencies.delete(self.node_path(), dependency_type)
 
         if not super().run():
             return False
@@ -141,7 +148,7 @@ class Copy(_SQLCommand):
     def __init__(self, source_db_alias: str, target_table: str, target_db_alias: str = None,
                  sql_statement: str = None, sql_file_name: Union[Callable, str] = None, replace: {str: str} = None,
                  timezone: str = None, csv_format: bool = None, delimiter_char: str = None,
-                 file_dependencies = None) -> None:
+                 file_dependencies=None) -> None:
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
         self.source_db_alias = source_db_alias
         self.target_table = target_table
@@ -172,6 +179,12 @@ class Copy(_SQLCommand):
                                                  self.file_dependencies):
                 logger.log('no changes')
                 return True
+            else:
+                # delete any old hash to trigger a run in case the next run is switched back to the old hash
+                # which in most cases would result in an newly created empty table but no load
+                # (see also above in ExecuteSQL)
+                file_dependencies.delete(self.node_path(), dependency_type)
+
 
         if not super().run():
             return False
@@ -287,6 +300,13 @@ class CopyIncrementally(_SQLCommand):
                 logger.log(truncate_query, format=logger.Format.VERBATIM)
                 with mara_db.postgresql.postgres_cursor_context(self.target_db_alias) as cursor:
                     cursor.execute(truncate_query)
+            elif last_comparison_value:
+                # table is empty but we have a last comparison value from earlier runs
+                # If we would crash during load (with some data already in the table), the next run would
+                # not trigger a full load and we would miss data. To prevent that, delete the old
+                # comparison value (we will then set it only on success)
+                logger.log('deleting old comparison value', logger.Format.ITALICS)
+                incremental_copy_status.delete(self.node_path(), self.source_db_alias, self.source_table)
 
             # overwrite the comparison criteria to get everything
             replace = {self.comparison_value_placeholder: '(1=1)'}
@@ -336,9 +356,7 @@ WHERE {key_definition}"""
 INSERT INTO {self.target_table}
 SELECT src.*
 FROM {self.target_table}_upsert src
-LEFT JOIN {self.target_table} dst
-  ON {key_definition}
-WHERE dst.* IS NULL"""
+WHERE NOT EXISTS (SELECT 1 FROM {self.target_table} dst WHERE {key_definition})"""
                 if not shell.run_shell_command(f'echo {shlex.quote(update_query)} \\\n  | '
                                                + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
                     return False
