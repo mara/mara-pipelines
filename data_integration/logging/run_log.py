@@ -106,8 +106,8 @@ RETURNING node_run_id''', (self.run_id, event.node_path, event.start_time, event
                 cursor.execute(f'''
 INSERT INTO data_integration_system_statistics (timestamp, run_id, disc_read, disc_write, net_recv, net_sent, 
                                   cpu_usage, mem_usage, swap_usage, iowait)
-VALUES ({"%s, %s, %s, %s, %s, %s, %s, %s, %s"})''',
-                               (event.timestamp, event.disc_read, event.disc_write, event.net_recv,
+VALUES ({"%s, %s, %s, %s, %s, %s, %s, %s, %s, %s"})''',
+                               (event.timestamp, self.run_id, event.disc_read, event.disc_write, event.net_recv,
                                 event.net_sent, event.cpu_usage, event.mem_usage, event.swap_usage, event.iowait))
 
         elif isinstance(event, events.NodeFinished):
