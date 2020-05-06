@@ -55,7 +55,7 @@ class SystemStatistics(Base):
     __tablename__ = 'data_integration_system_statistics'
 
     timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True), primary_key=True, index=True)
-    run_id = sqlalchemy.Column(sqlalchemy.Integer, unique=True, nullable=True)
+    run_id = sqlalchemy.Column(sqlalchemy.Integer, nullable=True)
     disc_read = sqlalchemy.Column(sqlalchemy.FLOAT)
     disc_write = sqlalchemy.Column(sqlalchemy.FLOAT)
     net_recv = sqlalchemy.Column(sqlalchemy.FLOAT)
@@ -64,6 +64,8 @@ class SystemStatistics(Base):
     mem_usage = sqlalchemy.Column(sqlalchemy.FLOAT)
     swap_usage = sqlalchemy.Column(sqlalchemy.FLOAT)
     iowait = sqlalchemy.Column(sqlalchemy.FLOAT)
+
+    __table_args__ = (sqlalchemy.UniqueConstraint('timestamp', 'run_id', name='timestamp+run_id'), )
 
 
 class RunLogger(events.EventHandler):
