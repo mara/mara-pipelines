@@ -373,10 +373,11 @@ class TaskProcess(multiprocessing.Process):
         try:
             while True:
                 if not self.task.run():
-                    if attempt < self.task.max_retries:
+                    max_retries = self.task.max_retries or config.default_task_max_retries()
+                    if attempt < max_retries:
                         attempt += 1
                         delay = pow(2, attempt + 2)
-                        logger.log(message=f'Retry {attempt}/{self.task.max_retries} in {delay} seconds',
+                        logger.log(message=f'Retry {attempt}/{max_retries} in {delay} seconds',
                                    is_error=True, format=logger.Format.ITALICS)
                         time.sleep(delay)
                     else:
