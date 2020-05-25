@@ -10,6 +10,7 @@ import multiprocessing
 import os
 import sys
 import signal
+import atexit
 import time
 import traceback
 from multiprocessing import queues
@@ -284,6 +285,19 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     run_process.start()
 
     runlogger = run_log.RunLogger()
+
+    # make sure that we close this run (if still open) as failed when we close this python process
+    # On SIGKILL we will still leave behind open runs...
+    # this needs to run after we forked off the run_process as that one should not inherit the atexit function
+    def ensure_closed_run_on_abort():
+        try:
+            run_log.close_open_run_after_error(runlogger.run_id)
+        except BaseException as e:
+            msg = "Exception during 'close_open_run_after_error()'"
+            print(f"{msg}: {repr(e)}", file=sys.stderr, flush=True)
+        return
+
+    atexit.register(ensure_closed_run_on_abort)
 
     def _notify_all(event):
         try:
