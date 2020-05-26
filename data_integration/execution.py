@@ -110,6 +110,25 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             failed_pipelines: {pipelines.Pipeline} = set()  # pipelines with failed tasks
             running_task_processes: {pipelines.Task: TaskProcess} = {}
 
+            # make sure any running tasks are killed when this executor process is shutdown
+            executor_pid = os.getpid()
+
+            def ensure_task_processes_killed():
+                # as we fork, the TaskProcess also run this function -> ignore it there
+                if os.getpid() != executor_pid: return
+                try:
+                    for tp in list(running_task_processes.values()):  # type: TaskProcess
+                        if tp.is_alive():
+                            # give it a chance to gracefully shutdown
+                            tp.terminate()
+                    statistics_process.kill()
+                except BaseException as e:
+                    msg = "Exception during TaskProcess cleanup"
+                    print(f"{msg}: {repr(e)}", file=sys.stderr, flush=True)
+                return
+
+            atexit.register(ensure_task_processes_killed)
+
             def dequeue() -> pipelines.Node:
                 """
                 Finds the next task in the queue
