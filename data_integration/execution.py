@@ -374,7 +374,11 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 print(f"{repr(e)}", file=sys.stderr)
                 yield e
                 events.notify_configured_event_handlers(e)
-
+            # try to terminate the run_process which itself will also cleanup in an atexit handler
+            try:
+                run_process.terminate()
+            except:
+                pass
             return
         if not run_process.is_alive():
             break
