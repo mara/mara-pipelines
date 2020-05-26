@@ -142,10 +142,22 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                              or (not node.parent in running_pipelines)
                              or (running_pipelines[node.parent][1] < node.parent.max_number_of_parallel_tasks))):
                         node_queue.remove(node)
-                        if node.parent in failed_pipelines and not node.parent.force_run_all_children:
+                        processed_as_parent_failed = False
+                        parent = node.parent
+                        while parent:
                             # if the parent pipeline failed (and no overwrite), don't launch new nodes
-                            processed_nodes.add(node)
-                        else:
+                            # this needs to go down to the ultimate parent as we can have cases where we already
+                            # queued a subpipeline and now the parent pipeline failed but the tasks parent pipeline
+                            # (the sub pipeline) is not failed.
+                            # If a task from a parent pipeline fails, even with force_run_all_children on the
+                            # sub pipeline, the sub pipeline would stop. Only if the failed parent pipeline also has
+                            # force_run_all_children, the task would get scheduled
+                            if parent in failed_pipelines and not parent.force_run_all_children:
+                                processed_nodes.add(node)
+                                processed_as_parent_failed = True
+                                break
+                            else: parent = parent.parent
+                        if not processed_as_parent_failed:
                             return node
 
             def track_finished_pipelines():
