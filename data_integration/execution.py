@@ -393,6 +393,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 pass
             return
         if not run_process.is_alive():
+            # If we are here it might be that the executor dies without sending the necessary run finished events
+            ensure_closed_run_on_abort()
             break
         time.sleep(0.001)
 
