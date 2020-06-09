@@ -70,20 +70,29 @@ def close_open_run_after_error(run_id: int):
     """Closes all open run and node_run for this run_id as failed"""
     if run_id is None:
         return
-    print(f'Run aborted, cleaning up (run_id = {run_id})')
     _close_run = f'''
 UPDATE  data_integration_run
 SET end_time = now(), succeeded = FALSE
 WHERE run_id = {"%s"} and end_time IS NULL
+RETURNING run_id
     '''
     _close_node_run = f'''
 UPDATE  data_integration_node_run
 SET end_time = now(), succeeded = FALSE
 WHERE run_id = {"%s"} and end_time IS NULL
+RETURNING run_id
         '''
     with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
-        cursor.execute(_close_node_run, (run_id,))
-        cursor.execute(_close_run, (run_id,))
+        _closed_any=False
+        for code in [_close_node_run, _close_run]:
+            try:
+                cursor.execute(code, (run_id,))
+                if cursor.fetchall():
+                    _closed_any = True
+            except:
+                pass
+        if _closed_any:
+            print(f'Cleaned up open runs/node_runs (run_id = {run_id})')
 
 
 class RunLogger(events.EventHandler):
