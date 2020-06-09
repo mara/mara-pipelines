@@ -83,7 +83,10 @@ def generate_system_statistics(event_queue: multiprocessing.Queue) -> None:
     discs_last = psutil.disk_io_counters() or zero
     nets_last = psutil.net_io_counters() or zero
     mb = 1024 * 1024
-    time.sleep(period)
+    try:
+        time.sleep(period)
+    except KeyboardInterrupt:
+        return
     while True:
         discs_cur = psutil.disk_io_counters() or zero
         nets_cur = psutil.net_io_counters() or zero
@@ -101,5 +104,7 @@ def generate_system_statistics(event_queue: multiprocessing.Queue) -> None:
         n += 1
         if n % 100 == 0:
             period *= 2
-
-        time.sleep(period)
+        try:
+            time.sleep(period)
+        except KeyboardInterrupt:
+            break

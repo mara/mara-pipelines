@@ -378,7 +378,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
             # At least try to notify the UI
             for e in exception_events:
-                print(f"{repr(e)}", file=sys.stderr)
+                if isinstance(e, KeyboardInterrupt):
+                    print(f"Interrupted", file=sys.stderr)
+                else:
+                    print(f"{repr(e)}", file=sys.stderr)
                 yield e
                 events.notify_configured_event_handlers(e)
             # try to terminate the run_process which itself will also cleanup in an atexit handler
