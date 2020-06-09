@@ -104,15 +104,15 @@ def run_output(path: str, run_id: int, limit: bool):
 SELECT node_path, message, format, is_error
 FROM data_integration_node_run
   JOIN data_integration_node_output USING (node_run_id)
-WHERE node_path [1:{"%s"}] = %s 
+WHERE node_path [1:{"%s"}] = %s
       AND run_id = %s
-ORDER BY timestamp 
+ORDER BY timestamp
 ''' + ('LIMIT ' + str(line_limit + 1) if limit else ''), (len(node.path()), node.path(), run_id))
 
         rows = cursor.fetchall()
         return str(_.script[f"""
 nodePage.showOutput({json.dumps(rows[:line_limit] if limit else rows)},
-               "{path}", 
+               "{path}",
                {'true' if len(rows) == line_limit + 1 else 'false'});
 """])
 
@@ -132,10 +132,23 @@ def system_stats(path: str, run_id: int):
 
     with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
         cursor.execute(f'''
-SELECT data_integration_system_statistics.*
-FROM data_integration_system_statistics
-  JOIN data_integration_node_run ON timestamp BETWEEN start_time AND end_time
-WHERE run_id = {"%s"} AND node_path = {"%s"};''', (run_id, node.path()))
+SELECT
+  -- needs to be spelled out to be able to rely on the order in the postprocessing of the row
+  -- run_id is not needed in the frontend...
+  stats.timestamp,
+  stats.disc_read,
+  stats.disc_write,
+  stats.net_recv,
+  stats.net_sent,
+  stats.cpu_usage,
+  stats.mem_usage,
+  stats.swap_usage,
+  stats.iowait
+FROM data_integration_node_run nr
+JOIN data_integration_system_statistics stats ON stats.timestamp BETWEEN nr.start_time AND nr.end_time
+     -- -1 is fallback for old cases where we didn't have a node ID -> can be removed after 2021-01-01 or so
+     AND (stats.run_id = nr.run_id OR stats.run_id = -1)
+WHERE nr.run_id = {"%s"} AND nr.node_path = {"%s"};''', (run_id, node.path()))
 
         data = [[row[0].isoformat()] + list(row[1:]) for row in cursor.fetchall()]
         if len(data) >= 15:
@@ -160,10 +173,10 @@ def timeline_chart(path: str, run_id: int):
 
     with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
         cursor.execute(f'''
-SELECT node_path, start_time, end_time, max(end_time) over () AS max_end_time, succeeded, is_pipeline 
+SELECT node_path, start_time, end_time, max(end_time) over () AS max_end_time, succeeded, is_pipeline
 FROM data_integration_node_run
 WHERE node_path [1 :{'%(level)s'}] = {'%(node_path)s'}
-      AND array_length(node_path, 1) > {'%(level)s'}  
+      AND array_length(node_path, 1) > {'%(level)s'}
       AND run_id = {'%(run_id)s'};''', {'level': len(node.path()), 'node_path': node.path(), 'run_id': run_id})
 
         nodes = [{'label': ' / '.join(node_path[len(node.path()):]),

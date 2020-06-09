@@ -56,6 +56,9 @@ class SystemStatistics(Base):
     __tablename__ = 'data_integration_system_statistics'
 
     timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True), primary_key=True, index=True)
+    # server_default needs to be here to support the migration to -1 for old runs
+    run_id = sqlalchemy.Column(sqlalchemy.Integer, primary_key=True, nullable=False,
+                               server_default=sqlalchemy.text('-1'))
     disc_read = sqlalchemy.Column(sqlalchemy.FLOAT)
     disc_write = sqlalchemy.Column(sqlalchemy.FLOAT)
     net_recv = sqlalchemy.Column(sqlalchemy.FLOAT)
@@ -128,14 +131,22 @@ VALUES  ({"%s, %s, %s, %s"})
 RETURNING node_run_id''', (self.run_id, event.node_path, event.start_time, event.is_pipeline))
 
         elif isinstance(event, system_statistics.SystemStatistics):
-            with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
-                cursor.execute(f'''
-INSERT INTO data_integration_system_statistics (timestamp, disc_read, disc_write, net_recv, net_sent,
-                                  cpu_usage, mem_usage, swap_usage, iowait)
-VALUES ({"%s, %s, %s, %s, %s, %s, %s, %s, %s"})''',
-                               (event.timestamp, event.disc_read, event.disc_write, event.net_recv,
-                                event.net_sent, event.cpu_usage, event.mem_usage, event.swap_usage, event.iowait))
-
+            try:
+                with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
+                    cursor.execute(f'''
+    INSERT INTO data_integration_system_statistics (timestamp, run_id, disc_read, disc_write, net_recv, net_sent,
+                                      cpu_usage, mem_usage, swap_usage, iowait)
+    VALUES ({"%s, %s, %s, %s, %s, %s, %s, %s, %s, %s"})''',
+                                   (event.timestamp, self.run_id, event.disc_read, event.disc_write, event.net_recv,
+                                    event.net_sent, event.cpu_usage, event.mem_usage, event.swap_usage, event.iowait))
+            except Exception as e:
+                # The old version of the database table had only a PK on timestamp. If one is running multiple
+                # ETLs at the same time it could happened that two of them get inserted with same TS and it fails.
+                # Nowadays we have a compound PK but the migration scripts didn't pick this up so we could still
+                # have a single PK on upgraded tables.
+                # As we do not really care about every single stat we simply throw away that single stat, the next
+                # will come in 1 sec (default, if not changed...)
+                print(f'Ignored problem on inserting system statistic events into the table: {e!r}', flush=True)
         elif isinstance(event, pipeline_events.NodeFinished):
             with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
                 cursor.execute(f'''
