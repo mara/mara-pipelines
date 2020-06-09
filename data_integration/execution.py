@@ -114,7 +114,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             executor_pid = os.getpid()
 
             def ensure_task_processes_killed():
-                # as we fork, the TaskProcess also run this function -> ignore it there
+                # as we fork, the TaskProcess also runs this function -> ignore it there
                 if os.getpid() != executor_pid: return
                 try:
                     for tp in list(running_task_processes.values()):  # type: TaskProcess
