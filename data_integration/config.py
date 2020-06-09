@@ -24,6 +24,11 @@ def default_db_alias() -> str:
     return 'dwh-etl'
 
 
+def default_task_max_retries():
+    """How many times a task is retried when it fails by default """
+    return 0
+
+
 def first_date() -> datetime.date:
     """Ignore data before this date"""
     return datetime.date(2000, 1, 1)
