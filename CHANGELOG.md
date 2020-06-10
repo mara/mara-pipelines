@@ -1,5 +1,12 @@
 # Changelog
 
+## 2.8.3 (2020-06-10)
+
+- Fix duplicated system stats if you run multiple ETLs in parallel (#38)
+- Add config default_task_max_retries (#39)
+- Cleaner shutdown (#41)
+
+
 ## 2.8.2 (2020-05-04)
 
 - Ignore not succeeded executions in cost calculation (#36)

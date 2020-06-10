@@ -7,7 +7,7 @@ def get_long_description():
 
 setup(
     name='data-integration',
-    version='2.8.2',
+    version='2.8.3',
 
     description='Opinionated lightweight ETL pipeline framework',
 
