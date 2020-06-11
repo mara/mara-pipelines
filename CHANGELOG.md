@@ -1,5 +1,19 @@
 # Changelog
 
+## 3.0.0 (2020-06-11)
+
+Rename package from `data_integration` to `mara_pipelines`.
+
+**required changes**
+
+- In requirements.txt, change `-e git+https://github.com/mara/data-integration.git@2.8.3#egg=data-integration` to `-e git+https://github.com/mara/mara-pipelines.git@3.0.0#egg=mara-pipelines`
+- If you use the `mara-etl-tools` package, update to version `4.0.0`
+- In your project code, replace all imports from `data_integration` to `mara_pipelines`
+- Adapt navigation and ACL entries, if you have any (their names changed from "Data integration" to "Pipelines") 
+
+Here's an example of how that looks at the mara example project 2: https://github.com/mara/mara-example-project-2/commit/fa2fba148e65533f821a70c18bb0c05c37706a83
+
+
 ## 2.8.3 (2020-06-10)
 
 - Fix duplicated system stats if you run multiple ETLs in parallel (#38)

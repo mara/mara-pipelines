@@ -18,5 +18,5 @@ deploy:
   on:
     tags: true
     branch: master
-    repo: mara/data-integration
+    repo: mara/mara-pipelines
     condition: "$UPLOAD == True"

@@ -1,7 +1,7 @@
 import abc
 
-from data_integration import events
-from data_integration.logging import pipeline_events
+from .. import events
+from ..logging import pipeline_events
 
 
 class ChatNotifier(events.EventHandler, abc.ABC):

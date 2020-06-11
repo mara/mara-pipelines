@@ -1,7 +1,7 @@
 import requests
-from data_integration import config
-from data_integration.logging import pipeline_events
-from data_integration.notification.notifier import ChatNotifier
+from .. import config
+from ..logging import pipeline_events
+from .notifier import ChatNotifier
 
 
 class Teams(ChatNotifier):

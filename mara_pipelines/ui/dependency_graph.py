@@ -14,7 +14,7 @@ def card(node: pipelines.Pipeline):
         body=[_.p[_.em[node.description]],
               (_.p[views.format_labels(node)] if node.labels else ''),
               html.asynchronous_content(
-                  flask.url_for('data_integration.dependency_graph', path=node.url_path()))])
+                  flask.url_for('mara_pipelines.dependency_graph', path=node.url_path()))])
 
 
 @views.blueprint.route('/<path:path>/dependency-graph')

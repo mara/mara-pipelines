@@ -9,7 +9,7 @@ import enum
 
 import mara_db.dbs
 import mara_db.shell
-from data_integration.commands import sql
+from . import sql
 from mara_page import _, html
 from .. import config, pipelines
 

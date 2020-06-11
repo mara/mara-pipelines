@@ -19,16 +19,16 @@ def card(node: pipelines.Node) -> str:
         header_left=[
             'Last runs ',
             _.div(style='display:inline-block;margin-left:20px;')[html.asynchronous_content(
-                flask.url_for('data_integration.last_runs_selector', path=node.url_path()))]],
+                flask.url_for('mara_pipelines.last_runs_selector', path=node.url_path()))]],
         body=[html.spinner_js_function(),
               html.asynchronous_content(
-                  url=flask.url_for('data_integration.system_stats', path=node.url_path(), run_id=None),
+                  url=flask.url_for('mara_pipelines.system_stats', path=node.url_path(), run_id=None),
                   div_id='system-stats'),
               html.asynchronous_content(
-                  url=flask.url_for('data_integration.timeline_chart', path=node.url_path(), run_id=None),
+                  url=flask.url_for('mara_pipelines.timeline_chart', path=node.url_path(), run_id=None),
                   div_id='timeline-chart'),
               html.asynchronous_content(
-                  url=flask.url_for('data_integration.run_output', path=node.url_path(), run_id=None, limit=True),
+                  url=flask.url_for('mara_pipelines.run_output', path=node.url_path(), run_id=None, limit=True),
                   div_id='run-output')])
 
 
@@ -182,7 +182,7 @@ WHERE node_path [1 :{'%(level)s'}] = {'%(node_path)s'}
         nodes = [{'label': ' / '.join(node_path[len(node.path()):]),
                   'status': {None: 'unfinished', True: 'succeeded', False: 'failed'}[succeeded],
                   'type': 'pipeline' if is_pipeline else 'task',
-                  'url': flask.url_for('data_integration.node_page', path='/'.join(node_path)),
+                  'url': flask.url_for('mara_pipelines.node_page', path='/'.join(node_path)),
                   'start': start_time.isoformat(),
                   'end': (end_time or ((max_end_time or start_time) + datetime.timedelta(seconds=1))).isoformat()}
                  for node_path, start_time, end_time, max_end_time, succeeded, is_pipeline

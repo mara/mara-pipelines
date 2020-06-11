@@ -1,12 +1,12 @@
-# Mara Data Integration
+# Mara Pipelines
 
-[![Build Status](https://travis-ci.org/mara/data-integration.svg?branch=master)](https://travis-ci.org/mara/data-integration)
-[![PyPI - License](https://img.shields.io/pypi/l/data-integration.svg)](https://github.com/mara/data-integration/blob/master/LICENSE)
-[![PyPI version](https://badge.fury.io/py/data-integration.svg)](https://badge.fury.io/py/data-integration)
+[![Build Status](https://travis-ci.org/mara/mara-pipelines.svg?branch=master)](https://travis-ci.org/mara/mara-pipelines)
+[![PyPI - License](https://img.shields.io/pypi/l/mara-pipelines.svg)](https://github.com/mara/mara-pipelines/blob/master/LICENSE)
+[![PyPI version](https://badge.fury.io/py/mara-pipelines.svg)](https://badge.fury.io/py/mara-pipelines)
 [![Slack Status](https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social)](https://communityinviter.com/apps/mara-users/public-invite)
 
 
-This package contains a lightweight ETL framework with a focus on transparency and complexity reduction. It has a number of baked-in assumptions/ principles:
+This package contains a lightweight data transformation framework with a focus on transparency and complexity reduction. It has a number of baked-in assumptions/ principles:
 
 - Data integration pipelines as code: pipelines, tasks and commands are created using declarative Python code.
 
@@ -29,18 +29,18 @@ This package contains a lightweight ETL framework with a focus on transparency a
 To use the library directly, use pip:
 
 ```
-pip install data-integration
+pip install mara-pipelines
 ```
 
 or
  
 ```
-pip install git+https://github.com/mara/data-integration.git
+pip install git+https://github.com/mara/mara-pipelines.git
 ```
 
-For an example of an integration into a flask application, have a look at the [mara example project](https://github.com/mara/mara-example-project).
+For an example of an integration into a flask application, have a look at the [mara example project 1](https://github.com/mara/mara-example-project-1) and [mara example project 2](https://github.com/mara/mara-example-project-2).
 
-Due to the heavy use of forking, Mara Data Integration does not run natively on Windows. If you want to run it on Windows, then please use Docker or the [Windows Subsystem for Linux](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux). 
+Due to the heavy use of forking, Mara Pipelines does not run natively on Windows. If you want to run it on Windows, then please use Docker or the [Windows Subsystem for Linux](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux). 
 
 &nbsp;
 
@@ -49,9 +49,9 @@ Due to the heavy use of forking, Mara Data Integration does not run natively on 
 Here is a pipeline "demo" consisting of three nodes that depend on each other: the task `ping_localhost`, the pipeline `sub_pipeline` and the task `sleep`:
 
 ```python
-from data_integration.commands.bash import RunBash
-from data_integration.pipelines import Pipeline, Task
-from data_integration.ui.cli import run_pipeline, run_interactively
+from mara_pipelines.commands.bash import RunBash
+from mara_pipelines.pipelines import Pipeline, Task
+from mara_pipelines.ui.cli import run_pipeline, run_interactively
 
 pipeline = Pipeline(
     id='demo',
@@ -114,7 +114,7 @@ CREATE TABLE data_integration_file_dependency (
 This runs a pipeline with output to stdout:
 
 ```python
-from data_integration.ui.cli import run_pipeline
+from mara_pipelines.ui.cli import run_pipeline
 
 run_pipeline(pipeline)
 ```
@@ -137,7 +137,7 @@ run_pipeline(sub_pipeline, nodes=[sub_pipeline.nodes['ping_amazon']], with_upstr
 And finally, there is some sort of menu based on [pythondialog](http://pythondialog.sourceforge.net/) that allows to navigate and run pipelines like this:
 
 ```python
-from data_integration.ui.cli import run_interactively
+from mara_pipelines.ui.cli import run_interactively
 
 run_interactively()
 ```
@@ -158,7 +158,7 @@ For each pipeline, there is a page that shows
 - output and timeline for the last runs of the pipeline
 
 
-![Mara data integration web ui 1](docs/mara-data-integration-web-ui-1.png)
+![Mara pipelines web ui 1](docs/mara-pipelines-web-ui-1.png)
 
 For each task, there is a page showing 
 
@@ -167,7 +167,7 @@ For each task, there is a page showing
 - all commands of the task
 - output of the last runs of the task
 
-![Mara data integration web ui 2](docs/mara-data-integration-web-ui-2.png)
+![Mara pipelines web ui 2](docs/mara-pipelines-web-ui-2.png)
 
 
 Pipelines and tasks can be run from the web ui directly, which is probably one of the main features of this package: 
@@ -178,6 +178,6 @@ Pipelines and tasks can be run from the web ui directly, which is probably one o
 
 # Getting started
 
-Documentation is currently work in progress. Please use the [mara example project](https://github.com/mara/mara-example-project) as a reference for getting started. 
+Documentation is currently work in progress. Please use the [mara example project 1](https://github.com/mara/mara-example-project-1) and [mara example project 2](https://github.com/mara/mara-example-project-2) as a reference for getting started. 
 
 
