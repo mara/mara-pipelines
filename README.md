@@ -6,6 +6,7 @@
 [![Slack Status](https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social)](https://communityinviter.com/apps/mara-users/public-invite)
 
 
+
 This package contains a lightweight data transformation framework with a focus on transparency and complexity reduction. It has a number of baked-in assumptions/ principles:
 
 - Data integration pipelines as code: pipelines, tasks and commands are created using declarative Python code.
