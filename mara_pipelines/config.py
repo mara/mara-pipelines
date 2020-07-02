@@ -86,7 +86,7 @@ def event_handlers() -> [events.EventHandler]:
     Configure additional event handlers that listen to pipeline events, e.g. chat bots that announce failed runs
 
     Example:
-        data_integration.config.event_handlers = lambda: [mara_pipelines.notification.slack.Slack('123/ABC/cdef')]
+        mara_pipelines.config.event_handlers = lambda: [mara_pipelines.notification.slack.Slack('123/ABC/cdef')]
     """
     # the default implementation ensures backward compatibility, don't use otherwise
     if slack_token():

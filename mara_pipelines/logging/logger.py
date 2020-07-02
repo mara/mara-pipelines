@@ -18,7 +18,7 @@ def log(message: str, format: pipeline_events.Output.Format = Format.STANDARD,
     When run inside a pipeline, this will send a log message to the parent process.
     Otherwise, messages will be printed to `sys.stdout` and `sys.stderr`.
 
-    Any string in `data_integration.config.password_masks()` will be replaced by '***'.
+    Any string in `mara_pipelines.config.password_masks()` will be replaced by '***'.
 
     Args:
         message: The message to display
