@@ -1,5 +1,10 @@
 # Changelog
 
+## 3.1.0 (2020-07-21) 
+
+- Modify shell command to support the Google BigQuery integration
+- Add file_dependencies argument to Python commands
+
 ## 3.0.0 (2020-06-11)
 
 Rename package from `data_integration` to `mara_pipelines`.

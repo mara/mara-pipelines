@@ -57,16 +57,21 @@ class ReadFile(pipelines.Command):
         return self._db_alias or config.default_db_alias()
 
     def shell_command(self):
-        return \
-            f'{uncompressor(self.compression)} "{pathlib.Path(config.data_dir()) / self.file_name}" \\\n' \
-            + (f'  | {shlex.quote(sys.executable)} "{self.mapper_file_path()}" \\\n'
-               if self.mapper_script_file_name else '') \
-            + ('  | sort -u \\\n' if self.make_unique else '') \
-            + '  | ' + mara_db.shell.copy_from_stdin_command(
-                self.db_alias(), csv_format=self.csv_format, target_table=self.target_table,
-                skip_header=self.skip_header,
-                delimiter_char=self.delimiter_char, quote_char=self.quote_char,
-                null_value_string=self.null_value_string, timezone=self.timezone)
+        copy_from_stdin_command = mara_db.shell.copy_from_stdin_command(
+            self.db_alias(), csv_format=self.csv_format, target_table=self.target_table,
+            skip_header=self.skip_header,
+            delimiter_char=self.delimiter_char, quote_char=self.quote_char,
+            null_value_string=self.null_value_string, timezone=self.timezone)
+        if not isinstance(mara_db.dbs.db(self.db_alias()), mara_db.dbs.BigQueryDB):
+            return \
+                f'{uncompressor(self.compression)} "{pathlib.Path(config.data_dir()) / self.file_name}" \\\n' \
+                + (f'  | {shlex.quote(sys.executable)} "{self.mapper_file_path()}" \\\n'
+                   if self.mapper_script_file_name else '') \
+                + ('  | sort -u \\\n' if self.make_unique else '') \
+                + '  | ' + copy_from_stdin_command
+        else:
+            # Bigquery loading does not support streaming data through pipes
+            return copy_from_stdin_command + f" {pathlib.Path(config.data_dir()) / self.file_name}"
 
     def mapper_file_path(self):
         return self.parent.parent.base_path() / self.mapper_script_file_name
