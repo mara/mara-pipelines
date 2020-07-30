@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 
 from ..logging import pipeline_events
-from ..config import password_masks
+import mara_pipelines.config
 
 Format = pipeline_events.Output.Format
 
@@ -26,7 +26,7 @@ def log(message: str, format: pipeline_events.Output.Format = Format.STANDARD,
         is_error: Whether the message is considered an error message
     """
     message = message.rstrip()
-    masks = password_masks()
+    masks = mara_pipelines.config.password_masks()
     if masks:
         for mask in masks:
             message = message.replace(mask, '***')
