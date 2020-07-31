@@ -7,7 +7,7 @@ def get_long_description():
 
 setup(
     name='mara-pipelines',
-    version='3.1.0',
+    version='3.1.1',
 
     description='Opinionated lightweight ELT pipeline framework',
 
