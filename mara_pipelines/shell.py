@@ -36,22 +36,26 @@ def run_shell_command(command: str, log_command: bool = True):
     # subprocess.Popen(..) (and not custom streams without a file handle).
     # So in order to see be able to log the output in real-time, we have to
     # query the output steams of the process from to separate threads
-    def read_process_output():
+    def read_process_stdout():
         for line in process.stdout:
             output_lines.append(line)
             logger.log(line, format=logger.Format.VERBATIM)
 
+    def read_process_stderr():
         for line in process.stderr:
             logger.log(line, format=logger.Format.VERBATIM, is_error=True)
 
-    read_output_thread = threading.Thread(target=read_process_output)
-    read_output_thread.start()
+    read_stdout_thread = threading.Thread(target=read_process_stdout)
+    read_stdout_thread.start()
+    read_stderr_thread = threading.Thread(target=read_process_stderr)
+    read_stderr_thread.start()
 
     # wait until the process finishes
     while process.poll() is None:
         time.sleep(0.005)
 
-    read_output_thread.join()
+    read_stdout_thread.join()
+    read_stderr_thread.join()
 
     exitcode = process.returncode
     if exitcode != 0:
