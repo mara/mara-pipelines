@@ -57,6 +57,10 @@ def dependency_graph(nodes: {str: pipelines.Node},
         return upstream_ids
 
     for node in nodes.values():
+        # hide private nodes
+        if str.startswith(node.id, '_'):
+            continue
+
         node_attributes = {'fontname': ' ',  # use website default
                            'fontsize': '10.5px'  # fontsize unfortunately must be set
                            }
