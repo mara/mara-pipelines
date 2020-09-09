@@ -19,16 +19,16 @@ def card(node: pipelines.Node) -> str:
         header_left=[
             'Last runs ',
             _.div(style='display:inline-block;margin-left:20px;')[html.asynchronous_content(
-                flask.url_for('data_integration.last_runs_selector', path=node.url_path()))]],
+                flask.url_for('mara_pipelines.last_runs_selector', path=node.url_path()))]],
         body=[html.spinner_js_function(),
               html.asynchronous_content(
-                  url=flask.url_for('data_integration.system_stats', path=node.url_path(), run_id=None),
+                  url=flask.url_for('mara_pipelines.system_stats', path=node.url_path(), run_id=None),
                   div_id='system-stats'),
               html.asynchronous_content(
-                  url=flask.url_for('data_integration.timeline_chart', path=node.url_path(), run_id=None),
+                  url=flask.url_for('mara_pipelines.timeline_chart', path=node.url_path(), run_id=None),
                   div_id='timeline-chart'),
               html.asynchronous_content(
-                  url=flask.url_for('data_integration.run_output', path=node.url_path(), run_id=None, limit=True),
+                  url=flask.url_for('mara_pipelines.run_output', path=node.url_path(), run_id=None, limit=True),
                   div_id='run-output')])
 
 
@@ -104,15 +104,15 @@ def run_output(path: str, run_id: int, limit: bool):
 SELECT node_path, message, format, is_error
 FROM data_integration_node_run
   JOIN data_integration_node_output USING (node_run_id)
-WHERE node_path [1:{"%s"}] = %s 
+WHERE node_path [1:{"%s"}] = %s
       AND run_id = %s
-ORDER BY timestamp 
+ORDER BY timestamp
 ''' + ('LIMIT ' + str(line_limit + 1) if limit else ''), (len(node.path()), node.path(), run_id))
 
         rows = cursor.fetchall()
         return str(_.script[f"""
 nodePage.showOutput({json.dumps(rows[:line_limit] if limit else rows)},
-               "{path}", 
+               "{path}",
                {'true' if len(rows) == line_limit + 1 else 'false'});
 """])
 
@@ -132,10 +132,23 @@ def system_stats(path: str, run_id: int):
 
     with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
         cursor.execute(f'''
-SELECT data_integration_system_statistics.*
-FROM data_integration_system_statistics
-  JOIN data_integration_node_run ON timestamp BETWEEN start_time AND end_time
-WHERE run_id = {"%s"} AND node_path = {"%s"};''', (run_id, node.path()))
+SELECT
+  -- needs to be spelled out to be able to rely on the order in the postprocessing of the row
+  -- run_id is not needed in the frontend...
+  stats.timestamp,
+  stats.disc_read,
+  stats.disc_write,
+  stats.net_recv,
+  stats.net_sent,
+  stats.cpu_usage,
+  stats.mem_usage,
+  stats.swap_usage,
+  stats.iowait
+FROM data_integration_node_run nr
+JOIN data_integration_system_statistics stats ON stats.timestamp BETWEEN nr.start_time AND nr.end_time
+     -- -1 is fallback for old cases where we didn't have a node ID -> can be removed after 2021-01-01 or so
+     AND (stats.run_id = nr.run_id OR stats.run_id = -1)
+WHERE nr.run_id = {"%s"} AND nr.node_path = {"%s"};''', (run_id, node.path()))
 
         data = [[row[0].isoformat()] + list(row[1:]) for row in cursor.fetchall()]
         if len(data) >= 15:
@@ -160,16 +173,16 @@ def timeline_chart(path: str, run_id: int):
 
     with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
         cursor.execute(f'''
-SELECT node_path, start_time, end_time, max(end_time) over () AS max_end_time, succeeded, is_pipeline 
+SELECT node_path, start_time, end_time, max(end_time) over () AS max_end_time, succeeded, is_pipeline
 FROM data_integration_node_run
 WHERE node_path [1 :{'%(level)s'}] = {'%(node_path)s'}
-      AND array_length(node_path, 1) > {'%(level)s'}  
+      AND array_length(node_path, 1) > {'%(level)s'}
       AND run_id = {'%(run_id)s'};''', {'level': len(node.path()), 'node_path': node.path(), 'run_id': run_id})
 
         nodes = [{'label': ' / '.join(node_path[len(node.path()):]),
                   'status': {None: 'unfinished', True: 'succeeded', False: 'failed'}[succeeded],
                   'type': 'pipeline' if is_pipeline else 'task',
-                  'url': flask.url_for('data_integration.node_page', path='/'.join(node_path)),
+                  'url': flask.url_for('mara_pipelines.node_page', path='/'.join(node_path)),
                   'start': start_time.isoformat(),
                   'end': (end_time or ((max_end_time or start_time) + datetime.timedelta(seconds=1))).isoformat()}
                  for node_path, start_time, end_time, max_end_time, succeeded, is_pipeline

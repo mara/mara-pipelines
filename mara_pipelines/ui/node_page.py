@@ -22,14 +22,14 @@ def node_page(path: str):
 
     title = [node.__class__.__name__, ' ',
              [[_.a(href=views.node_url(parent))[parent.id], ' / '] for parent in node.parents()[1:-1]],
-             node.id] if node.parent else 'Data Integration'
+             node.id] if node.parent else 'Root pipeline'
     return response.Response(
         title=title,
         action_buttons=action_buttons(node) if config.allow_run_from_web_ui() else [],
         html=[_.script['''
 var nodePage = null;
 document.addEventListener('DOMContentLoaded', function() {
-     nodePage = NodePage("''' + flask.url_for('data_integration.node_page', path='') + '''", '''
+     nodePage = NodePage("''' + flask.url_for('mara_pipelines.node_page', path='') + '''", '''
                        + json.dumps(node.path()) + ''');
 });'''],
               dependency_graph.card(node),
@@ -37,15 +37,15 @@ document.addEventListener('DOMContentLoaded', function() {
               node_content(node),
               last_runs.card(node)],
         js_files=['https://www.gstatic.com/charts/loader.js',
-                  flask.url_for('data_integration.static', filename='node-page.js'),
-                  flask.url_for('data_integration.static', filename='utils.js'),
-                  flask.url_for('data_integration.static', filename='run-time-chart.js'),
-                  flask.url_for('data_integration.static', filename='system-stats-chart.js'),
-                  flask.url_for('data_integration.static', filename='timeline-chart.js'),
-                  flask.url_for('data_integration.static', filename='kolorwheel.js')],
-        css_files=[flask.url_for('data_integration.static', filename='common.css'),
-                   flask.url_for('data_integration.static', filename='node-page.css'),
-                   flask.url_for('data_integration.static', filename='timeline-chart.css')])
+                  flask.url_for('mara_pipelines.static', filename='node-page.js'),
+                  flask.url_for('mara_pipelines.static', filename='utils.js'),
+                  flask.url_for('mara_pipelines.static', filename='run-time-chart.js'),
+                  flask.url_for('mara_pipelines.static', filename='system-stats-chart.js'),
+                  flask.url_for('mara_pipelines.static', filename='timeline-chart.js'),
+                  flask.url_for('mara_pipelines.static', filename='kolorwheel.js')],
+        css_files=[flask.url_for('mara_pipelines.static', filename='common.css'),
+                   flask.url_for('mara_pipelines.static', filename='node-page.css'),
+                   flask.url_for('mara_pipelines.static', filename='timeline-chart.css')])
 
 
 @functools.singledispatch
@@ -61,19 +61,19 @@ def __(pipeline: pipelines.Pipeline):
         header_right=[
             bootstrap.button(
                 id='run-with-upstreams-button', label='Run with upstreams', icon='play',
-                url=flask.url_for('data_integration.run_page', path=pipeline.url_path(), with_upstreams=True),
+                url=flask.url_for('mara_pipelines.run_page', path=pipeline.url_path(), with_upstreams=True),
                 title=f'Run selected nodes with all their upstreams in pipeline "{pipeline.id}"'),
             '&nbsp;&nbsp;&nbsp;&nbsp;',
             bootstrap.button(
                 id='run-button', label='Run ', icon='play',
-                url=flask.url_for('data_integration.run_page', path=pipeline.url_path(),
+                url=flask.url_for('mara_pipelines.run_page', path=pipeline.url_path(),
                                   with_upstreams=False),
 
                 title='Run selected nodes')
 
         ] if config.allow_run_from_web_ui() else [],
         body=html.asynchronous_content(
-            url=flask.url_for('data_integration.pipeline_children_table', path=pipeline.url_path())))
+            url=flask.url_for('mara_pipelines.pipeline_children_table', path=pipeline.url_path())))
 
 
 @node_content.register(pipelines.Task)
@@ -143,12 +143,12 @@ def action_buttons(node: pipelines.Node):
     path = node.path()
     return [
         response.ActionButton(
-            action=flask.url_for('data_integration.run_page', path='/'.join(path[:-1]),
+            action=flask.url_for('mara_pipelines.run_page', path='/'.join(path[:-1]),
                                  with_upstreams=True, ids=path[-1]),
             label='Run with upstreams', icon='play',
             title=f'Run the task and all its upstreams in the pipeline "{node.parent.id}"'),
         response.ActionButton(
-            action=flask.url_for('data_integration.run_page', path='/'.join(path[:-1]),
+            action=flask.url_for('mara_pipelines.run_page', path='/'.join(path[:-1]),
                                  with_upstreams=False, ids=path[-1]),
             label='Run', icon='play',
             title=f'Run only this task, without upstreams')]
@@ -156,7 +156,7 @@ def action_buttons(node: pipelines.Node):
 
 @action_buttons.register(pipelines.Pipeline)
 def __(pipeline: pipelines.Pipeline):
-    return [response.ActionButton(action=flask.url_for('data_integration.run_page', path=pipeline.url_path(),
+    return [response.ActionButton(action=flask.url_for('mara_pipelines.run_page', path=pipeline.url_path(),
                                                        with_upstreams=False),
                                   label='Run', icon='play',
                                   title='Run the pipeline')]

@@ -9,7 +9,7 @@ import enum
 
 import mara_db.dbs
 import mara_db.shell
-from data_integration.commands import sql
+from . import sql
 from mara_page import _, html
 from .. import config, pipelines
 
@@ -115,7 +115,19 @@ class ReadFile(_ReadFile):
         self.file_name = file_name
 
     def read_file_command(self):
-        return f'{uncompressor(self.compression)} "{pathlib.Path(config.data_dir()) / self.file_name}"'
+        db = mara_db.dbs.db(self.db_alias())
+
+        if isinstance(db), mara_db.dbs.BigQueryDB):
+            copy_from_stdin_command = mara_db.shell.copy_from_stdin_command(
+                        self.db_alias(), csv_format=self.csv_format, target_table=self.target_table,
+                        skip_header=self.skip_header,
+                        delimiter_char=self.delimiter_char, quote_char=self.quote_char,
+                        null_value_string=self.null_value_string, timezone=self.timezone)
+
+            # Bigquery loading does not support streaming data through pipes
+            return copy_from_stdin_command + f" {pathlib.Path(config.data_dir()) / self.file_name}"
+        else:
+            return f'{uncompressor(self.compression)} "{pathlib.Path(config.data_dir()) / self.file_name}"'
 
     def html_doc_items(self) -> [(str, str)]:
         return [('file name', _.i[self.file_name])] + super().html_doc_items()

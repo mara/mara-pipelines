@@ -21,10 +21,6 @@ class PipelineEvent(Event):
         super().__init__()
         self.node_path = node_path
 
-    def to_json(self):
-        return json.dumps({field: value.isoformat() if isinstance(value, datetime.datetime) else value
-                           for field, value in self.__dict__.items()})
-
 
 class RunStarted(PipelineEvent):
     def __init__(self, node_path: [str],
@@ -131,7 +127,7 @@ class Output(PipelineEvent):
         self.timestamp = datetime.datetime.now()
 
 
-def get_user_display_name(interactively_started:bool) -> t.Optional[str]:
+def get_user_display_name(interactively_started: bool) -> t.Optional[str]:
     """Gets the display name for the user which started a run
 
     Defaults to MARA_RUN_USER_DISPLAY_NAME and falls back to the current OS-level name

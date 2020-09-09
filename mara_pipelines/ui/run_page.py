@@ -37,7 +37,7 @@ def run_page(path: str, with_upstreams: bool, ids: str):
         else:
             nodes.append(node)
 
-    stream_url = flask.url_for('data_integration.do_run', path=path, with_upstreams=with_upstreams, ids=ids)
+    stream_url = flask.url_for('mara_pipelines.do_run', path=path, with_upstreams=with_upstreams, ids=ids)
 
     title = ['Run ', 'with upstreams ' if with_upstreams else '',
              ' / '.join([str(_.a(href=views.node_url(parent))[parent.id]) for parent in pipeline.parents()[1:]])]
@@ -48,7 +48,7 @@ def run_page(path: str, with_upstreams: bool, ids: str):
         html=[
             _.script['''
 document.addEventListener('DOMContentLoaded', function() {
-     processRunEvents(''' + json.dumps(flask.url_for('data_integration.node_page', path='')) + ', '
+     processRunEvents(''' + json.dumps(flask.url_for('mara_pipelines.node_page', path='')) + ', '
                      + json.dumps(stream_url) + ', ' + json.dumps(pipeline.path()) + ''');
 });'''],
 
@@ -70,13 +70,13 @@ document.addEventListener('DOMContentLoaded', function() {
             ]
         ],
         js_files=['https://www.gstatic.com/charts/loader.js',
-                  flask.url_for('data_integration.static', filename='timeline-chart.js'),
-                  flask.url_for('data_integration.static', filename='system-stats-chart.js'),
-                  flask.url_for('data_integration.static', filename='utils.js'),
-                  flask.url_for('data_integration.static', filename='run-page.js')],
-        css_files=[flask.url_for('data_integration.static', filename='timeline-chart.css'),
-                   flask.url_for('data_integration.static', filename='run-page.css'),
-                   flask.url_for('data_integration.static', filename='common.css')],
+                  flask.url_for('mara_pipelines.static', filename='timeline-chart.js'),
+                  flask.url_for('mara_pipelines.static', filename='system-stats-chart.js'),
+                  flask.url_for('mara_pipelines.static', filename='utils.js'),
+                  flask.url_for('mara_pipelines.static', filename='run-page.js')],
+        css_files=[flask.url_for('mara_pipelines.static', filename='timeline-chart.css'),
+                   flask.url_for('mara_pipelines.static', filename='run-page.css'),
+                   flask.url_for('mara_pipelines.static', filename='common.css')],
         action_buttons=[response.ActionButton(action='javascript:location.reload()', label='Run again', icon='play',
                                               title='Run pipeline again with same parameters as before')],
         title=title,

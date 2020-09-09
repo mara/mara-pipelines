@@ -5,7 +5,7 @@ import sys
 from datetime import datetime
 
 from ..logging import pipeline_events
-import data_integration.config
+import mara_pipelines.config
 
 Format = pipeline_events.Output.Format
 
@@ -18,7 +18,7 @@ def log(message: str, format: pipeline_events.Output.Format = Format.STANDARD,
     When run inside a pipeline, this will send a log message to the parent process.
     Otherwise, messages will be printed to `sys.stdout` and `sys.stderr`.
 
-    Any string in `data_integration.config.password_masks()` will be replaced by '***'.
+    Any string in `mara_pipelines.config.password_masks()` will be replaced by '***'.
 
     Args:
         message: The message to display
@@ -26,7 +26,7 @@ def log(message: str, format: pipeline_events.Output.Format = Format.STANDARD,
         is_error: Whether the message is considered an error message
     """
     message = message.rstrip()
-    masks = data_integration.config.password_masks()
+    masks = mara_pipelines.config.password_masks()
     if masks:
         for mask in masks:
             message = message.replace(mask, '***')

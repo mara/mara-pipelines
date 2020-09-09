@@ -32,6 +32,7 @@ WITH child_nodes AS
         FROM data_integration_node_run node
         WHERE node.node_path [ 0 : {'%(level)s'}] = %(path)s
           AND array_length(node.node_path, 1) > {'%(level)s'}
+          AND succeeded = TRUE
         GROUP BY node.node_path)
 SELECT node_path,
        round(avg(avg_duration)::NUMERIC, 1) AS avg_duration,

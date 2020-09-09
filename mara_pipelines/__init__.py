@@ -25,7 +25,7 @@ def MARA_AUTOMIGRATE_SQLALCHEMY_MODELS():
 
 def MARA_ACL_RESOURCES():
     from .ui import views
-    return {'Data Integration': views.acl_resource}
+    return {'Pipelines': views.acl_resource}
 
 
 def MARA_CLICK_COMMANDS():
@@ -35,4 +35,4 @@ def MARA_CLICK_COMMANDS():
 
 def MARA_NAVIGATION_ENTRIES():
     from .ui import views
-    return {'Data Integration': views.navigation_entry()}
+    return {'Pipelines': views.navigation_entry()}

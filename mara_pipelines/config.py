@@ -24,6 +24,11 @@ def default_db_alias() -> str:
     return 'dwh-etl'
 
 
+def default_task_max_retries():
+    """How many times a task is retried when it fails by default """
+    return 0
+
+
 def first_date() -> datetime.date:
     """Ignore data before this date"""
     return datetime.date(2000, 1, 1)
@@ -61,7 +66,7 @@ def allow_run_from_web_ui() -> bool:
 
 def base_url() -> str:
     """External url of flask app, for linking nodes in slack messages"""
-    return 'http://127.0.0.1:5000/data-integration'
+    return 'http://127.0.0.1:5000/pipelines'
 
 
 def slack_token() -> typing.Optional[str]:
@@ -81,11 +86,11 @@ def event_handlers() -> [events.EventHandler]:
     Configure additional event handlers that listen to pipeline events, e.g. chat bots that announce failed runs
 
     Example:
-        data_integration.config.event_handlers = lambda: [data_integration.notification.slack.Slack('123/ABC/cdef')]
+        mara_pipelines.config.event_handlers = lambda: [mara_pipelines.notification.slack.Slack('123/ABC/cdef')]
     """
     # the default implementation ensures backward compatibility, don't use otherwise
     if slack_token():
-        from data_integration.notification.slack import Slack
+        from .notification.slack import Slack
         return [Slack(slack_token())]
     else:
         return []

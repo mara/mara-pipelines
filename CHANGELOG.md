@@ -1,10 +1,51 @@
 # Changelog
 
+## 3.1.1 (2020-07-31)
+
+- Fix for visible passwords in the logs despite `mara_pipelines.config.password_masks()`
+  set. Bug was introduced in 3.0.0.
+
+## 3.1.0 (2020-07-21)
+
+- Modify shell command to support the Google BigQuery integration
+- Add file_dependencies argument to Python commands
+
+## 3.0.0 (2020-06-11)
+
+Rename package from `data_integration` to `mara_pipelines`.
+
+**required changes**
+
+- In requirements.txt, change `-e git+https://github.com/mara/data-integration.git@2.8.3#egg=data-integration` to `-e git+https://github.com/mara/mara-pipelines.git@3.0.0#egg=mara-pipelines`
+- If you use the `mara-etl-tools` package, update to version `4.0.0`
+- In your project code, replace all imports from `data_integration` to `mara_pipelines`
+- Adapt navigation and ACL entries, if you have any (their names changed from "Data integration" to "Pipelines")
+
+Here's an example of how that looks at the mara example project 2: https://github.com/mara/mara-example-project-2/commit/fa2fba148e65533f821a70c18bb0c05c37706a83
+
+
+## 2.8.3 (2020-06-10)
+
+- Fix duplicated system stats if you run multiple ETLs in parallel (#38)
+- Add config default_task_max_retries (#39)
+- Cleaner shutdown (#41)
+
+
+## 2.8.2 (2020-05-04)
+
+- Ignore not succeeded executions in cost calculation (#36)
+- Ensure we log errors via events in case of error/shutdown (#33)
+- Fix a bug where we reported the wrong error to chat channels when running in
+  the browser and did not restart between failed runs (#33)
+
+## 2.8.1 (2020-04-27)
+
+- Fix Problems when frontend and database are in a different timezone (#34)
+
 ## 2.8.0 (2020-03-25)
 
 - Implement pipeline notifications via Microsoft Teams #28
 - Make it possible to disable output coloring in command line etl runs (#31)
-
 
 ## 2.7.0 (2020-03-05)
 

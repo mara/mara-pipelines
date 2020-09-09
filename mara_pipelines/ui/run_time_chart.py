@@ -16,7 +16,7 @@ def card(node: pipelines.Node):
     return bootstrap.card(
         header_left='Run times',
         body=html.asynchronous_content(
-            flask.url_for('data_integration.run_time_chart', path=node.url_path())))
+            flask.url_for('mara_pipelines.run_time_chart', path=node.url_path())))
 
 
 @views.blueprint.route('/<path:path>/run-time-chart')

@@ -7,9 +7,9 @@ import flask
 from mara_page import acl, navigation, _
 from .. import config, pipelines
 
-blueprint = flask.Blueprint('data_integration', __name__, url_prefix='/data-integration', static_folder='static')
+blueprint = flask.Blueprint('mara_pipelines', __name__, url_prefix='/pipelines', static_folder='static')
 
-acl_resource = acl.AclResource(name='Data Integration')
+acl_resource = acl.AclResource(name='Pipelines')
 
 
 @functools.singledispatch
@@ -36,7 +36,7 @@ def navigation_entry():
                       if isinstance(node, pipelines.Pipeline) else None))
 
     entry = node_entry(config.root_pipeline())
-    entry.label = 'Data Integration'
+    entry.label = 'Pipelines'
     entry.icon = 'wrench'
     entry.description = 'Pipelines for loading and transforming data'
     return entry
@@ -44,7 +44,7 @@ def navigation_entry():
 
 def node_url(node: pipelines.Node) -> str:
     """The url of the page that documents a node"""
-    return flask.url_for('data_integration.node_page', path=node.url_path())
+    return flask.url_for('mara_pipelines.node_page', path=node.url_path())
 
 
 def format_labels(node: pipelines.Node):

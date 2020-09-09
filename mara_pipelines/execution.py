@@ -4,10 +4,13 @@ Uses forking (multiprocessing processes) for parallelism and message queues for 
 """
 
 import datetime
+from datetime import timezone as tz
 import functools
 import multiprocessing
 import os
+import sys
 import signal
+import atexit
 import time
 import traceback
 from multiprocessing import queues
@@ -53,11 +56,6 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     # The function that is run in a sub process
     def run():
 
-        # collect system stats in a separate Process
-        statistics_process = multiprocessing_context.Process(
-            target=lambda: system_statistics.generate_system_statistics(event_queue), name='system_statistics')
-        statistics_process.start()
-
         try:
             # capture output of print statements and other unplanned output
             logger.redirect_output(event_queue, pipeline.path())
@@ -99,13 +97,31 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 queue([pipeline])
 
             # book keeping
-            run_start_time = datetime.datetime.now()
+            run_start_time = datetime.datetime.now(tz.utc)
             # all nodes that already ran or that won't be run anymore
             processed_nodes: {pipelines.Node} = set()
             # running pipelines with start times and number of running children
             running_pipelines: {pipelines.Pipeline: [datetime.datetime, int]} = {}
             failed_pipelines: {pipelines.Pipeline} = set()  # pipelines with failed tasks
             running_task_processes: {pipelines.Task: TaskProcess} = {}
+
+            # make sure any running tasks are killed when this executor process is shutdown
+            executor_pid = os.getpid()
+
+            def ensure_task_processes_killed():
+                # as we fork, the TaskProcess also runs this function -> ignore it there
+                if os.getpid() != executor_pid: return
+                try:
+                    for tp in list(running_task_processes.values()):  # type: TaskProcess
+                        if tp.is_alive():
+                            # give it a chance to gracefully shutdown
+                            tp.terminate()
+                    statistics_process.kill()
+                except BaseException as e:
+                    print(f"Exception during TaskProcess cleanup: {repr(e)}", file=sys.stderr, flush=True)
+                return
+
+            atexit.register(ensure_task_processes_killed)
 
             def dequeue() -> pipelines.Node:
                 """
@@ -120,10 +136,22 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                              or (not node.parent in running_pipelines)
                              or (running_pipelines[node.parent][1] < node.parent.max_number_of_parallel_tasks))):
                         node_queue.remove(node)
-                        if node.parent in failed_pipelines and not node.parent.force_run_all_children:
+                        processed_as_parent_failed = False
+                        parent = node.parent
+                        while parent:
                             # if the parent pipeline failed (and no overwrite), don't launch new nodes
-                            processed_nodes.add(node)
-                        else:
+                            # this needs to go down to the ultimate parent as we can have cases where we already
+                            # queued a subpipeline and now the parent pipeline failed but the tasks parent pipeline
+                            # (the sub pipeline) is not failed.
+                            # If a task from a parent pipeline fails, even with force_run_all_children on the
+                            # sub pipeline, the sub pipeline would stop. Only if the failed parent pipeline also has
+                            # force_run_all_children, the task would get scheduled
+                            if parent in failed_pipelines and not parent.force_run_all_children:
+                                processed_nodes.add(node)
+                                processed_as_parent_failed = True
+                                break
+                            else: parent = parent.parent
+                        if not processed_as_parent_failed:
                             return node
 
             def track_finished_pipelines():
@@ -134,10 +162,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                         succeeded = running_pipeline not in failed_pipelines
                         event_queue.put(pipeline_events.Output(
                             node_path=running_pipeline.path(), format=logger.Format.ITALICS, is_error=not succeeded,
-                            message=f'{"succeeded" if succeeded else "failed"}, {logger.format_time_difference(run_start_time, datetime.datetime.now())}'))
+                            message=f'{"succeeded" if succeeded else "failed"}, {logger.format_time_difference(run_start_time, datetime.datetime.now(tz.utc))}'))
                         event_queue.put(pipeline_events.NodeFinished(
                             node_path=running_pipeline.path(), start_time=start_time,
-                            end_time=datetime.datetime.now(), is_pipeline=True, succeeded=succeeded))
+                            end_time=datetime.datetime.now(tz.utc), is_pipeline=True, succeeded=succeeded))
                         del running_pipelines[running_pipeline]
                         processed_nodes.add(running_pipeline)
 
@@ -149,6 +177,11 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                                        node_ids=[node.id for node in (nodes or [])],
                                                        is_root_pipeline=(pipeline.parent is None))
                             )
+
+            # collect system stats in a separate Process
+            statistics_process = multiprocessing.Process(
+                target=lambda: system_statistics.generate_system_statistics(event_queue), name='system_statistics')
+            statistics_process.start()
 
             # run as long
             # - as task processes are still running
@@ -180,7 +213,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             queue(list(next_node.nodes.values()))
 
                             # book keeping and event emission
-                            pipeline_start_time = datetime.datetime.now()
+                            pipeline_start_time = datetime.datetime.now(tz.utc)
                             running_pipelines[next_node] = [pipeline_start_time, 0]
                             event_queue.put(pipeline_events.NodeStarted(next_node.path(), pipeline_start_time, True))
                             event_queue.put(pipeline_events.Output(
@@ -190,7 +223,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
                         elif isinstance(next_node, pipelines.ParallelTask):
                             # create sub tasks and queue them
-                            task_start_time = datetime.datetime.now()
+                            task_start_time = datetime.datetime.now(tz.utc)
                             try:
                                 logger.redirect_output(event_queue, next_node.path())
                                 logger.log('☆ Launching tasks', format=logger.Format.ITALICS)
@@ -207,7 +240,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                            format=pipeline_events.Output.Format.VERBATIM, is_error=True)
                                 event_queue.put(pipeline_events.NodeFinished(
                                     node_path=next_node.path(), start_time=task_start_time,
-                                    end_time=datetime.datetime.now(), is_pipeline=True, succeeded=False))
+                                    end_time=datetime.datetime.now(tz.utc), is_pipeline=True, succeeded=False))
 
                                 failed_pipelines.add(next_node.parent)
                                 processed_nodes.add(next_node)
@@ -219,7 +252,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             if next_node.parent in running_pipelines:
                                 running_pipelines[next_node.parent][1] += 1
                             event_queue.put(
-                                pipeline_events.NodeStarted(next_node.path(), datetime.datetime.now(), False))
+                                pipeline_events.NodeStarted(next_node.path(), datetime.datetime.now(tz.utc), False))
                             event_queue.put(pipeline_events.Output(
                                 node_path=next_node.path(), format=logger.Format.ITALICS,
                                 message='★ ' + node_cost.format_duration(
@@ -246,7 +279,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             for parent in task_process.task.parents()[:-1]:
                                 failed_pipelines.add(parent)
 
-                        end_time = datetime.datetime.now()
+                        end_time = datetime.datetime.now(tz.utc)
                         event_queue.put(
                             pipeline_events.Output(task_process.task.path(),
                                                    ('succeeded' if succeeded else 'failed') + ',  '
@@ -273,7 +306,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
         statistics_process.join()
 
         # run finished
-        event_queue.put(pipeline_events.RunFinished(node_path=pipeline.path(), end_time=datetime.datetime.now(),
+        event_queue.put(pipeline_events.RunFinished(node_path=pipeline.path(), end_time=datetime.datetime.now(tz.utc),
                                                     succeeded=not failed_pipelines,
                                                     interactively_started=interactively_started))
 
@@ -283,13 +316,36 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
     runlogger = run_log.RunLogger()
 
+    # make sure that we close this run (if still open) as failed when we close this python process
+    # On SIGKILL we will still leave behind open runs...
+    # this needs to run after we forked off the run_process as that one should not inherit the atexit function
+    def ensure_closed_run_on_abort():
+        try:
+            run_log.close_open_run_after_error(runlogger.run_id)
+        except BaseException as e:
+            print(f"Exception during 'close_open_run_after_error()': {repr(e)}", file=sys.stderr, flush=True)
+        return
+
+    atexit.register(ensure_closed_run_on_abort)
+
+    def _notify_all(event):
+        try:
+            runlogger.handle_event(event)
+        except BaseException as e:
+            # This includes the case when the mara DB is not reachable when writing the event.
+            # Not sure if we should just ignore that, but at least get other notifications
+            # out in case of an error
+            events.notify_configured_event_handlers(event)
+            # this will notify the UI in case of a problem later on
+            raise e
+        events.notify_configured_event_handlers(event)
+
     # process messages from forked child processes
     while True:
         try:
             while not event_queue.empty():
                 event = event_queue.get(False)
-                runlogger.handle_event(event)
-                events.notify_configured_event_handlers(event)
+                _notify_all(event)
                 yield event
         except queues.Empty:
             pass
@@ -300,14 +356,40 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             # Catching GeneratorExit needs to end in a return!
             return
         except:
-            output_event = pipeline_events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
-                                                  format=logger.Format.ITALICS, is_error=True)
-            runlogger.handle_event(output_event)
-            events.notify_configured_event_handlers(output_event)
+            def _create_exception_output_event(msg: str = None):
+                return pipeline_events.Output(node_path=pipeline.path(),
+                                              message=(msg + '\n' if msg else '') + traceback.format_exc(),
+                                              format=logger.Format.ITALICS, is_error=True)
+
+            output_event = _create_exception_output_event()
+            exception_events = []
+            try:
+                _notify_all(output_event)
+            except BaseException as e:
+                # we are already in the generic exception handler, so we cannot do anything
+                # if we still fail, as we have to get to the final close_open_run_after_error()
+                # and 'return'...
+                exception_events.append(_create_exception_output_event("Could not notify about final output event"))
             yield output_event
-            run_log.close_open_run_after_error(runlogger.run_id)
+            try:
+                run_log.close_open_run_after_error(runlogger.run_id)
+            except BaseException as e:
+                exception_events.append(_create_exception_output_event("Exception during 'close_open_run_after_error()'"))
+
+            # At least try to notify the UI
+            for e in exception_events:
+                print(f"{repr(e)}", file=sys.stderr)
+                yield e
+                events.notify_configured_event_handlers(e)
+            # try to terminate the run_process which itself will also cleanup in an atexit handler
+            try:
+                run_process.terminate()
+            except:
+                pass
             return
         if not run_process.is_alive():
+            # If we are here it might be that the executor dies without sending the necessary run finished events
+            ensure_closed_run_on_abort()
             break
         time.sleep(0.001)
 
@@ -326,7 +408,7 @@ class TaskProcess(multiprocessing.Process):
         self.task = task
         self.event_queue = event_queue
         self.status_queue = status_queue
-        self.start_time = datetime.datetime.now()
+        self.start_time = datetime.datetime.now(tz.utc)
 
     def run(self):
         # redirect stdout and stderr to queue
@@ -337,10 +419,11 @@ class TaskProcess(multiprocessing.Process):
         try:
             while True:
                 if not self.task.run():
-                    if attempt < self.task.max_retries:
+                    max_retries = self.task.max_retries or config.default_task_max_retries()
+                    if attempt < max_retries:
                         attempt += 1
                         delay = pow(2, attempt + 2)
-                        logger.log(message=f'Retry {attempt}/{self.task.max_retries} in {delay} seconds',
+                        logger.log(message=f'Retry {attempt}/{max_retries} in {delay} seconds',
                                    is_error=True, format=logger.Format.ITALICS)
                         time.sleep(delay)
                     else:

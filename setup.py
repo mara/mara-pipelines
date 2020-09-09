@@ -3,18 +3,18 @@ import re
 
 def get_long_description():
     with open('README.md') as f:
-        return re.sub('!\[(.*?)\]\(docs/(.*?)\)', r'![\1](https://github.com/mara/data-integration/raw/master/docs/\2)', f.read())
+        return re.sub('!\[(.*?)\]\(docs/(.*?)\)', r'![\1](https://github.com/mara/mara-pipelines/raw/master/docs/\2)', f.read())
 
 setup(
-    name='data-integration',
-    version='2.8.0',
+    name='mara-pipelines',
+    version='3.1.1',
 
-    description='Opinionated lightweight ETL pipeline framework',
+    description='Opinionated lightweight ELT pipeline framework',
 
     long_description=get_long_description(),
     long_description_content_type='text/markdown',
 
-    url = 'https://github.com/mara/data-integration',
+    url = 'https://github.com/mara/mara-pipelines',
 
     install_requires=[
         'mara-db>=4.2.0',
