@@ -1,5 +1,6 @@
 """Commands for reading files"""
 
+import deprecation
 import json
 import pathlib
 import shlex
@@ -11,12 +12,17 @@ import enum
 import mara_db.dbs
 from mara_db import formats
 import mara_db.shell
+import mara_storage.storages
+from mara_storage.shell import read_file_command
 from . import sql
 from mara_page import _, html
 from .. import config, pipelines
 
 
-class Compression(enum.Enum):
+@deprecation.deprecated(deprecated_in='3.1.2', removed_in='4.0.0',
+                        current_version=__version__,
+                        details='Use mara_storage.compression.Compression instead')
+class Compression(enum.EnumMeta):
     """Different compression formats that are understood by file readers"""
     NONE = 'none'
     GZIP = 'gzip'
@@ -24,6 +30,9 @@ class Compression(enum.Enum):
     ZIP = 'zip'
 
 
+@deprecation.deprecated(deprecated_in='3.1.2', removed_in='4.0.0',
+                        current_version=__version__,
+                        details='Use mara_storage.compression.uncompressor instead')
 def uncompressor(compression: Compression) -> str:
     """Maps compression methods to command line programs that can unpack the respective files"""
     return {Compression.NONE: 'cat',
@@ -37,7 +46,8 @@ class ReadFile(pipelines.Command):
 
     def __init__(self, file_name: str, compression: Compression, target_table: str,
                  mapper_script_file_name: str = None, make_unique: bool = False,
-                 db_alias: str = None, csv_format: bool = None, skip_header: bool = None,
+                 db_alias: str = None, storage_alias: str = None,
+                 csv_format: bool = None, skip_header: bool = None,
                  delimiter_char: str = None, quote_char: str = None,
                  null_value_string: str = None, timezone: str = None,
                  file_format: formats.Format = None) -> None:
@@ -77,6 +87,7 @@ class ReadFile(pipelines.Command):
         self.csv_format = csv_format
         self.skip_header = skip_header
         self._db_alias = db_alias
+        self._storage_alias = storage_alias
         self.delimiter_char = delimiter_char
         self.quote_char = quote_char
         self.null_value_string = null_value_string
@@ -85,6 +96,10 @@ class ReadFile(pipelines.Command):
 
     def db_alias(self) -> str:
         return self._db_alias or config.default_db_alias()
+
+    @property
+    def storage_alias(self):
+        return self._storage_alias or config.default_storage_alias()
 
     def shell_command(self) -> str:
         copy_from_stdin_command = mara_db.shell.copy_from_stdin_command(
@@ -95,14 +110,17 @@ class ReadFile(pipelines.Command):
             pipe_format=self.file_format)
         if not isinstance(mara_db.dbs.db(self.db_alias()), mara_db.dbs.BigQueryDB):
             return \
-                f'{uncompressor(self.compression)} "{pathlib.Path(config.data_dir()) / self.file_name}" \\\n' \
+                f'{read_file_command(self.storage_alias, file_name=self.file_name, compression=self.compression)} \\\n' \
                 + (f'  | {shlex.quote(sys.executable)} "{self.mapper_file_path()}" \\\n'
                    if self.mapper_script_file_name else '') \
                 + ('  | sort -u \\\n' if self.make_unique else '') \
                 + '  | ' + copy_from_stdin_command
         else:
             # Bigquery loading does not support streaming data through pipes
-            return copy_from_stdin_command + f" {pathlib.Path(config.data_dir()) / self.file_name}"
+            storage = mara_storage.storages.storage(self.storage_alias)
+            if not isinstance(storage, mara_storage.storages.LocalStorage):
+                raise ValueError('The ReadFile to a BigQuery database can only be used from a storage alias of type LocalStorage')
+            return copy_from_stdin_command + f' {shlex.quote(str( (storage.base_path / self.file_name).absolute() ))}'
 
     def mapper_file_path(self) -> pathlib.Path:
         return self.parent.parent.base_path() / self.mapper_script_file_name
@@ -118,6 +136,7 @@ class ReadFile(pipelines.Command):
                 ('target_table', _.tt[self.target_table]),
                 ('db alias', _.tt[self.db_alias()]),
                 ('file format', _.tt[self.file_format]),
+                ('storage alias', _.tt[self.storage_alias]),
                 ('csv format', _.tt[self.csv_format]),
                 ('skip header', _.tt[self.skip_header]),
                 ('delimiter char',
@@ -132,22 +151,33 @@ class ReadFile(pipelines.Command):
 class ReadSQLite(sql._SQLCommand):
     def __init__(self, sqlite_file_name: str, target_table: str,
                  sql_statement: str = None, sql_file_name: str = None, replace: Dict[str, str] = None,
-                 db_alias: str = None, timezone: str = None) -> None:
+                 db_alias: str = None, storage_alias: str = None, timezone: str = None) -> None:
+        if not isinstance(mara_storage.storages.storage(storage_alias), mara_storage.storages.LocalStorage):
+            raise ValueError('The ReadSQLite task can only be used from a storage alias of type LocalStorage')
         sql._SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
         self.sqlite_file_name = sqlite_file_name
 
         self.target_table = target_table
         self._db_alias = db_alias
+        self._storage_alias = storage_alias
         self.timezone = timezone
 
     @property
     def db_alias(self) -> str:
         return self._db_alias or config.default_db_alias()
 
+    @property
+    def storage_alias(self):
+        return self._storage_alias or config.default_storage_alias()
+
     def shell_command(self) -> str:
+        storage = mara_storage.storages.storage(self.storage_alias)
+        if not isinstance(storage, mara_storage.storages.LocalStorage):
+            raise ValueError('The ReadSQLite task can only be used from a storage alias of type LocalStorage')
+
         return (sql._SQLCommand.shell_command(self)
                 + '  | ' + mara_db.shell.copy_command(
-                    mara_db.dbs.SQLiteDB(file_name=pathlib.Path(config.data_dir()).absolute() / self.sqlite_file_name),
+                    mara_db.dbs.SQLiteDB(file_name=(storage.base_path / self.sqlite_file_name).absolute()),
                     self.db_alias, self.target_table, timezone=self.timezone))
 
     def html_doc_items(self) -> List[Tuple[str, str]]:
@@ -155,6 +185,7 @@ class ReadSQLite(sql._SQLCommand):
                + sql._SQLCommand.html_doc_items(self, None) \
                + [('target_table', _.tt[self.target_table]),
                   ('db alias', _.tt[self.db_alias]),
+                  ('storage alias', _.tt[self.storage_alias]),
                   ('time zone', _.tt[self.timezone]),
                   (_.i['shell command'], html.highlight_syntax(self.shell_command(), 'bash'))]
 

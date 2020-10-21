@@ -1,9 +1,7 @@
 import datetime
 import enum
-import glob
 import json
 import math
-import os.path
 import pathlib
 import re
 from html import escape
@@ -12,6 +10,7 @@ from typing import List, Tuple, Optional
 import mara_db.config
 import mara_db.dbs
 from mara_page import _, html
+import mara_storage.client
 
 from .. import config, pipelines
 from ..commands import python, sql, files
@@ -34,7 +33,7 @@ class _ParallelRead(pipelines.ParallelTask):
                  max_number_of_parallel_tasks: Optional[int] = None, file_dependencies: Optional[List[str]] = None, date_regex: Optional[str] = None,
                  partition_target_table_by_day_id: bool = False, truncate_partitions: bool = False,
                  commands_before: Optional[List[pipelines.Command]] = None, commands_after: Optional[List[pipelines.Command]] = None,
-                 db_alias: Optional[str] = None, timezone: Optional[str] = None) -> None:
+                 db_alias: Optional[str] = None, storage_alias: Optional[str] = None, timezone: Optional[str] = None) -> None:
         pipelines.ParallelTask.__init__(self, id=id, description=description,
                                         max_number_of_parallel_tasks=max_number_of_parallel_tasks,
                                         commands_before=commands_before, commands_after=commands_after)
@@ -52,21 +51,32 @@ class _ParallelRead(pipelines.ParallelTask):
 
         self.target_table = target_table
         self._db_alias = db_alias
+        self._storage_alias = storage_alias
+        self.__storage_client = None
         self.timezone = timezone
 
     @property
     def db_alias(self):
         return self._db_alias or config.default_db_alias()
 
+    @property
+    def storage_alias(self):
+        return self._storage_alias or config.default_storage_alias()
+
+    @property
+    def _storage_client(self):
+        if not self.__storage_client:
+            self.__storage_client = mara_storage.client.init_client(self.storage_alias)
+
+        return self.__storage_client
+
     def add_parallel_tasks(self, sub_pipeline: 'pipelines.Pipeline') -> None:
         import more_itertools
 
         files = []  # A list of (file_name, date_or_file_name) tuples
-        data_dir = config.data_dir()
         first_date = config.first_date()
 
-        for file in glob.iglob(str(pathlib.Path(data_dir, self.file_pattern))):
-            file = str(pathlib.Path(file).relative_to(pathlib.Path(data_dir)))
+        for file in self._storage_client.iterate_files(self.file_pattern):
             if self.date_regex:
                 match = re.match(self.date_regex, file)
                 if not match:
@@ -160,15 +170,11 @@ class _ParallelRead(pipelines.ParallelTask):
     def parallel_commands(self, file_name: str) -> List[pipelines.Command]:
         return [self.read_command(file_name)] + (
             [python.RunFunction(function=lambda: _processed_files.track_processed_file(
-                self.path(), file_name, self._last_modification_timestamp(file_name)))]
+                self.path(), file_name, self._storage_client.path_last_modification_timestamp(file_name)))]
             if self.read_mode != ReadMode.ALL else [])
 
-    def read_command(self) -> pipelines.Command:
+    def read_command(self, file_name: str) -> pipelines.Command:
         raise NotImplementedError
-
-    def _last_modification_timestamp(self, file_name):
-        return datetime.datetime.fromtimestamp(
-            os.path.getmtime(pathlib.Path(config.data_dir()) / file_name)).astimezone()
 
 
 class ParallelReadFile(_ParallelRead):
@@ -179,14 +185,14 @@ class ParallelReadFile(_ParallelRead):
                  commands_before: Optional[List[pipelines.Command]] = None, commands_after: Optional[List[pipelines.Command]] = None,
                  mapper_script_file_name: Optional[str] = None, make_unique: bool = False, db_alias: Optional[str] = None,
                  delimiter_char: Optional[str] = None, quote_char: Optional[str] = None, null_value_string: Optional[str] = None,
-                 skip_header: Optional[bool] = None, csv_format: bool = False,
+                 skip_header: Optional[bool] = None, csv_format: bool = False, storage_alias: Optional[str] = None,
                  timezone: Optional[str] = None, max_number_of_parallel_tasks: Optional[int] = None) -> None:
         _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
                                read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
                                date_regex=date_regex, partition_target_table_by_day_id=partition_target_table_by_day_id,
                                truncate_partitions=truncate_partitions,
                                commands_before=commands_before, commands_after=commands_after,
-                               db_alias=db_alias, timezone=timezone,
+                               db_alias=db_alias, storage_alias=storage_alias, timezone=timezone,
                                max_number_of_parallel_tasks=max_number_of_parallel_tasks)
         self.compression = compression
         self.mapper_script_file_name = mapper_script_file_name or ''
@@ -202,7 +208,7 @@ class ParallelReadFile(_ParallelRead):
                               mapper_script_file_name=self.mapper_script_file_name, make_unique=self.make_unique,
                               db_alias=self.db_alias, delimiter_char=self.delimiter_char, skip_header=self.skip_header,
                               quote_char=self.quote_char, null_value_string=self.null_value_string,
-                              csv_format=self.csv_format, timezone=self.timezone)
+                              csv_format=self.csv_format, storage_alias=self.storage_alias, timezone=self.timezone)
 
     def html_doc_items(self) -> List[Tuple[str, str]]:
         path = self.parent.base_path() / self.mapper_script_file_name if self.mapper_script_file_name else pathlib.Path()
@@ -219,6 +225,7 @@ class ParallelReadFile(_ParallelRead):
                 ('skip header', _.tt[self.skip_header]),
                 ('target_table', _.tt[self.target_table]),
                 ('db alias', _.tt[self.db_alias]),
+                ('storage alias', _.tt[self.storage_alias]),
                 ('partion target table by day_id', _.tt[self.partition_target_table_by_day_id]),
                 ('truncate partitions', _.tt[self.truncate_partitions]),
                 ('sql delimiter char',
@@ -234,18 +241,21 @@ class ParallelReadSqlite(_ParallelRead):
                  target_table: str, file_dependencies: List[str] = None, date_regex: str = None,
                  partition_target_table_by_day_id: bool = False, truncate_partitions: bool = False,
                  commands_before: List[pipelines.Command] = None, commands_after: List[pipelines.Command] = None,
-                 db_alias: str = None, timezone=None, max_number_of_parallel_tasks: int = None) -> None:
+                 db_alias: str = None, timezone=None, max_number_of_parallel_tasks: int = None,
+                 storage_alias: str = None) -> None:
         _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
                                read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
                                date_regex=date_regex, partition_target_table_by_day_id=partition_target_table_by_day_id,
                                truncate_partitions=truncate_partitions,
                                commands_before=commands_before, commands_after=commands_after, db_alias=db_alias,
+                               storage_alias=storage_alias,
                                timezone=timezone, max_number_of_parallel_tasks=max_number_of_parallel_tasks)
         self.sql_file_name = sql_file_name
 
     def read_command(self, file_name: str) -> List[pipelines.Command]:
         return files.ReadSQLite(sqlite_file_name=file_name, sql_file_name=self.sql_file_name,
-                                target_table=self.target_table, db_alias=self.db_alias, timezone=self.timezone)
+                                target_table=self.target_table, db_alias=self.db_alias,
+                                storage_alias=self.storage_alias, timezone=self.timezone)
 
     def sql_file_path(self):
         return self.parent.base_path() / self.sql_file_name
@@ -262,6 +272,7 @@ class ParallelReadSqlite(_ParallelRead):
                                                      else '', 'sql')),
                 ('target_table', _.tt[self.target_table]),
                 ('db alias', _.tt[self.db_alias]),
+                ('storage alias', _.tt[self.storage_alias]),
                 ('partion target table by day_id', _.tt[self.partition_target_table_by_day_id]),
                 ('truncate partitions', _.tt[self.truncate_partitions]),
                 ('time zone', _.tt[self.timezone])]
