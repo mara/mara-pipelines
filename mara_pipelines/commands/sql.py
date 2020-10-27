@@ -272,6 +272,13 @@ class CopyIncrementally(_SQLCommand):
         if not result:
             return False
 
+        if isinstance(result, bool):
+            # This happens if the query above ran, but returned no data and therefore the load
+            # query below would also return no data
+            # We assume that this happens e.g. when there is no data *yet* and let the load succeed
+            # without actually doing anything
+            logger.log("Found no data, not starting Copy.", format=logger.Format.VERBATIM)
+            return True
         # be flexible with different output formats: remove the column header & remove whitespace & quotes
         max_modification_value = ''.join(result).replace('maxval', '').strip().strip('"')
         logger.log(f"New max modification comparison value: {max_modification_value!r}", format=logger.Format.VERBATIM)
