@@ -8,6 +8,7 @@ from typing import Callable, Union
 
 import mara_db.dbs
 import mara_db.shell
+import mara_db.postgresql
 from mara_page import _, html
 from .. import config, shell, pipelines
 from ..incremental_processing import file_dependencies
@@ -43,6 +44,7 @@ class _SQLCommand(pipelines.Command):
         pipeline_candidate = self
         while not isinstance(pipeline_candidate, pipelines.Pipeline):
             pipeline_candidate = pipeline_candidate.parent
+        assert isinstance(pipeline_candidate, pipelines.Pipeline)
         return pipeline_candidate.base_path() / self.sql_file_name
 
     def shell_command(self):
@@ -163,7 +165,7 @@ class Copy(_SQLCommand):
         return self._target_db_alias or config.default_db_alias()
 
     def file_path(self) -> pathlib.Path:
-        return self.parent.parent.base_path() / self.file_name
+        return self.parent.parent.base_path() / self.sql_file_name
 
     def run(self) -> bool:
         if self.sql_file_name:
