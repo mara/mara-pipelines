@@ -1,5 +1,6 @@
 """Make the functionalities of this package auto-discoverable by mara-app"""
 
+__version__ = '3.1.1'
 
 def MARA_CONFIG_MODULES():
     from . import config
