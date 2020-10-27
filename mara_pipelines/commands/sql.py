@@ -187,7 +187,6 @@ class Copy(_SQLCommand):
                 # (see also above in ExecuteSQL)
                 file_dependencies.delete(self.node_path(), dependency_type)
 
-
         if not super().run():
             return False
 
@@ -264,7 +263,7 @@ class CopyIncrementally(_SQLCommand):
         # retrieve the highest current value for the modification comparison (e.g.: the highest timestamp)
         # We intentionally use the command line here (rather than sqlalchemy) to avoid forcing people python drivers,
         # which can be hard for example in the case of SQL Server
-        logger.log(f'get highest modification comparison value', format=logger.Format.ITALICS)
+        logger.log(f'Get new max modification comparison value...', format=logger.Format.ITALICS)
         max_value_query = f'SELECT max({self.modification_comparison}) AS maxval FROM {self.source_table}'
         logger.log(max_value_query, format=logger.Format.VERBATIM)
         result = shell.run_shell_command(f'echo {shlex.quote(max_value_query)} \\\n  | '
@@ -275,13 +274,13 @@ class CopyIncrementally(_SQLCommand):
 
         # be flexible with different output formats: remove the column header & remove whitespace & quotes
         max_modification_value = ''.join(result).replace('maxval', '').strip().strip('"')
-        logger.log(repr(max_modification_value), format=logger.Format.VERBATIM)
+        logger.log(f"New max modification comparison value: {max_modification_value!r}", format=logger.Format.VERBATIM)
 
         # check whether target table is empty
         target_table_is_empty = True
 
         target_table_empty_query = f'SELECT TRUE FROM {self.target_table} LIMIT 1'
-        logger.log(f'check if target table is empty', format=logger.Format.ITALICS)
+        logger.log(f'Check if target table is empty', format=logger.Format.ITALICS)
         logger.log(target_table_empty_query, format=logger.Format.VERBATIM)
         with mara_db.postgresql.postgres_cursor_context(self.target_db_alias) as cursor:
             cursor.execute(f'SELECT TRUE FROM {self.target_table} LIMIT 1')
@@ -289,14 +288,14 @@ class CopyIncrementally(_SQLCommand):
             logger.log(f"target table{'' if target_table_is_empty else ' not'} empty", format=logger.Format.ITALICS)
 
         # get last comparison value
-        logger.log('get last comparison value', format=logger.Format.ITALICS)
+        logger.log('Get last comparison value...', format=logger.Format.ITALICS)
         last_comparison_value = incremental_copy_status.get_last_comparison_value(
             self.node_path(), self.source_db_alias, self.source_table)
-        logger.log(repr(last_comparison_value), format=logger.Format.VERBATIM)
+        logger.log(f"Last max modification comparison value: {last_comparison_value!r}", format=logger.Format.VERBATIM)
 
         if target_table_is_empty or not last_comparison_value:
             # full load
-            logger.log('full (non incremental) copy', logger.Format.ITALICS)
+            logger.log('Using full (non incremental) Copy', logger.Format.ITALICS)
             if not target_table_is_empty:
                 truncate_query = f'TRUNCATE TABLE {self.target_table}'
                 logger.log(truncate_query, format=logger.Format.VERBATIM)
@@ -307,7 +306,7 @@ class CopyIncrementally(_SQLCommand):
                 # If we would crash during load (with some data already in the table), the next run would
                 # not trigger a full load and we would miss data. To prevent that, delete the old
                 # comparison value (we will then set it only on success)
-                logger.log('deleting old comparison value', logger.Format.ITALICS)
+                logger.log('Deleting old comparison value', logger.Format.ITALICS)
                 incremental_copy_status.delete(self.node_path(), self.source_db_alias, self.source_table)
 
             # overwrite the comparison criteria to get everything
@@ -318,7 +317,7 @@ class CopyIncrementally(_SQLCommand):
 
         else:
             # incremental load. First create the table which will contain the delta
-            logger.log('incremental copy, create upsert table', logger.Format.ITALICS)
+            logger.log('Using incremental Copy, create upsert table', logger.Format.ITALICS)
             create_upsert_table_query = (f'DROP TABLE IF EXISTS {self.target_table}_upsert;\n'
                                          + f'CREATE TABLE {self.target_table}_upsert AS SELECT * from {self.target_table} WHERE FALSE')
 
