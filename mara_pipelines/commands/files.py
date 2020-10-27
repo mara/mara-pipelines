@@ -15,6 +15,7 @@ from mara_storage.shell import read_file_command
 from . import sql
 from mara_page import _, html
 from .. import config, pipelines
+from . import __version__
 
 
 @deprecation.deprecated(deprecated_in='3.1.2', removed_in='4.0.0',

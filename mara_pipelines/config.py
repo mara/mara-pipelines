@@ -12,6 +12,7 @@ import mara_storage.config
 import mara_storage.storages
 
 from . import pipelines, events
+from . import __version__
 
 
 def root_pipeline() -> 'pipelines.Pipeline':
@@ -36,7 +37,7 @@ def default_storage_alias() -> str:
     """The alias of the storage that should be used when not specified otherwise"""
     return 'data'
 
-@patch(mara_storage.config)
+@patch(mara_storage.config.storages)
 def storages() -> {str: mara_storage.storages.Storage}:
     return {'data': mara_storage.storages.LocalStorage(base_path=pathlib.Path(data_dir()))}
 
