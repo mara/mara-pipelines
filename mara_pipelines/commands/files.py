@@ -17,11 +17,11 @@ from mara_storage.shell import read_file_command
 from . import sql
 from mara_page import _, html
 from .. import config, pipelines
-from . import __version__
+import mara_pipelines
 
 
-@deprecation.deprecated(deprecated_in='3.1.2', removed_in='4.0.0',
-                        current_version=__version__,
+@deprecation.deprecated(deprecated_in='3.2.0', removed_in='4.0.0',
+                        current_version=mara_pipelines.__version__,
                         details='Use mara_storage.compression.Compression instead')
 class Compression(enum.EnumMeta):
     """Different compression formats that are understood by file readers"""
@@ -31,7 +31,7 @@ class Compression(enum.EnumMeta):
     ZIP = 'zip'
 
 
-@deprecation.deprecated(deprecated_in='3.1.2', removed_in='4.0.0',
+@deprecation.deprecated(deprecated_in='3.2.0', removed_in='4.0.0',
                         current_version=__version__,
                         details='Use mara_storage.compression.uncompressor instead')
 def uncompressor(compression: Compression) -> str:
