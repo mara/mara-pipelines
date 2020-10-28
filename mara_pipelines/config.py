@@ -12,7 +12,7 @@ import mara_storage.config
 import mara_storage.storages
 
 from . import pipelines, events
-from . import __version__
+from ._version import __version__
 
 
 def root_pipeline() -> 'pipelines.Pipeline':
@@ -20,7 +20,7 @@ def root_pipeline() -> 'pipelines.Pipeline':
     return pipelines.demo_pipeline()
 
 
-@deprecation.deprecated(deprecated_in='3.1.2', removed_in='4.0.0',
+@deprecation.deprecated(deprecated_in='3.2.0', removed_in='4.0.0',
                         current_version=__version__,
                         details='Use mara_storage.config.storages instead')
 def data_dir() -> str:

@@ -5,18 +5,13 @@ def get_long_description():
     with open('README.md') as f:
         return re.sub('!\[(.*?)\]\(docs/(.*?)\)', r'![\1](https://github.com/mara/mara-pipelines/raw/master/docs/\2)', f.read())
 
-def get_version(rel_path):
-    with open(rel_path) as fp:
-        for _, line in enumerate(fp):
-            if line.startswith('__version__'):
-                delim = '"' if '"' in line else "'"
-                return line.split(delim)[1]
-        else:
-            raise RuntimeError("Unable to find version string.")
+about = {}
+with open('mara_pipelines/_version.py') as f:
+    exec(f.read(), about)
 
 setup(
     name='mara-pipelines',
-    version=get_version('mara_pipelines/__init__.py'),
+    version=about['__version__'],
 
     description='Opinionated lightweight ELT pipeline framework',
 
