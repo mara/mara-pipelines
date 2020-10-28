@@ -1,9 +1,21 @@
+import pathlib
 from setuptools import setup, find_packages
 import re
 
 def get_long_description():
     with open('README.md') as f:
         return re.sub('!\[(.*?)\]\(docs/(.*?)\)', r'![\1](https://github.com/mara/mara-pipelines/raw/master/docs/\2)', f.read())
+
+def static_files() -> [str]:
+    module_path = pathlib.Path('mara_pipelines')
+    files = [
+        'ui/run_time_chart.sql'
+    ]
+    for p in module_path.glob('ui/static/**/*'):
+        if p.is_file():
+            files.append(str(p.relative_to(module_path)))
+    return files
+
 
 setup(
     name='mara-pipelines',
@@ -31,6 +43,7 @@ setup(
     python_requires='>=3.6',
 
     packages=find_packages(),
+    package_data={'mara_pipelines': static_files()},
 
     author='Mara contributors',
     license='MIT',
