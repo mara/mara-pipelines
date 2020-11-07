@@ -107,3 +107,17 @@ def password_masks() -> typing.List[str]:
     #         return f"<MasksList with {len(self)} elements>"
 
     return []
+
+def allowed_execution_origins() -> str:
+    """
+    By default, the pipeline execution can only be executed on the same URL as where the server runs on.
+
+    Here you can specify the 'Access-Control-Allow-Origin' header for the pipeline execution stream
+    to allow other origins (CORS policy)
+
+    Possible values (examples):
+        None                -   the header will not be send
+        *                   -   any origin is allowed
+        http://localhost    -   allow localhost with port 80
+    """
+    return None

@@ -108,4 +108,10 @@ def do_run(path: str, with_upstreams: bool, ids: str):
         for event in execution.run_pipeline(pipeline, nodes, with_upstreams):
             yield f'event: {event.__class__.__name__}\ndata: ' + event.to_json() + '\n\n'
 
-    return flask.Response(process_events(), mimetype="text/event-stream", headers={'Access-Control-Allow-Origin':'*'})
+    headers:dict = {}
+
+    allowed_origins: str = config.allowed_execution_origins()
+    if allowed_origins:
+        headers['Access-Control-Allow-Origin'] = allowed_origins
+
+    return flask.Response(process_events(), mimetype="text/event-stream", headers=headers)
