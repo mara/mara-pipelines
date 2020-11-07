@@ -108,4 +108,4 @@ def do_run(path: str, with_upstreams: bool, ids: str):
         for event in execution.run_pipeline(pipeline, nodes, with_upstreams):
             yield f'event: {event.__class__.__name__}\ndata: ' + event.to_json() + '\n\n'
 
-    return flask.Response(process_events(), mimetype="text/event-stream")
+    return flask.Response(process_events(), mimetype="text/event-stream", headers={'Access-Control-Allow-Origin':'*'})
