@@ -68,7 +68,7 @@ class _ParallelRead(pipelines.ParallelTask):
     @property
     def _storage_client(self):
         if not self.__storage_client:
-            self.__storage_client = mara_storage.client.init_client(self.storage_alias)
+            self.__storage_client = mara_storage.client.StorageClient(self.storage_alias)
 
         return self.__storage_client
 
