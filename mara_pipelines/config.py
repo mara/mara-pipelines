@@ -121,3 +121,12 @@ def allowed_execution_origins() -> str:
         http://localhost    -   allow localhost with port 80
     """
     return None
+
+def execution_host_url() -> str:
+    """
+    Defines the execution host URL. If not defined, the execution will run locally.
+
+    Example:
+        http://localhost:8080
+    """
+    return None

@@ -37,6 +37,9 @@ def run_page(path: str, with_upstreams: bool, ids: str):
         else:
             nodes.append(node)
 
+    execution_host_url: str = config.execution_host_url()
+    if not execution_host_url:
+        execution_host_url = ''
     stream_url = flask.url_for('mara_pipelines.do_run', path=path, with_upstreams=with_upstreams, ids=ids)
 
     title = ['Run ', 'with upstreams ' if with_upstreams else '',
@@ -48,8 +51,8 @@ def run_page(path: str, with_upstreams: bool, ids: str):
         html=[
             _.script['''
 document.addEventListener('DOMContentLoaded', function() {
-     processRunEvents(''' + json.dumps(flask.url_for('mara_pipelines.node_page', path='')) + ', '
-                     + json.dumps(stream_url) + ', ' + json.dumps(pipeline.path()) + ''');
+     processRunEvents(''' + json.dumps(execution_host_url + flask.url_for('mara_pipelines.node_page', path='')) + ', '
+                     + json.dumps(execution_host_url + stream_url) + ', ' + json.dumps(pipeline.path()) + ''');
 });'''],
 
             _.style['span.action-buttons > * {display:none}'],  # hide reload button until run finishes
