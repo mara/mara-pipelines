@@ -11,7 +11,7 @@ class ParallelExecuteSQL(pipelines.ParallelTask, sql._SQLCommand):
     def __init__(self, id: str, description: str, parameter_function: typing.Callable, parameter_placeholders: [str],
                  max_number_of_parallel_tasks: int = None, sql_statement: str = None, file_name: str = None,
                  commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
-                 db_alias: str = None, echo_queries: bool = True, timezone: str = None,
+                 db_alias: str = None, echo_queries: bool = None, timezone: str = None,
                  replace: {str: str} = None) -> None:
 
         if (not (sql_statement or file_name)) or (sql_statement and file_name):
