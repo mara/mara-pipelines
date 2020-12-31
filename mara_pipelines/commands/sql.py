@@ -233,7 +233,7 @@ class CopyIncrementally(_SQLCommand):
             sql_file_name: The path of a file name that is run to query the source database
             replace: A set of replacements to perform against the sql query
             modification_comparison: SQL expression that evaluates to a comparable value
-            comparison_value_placeholder: A placeholder that is replaced with the last comparision value in the sql query
+            comparison_value_placeholder: A placeholder that is replaced with the last comparison value in the sql query
             target_db_alias: The database to write to
             target_table: The table for loading data into
             primary_keys: A combination of primary key columns that are used for upserting into the target table
