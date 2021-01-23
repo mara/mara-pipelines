@@ -28,6 +28,9 @@ setup(
         'requests>=2.19.1'
     ],
 
+    setup_requires=['setuptools_scm'],
+    include_package_data=True,
+
     python_requires='>=3.6',
 
     packages=find_packages(),
