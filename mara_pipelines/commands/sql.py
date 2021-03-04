@@ -80,7 +80,7 @@ class _SQLCommand(pipelines.Command):
 class ExecuteSQL(_SQLCommand):
     def __init__(self, sql_statement: str = None, sql_file_name: Union[str, Callable] = None,
                  replace: {str: str} = None, file_dependencies=None, db_alias: str = None,
-                 echo_queries: bool = True, timezone: str = None) -> None:
+                 echo_queries: bool = None, timezone: str = None) -> None:
         """
         Runs an sql file or statement in a database
 
@@ -325,7 +325,7 @@ class CopyIncrementally(_SQLCommand):
                                          + f'CREATE TABLE {self.target_table}_upsert AS SELECT * from {self.target_table} WHERE FALSE')
 
             if not shell.run_shell_command(f'echo {shlex.quote(create_upsert_table_query)} \\\n  | '
-                                           + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
+                                           + mara_db.shell.query_command(self.target_db_alias)):
                 return False
 
             # perform the actual copy replacing the placeholder
@@ -363,11 +363,10 @@ SELECT src.*
 FROM {self.target_table}_upsert src
 WHERE NOT EXISTS (SELECT 1 FROM {self.target_table} dst WHERE {key_definition})"""
                 if not shell.run_shell_command(f'echo {shlex.quote(update_query)} \\\n  | '
-                                               + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
+                                               + mara_db.shell.query_command(self.target_db_alias)):
                     return False
                 elif not shell.run_shell_command(f'echo {shlex.quote(insert_query)} \\\n  | '
-                                                 + mara_db.shell.query_command(self.target_db_alias,
-                                                                               echo_queries=True)):
+                                                 + mara_db.shell.query_command(self.target_db_alias)):
                     return False
             else:
                 upsery_query = f"""
@@ -377,7 +376,7 @@ FROM {self.target_table}_upsert
 ON CONFLICT ({key_definition})
 DO UPDATE SET {set_clause}"""
                 if not shell.run_shell_command(f'echo {shlex.quote(upsery_query)} \\\n  | '
-                                               + mara_db.shell.query_command(self.target_db_alias, echo_queries=True)):
+                                               + mara_db.shell.query_command(self.target_db_alias)):
                     return False
 
         # update data_integration_incremental_copy_status

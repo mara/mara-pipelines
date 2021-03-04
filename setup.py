@@ -17,7 +17,7 @@ setup(
     url = 'https://github.com/mara/mara-pipelines',
 
     install_requires=[
-        'mara-db>=4.2.0',
+        'mara-db>=4.7.1',
         'mara-page>=1.3.0',
         'graphviz>=0.8',
         'python-dateutil>=2.6.1',
@@ -27,6 +27,9 @@ setup(
         'wheel>=0.31',
         'requests>=2.19.1'
     ],
+
+    setup_requires=['setuptools_scm'],
+    include_package_data=True,
 
     python_requires='>=3.6',
 
