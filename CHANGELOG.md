@@ -1,5 +1,14 @@
 # Changelog
 
+## 3.2.0 (2021-03-08)
+
+- Fix CopyIncrementally with no data (#54)
+- Add ability to specify modification value type in CopyIncrementally (#53)	66e7dc1	Jan Katins <jan.katins@zenjob.com>	4. Mar 2021 at 22:06
+- Fix read stderr during command execution (#47)
+- Use echo_queries from mara_db.config.default_echo_queries (#58)
+- Include all versioned package files in wheel
+
+
 ## 3.1.1 (2020-07-31)
 
 - Fix for visible passwords in the logs despite `mara_pipelines.config.password_masks()`

@@ -4,8 +4,9 @@ matrix:
   include:
     - python: '3.6'
     - python: '3.7'
-      env: UPLOAD=True
     - python: '3.8'
+      env: UPLOAD=True
+    - python: '3.9'
 install:
   - pip install .[test]
 script: echo hello world
