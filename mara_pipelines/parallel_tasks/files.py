@@ -7,6 +7,7 @@ import os.path
 import pathlib
 import re
 from html import escape
+import typing as t
 
 import mara_db.config
 import mara_db.dbs
@@ -62,20 +63,23 @@ class _ParallelRead(pipelines.ParallelTask):
         import more_itertools
 
         files = []  # A list of (file_name, date_or_file_name) tuples
-        data_dir = config.data_dir()
         first_date = config.first_date()
 
-        for file in glob.iglob(str(pathlib.Path(data_dir, self.file_pattern))):
-            file = str(pathlib.Path(file).relative_to(pathlib.Path(data_dir)))
+        looked_at = 0
+        for file in self._iterate_all_files():
             if self.date_regex:
                 match = re.match(self.date_regex, file)
                 if not match:
                     raise Exception(f'file name "{file}" \ndoes not match date regex "{self.date_regex}"')
                 date = datetime.date(*[int(group) for group in match.groups()])
                 if date >= first_date:
+                    looked_at += 1
                     files.append((file, date))
             else:
+                looked_at += 1
                 files.append((file, file))
+
+        logger.log(f"found {looked_at} files which might need importing")
 
         # sort by date when regex provided or by filename otherwise
         files.sort(key=lambda x: x[1], reverse=True)
@@ -91,9 +95,10 @@ class _ParallelRead(pipelines.ParallelTask):
         # for incremental loading, determine which files already have been processed
         # reprocess all when file dependencies changed
         if (self.read_mode not in (ReadMode.ALL, ReadMode.ONLY_LATEST)
-                and (not self.file_dependencies
-                     or not _file_dependencies.is_modified(self.path(), 'ParallelReadFile', self.parent.base_path(),
-                                                           self.file_dependencies))):
+            and (not self.file_dependencies
+                 or not _file_dependencies.is_modified(self.path(), str(self.__class__.__name__),
+                                                       self.parent.base_path(),
+                                                       self.file_dependencies))):
             processed_files = _processed_files.already_processed_files(self.path())
 
             files = [x for x in files
@@ -105,12 +110,16 @@ class _ParallelRead(pipelines.ParallelTask):
             logger.log('No newer files', format=logger.Format.ITALICS)
             return
 
+        logger.log(f"Found {len(files)} files which are not yet importet")
+
         if self.read_mode != ReadMode.ALL and self.file_dependencies:
             def update_file_dependencies():
-                _file_dependencies.update(self.path(), 'ParallelReadFile', self.parent.base_path(),
+                _file_dependencies.update(self.path(), str(self.__class__.__name__), self.parent.base_path(),
                                           self.file_dependencies)
                 return True
 
+            # No one should have a way to changes this away from a task and this makes my editor happy
+            assert isinstance(sub_pipeline.final_node, pipelines.Task)
             sub_pipeline.final_node.commands.append(python.RunFunction(update_file_dependencies))
 
         chunk_size = math.ceil(len(files) / (2 * config.max_number_of_parallel_tasks()))
@@ -119,7 +128,7 @@ class _ParallelRead(pipelines.ParallelTask):
             if not isinstance(mara_db.dbs.db(self.db_alias), mara_db.dbs.PostgreSQLDB):
                 raise NotImplementedError(
                     f'Partitioning by day_id has only been implemented for postgresql so far, \n'
-                    f'not for {mara_db.postgresql.engine(self.db_alias).name}')
+                    f'not for {mara_db.dbs.db(self.db_alias).__class__.__name__}')
             files_per_day = {}
             for (file, date) in files:
                 if date in files_per_day:
@@ -163,12 +172,18 @@ class _ParallelRead(pipelines.ParallelTask):
                 self.path(), file_name, self._last_modification_timestamp(file_name)))]
             if self.read_mode != ReadMode.ALL else [])
 
-    def read_command(self) -> pipelines.Command:
+    def read_command(self, file_name: str) -> pipelines.Command:
         raise NotImplementedError
 
     def _last_modification_timestamp(self, file_name):
         return datetime.datetime.fromtimestamp(
             os.path.getmtime(pathlib.Path(config.data_dir()) / file_name)).astimezone()
+
+    def _iterate_all_files(self):
+        data_dir = config.data_dir()
+        for file in glob.iglob(str(pathlib.Path(data_dir, self.file_pattern))):
+            file = str(pathlib.Path(file).relative_to(pathlib.Path(data_dir)))
+            yield file
 
 
 class ParallelReadFile(_ParallelRead):
@@ -205,28 +220,121 @@ class ParallelReadFile(_ParallelRead):
                               csv_format=self.csv_format, timezone=self.timezone)
 
     def html_doc_items(self) -> [(str, str)]:
-        path = self.parent.base_path() / self.mapper_script_file_name if self.mapper_script_file_name else ''
-        return [('file pattern', _.i[self.file_pattern]),
-                ('compression', _.tt[self.compression]),
-                ('read mode', _.tt[self.read_mode]),
-                ('date regex', _.tt[escape(self.date_regex)] if self.date_regex else None),
-                ('file dependencies', [_.i[dependency, _.br] for dependency in self.file_dependencies]),
-                ('mapper script file name', _.i[self.mapper_script_file_name]),
-                (_.i['mapper script'], html.highlight_syntax(path.read_text().strip('\n')
-                                                             if self.mapper_script_file_name and path.exists()
-                                                             else '', 'python')),
-                ('make unique', _.tt[repr(self.make_unique)]),
-                ('skip header', _.tt[self.skip_header]),
-                ('target_table', _.tt[self.target_table]),
-                ('db alias', _.tt[self.db_alias]),
-                ('partion target table by day_id', _.tt[self.partition_target_table_by_day_id]),
-                ('truncate partitions', _.tt[self.truncate_partitions]),
-                ('sql delimiter char',
-                 _.tt[json.dumps(self.delimiter_char) if self.delimiter_char != None else None]),
-                ('quote char', _.tt[json.dumps(self.quote_char) if self.quote_char != None else None]),
-                ('null value string',
-                 _.tt[json.dumps(self.null_value_string) if self.null_value_string != None else None]),
-                ('time zone', _.tt[self.timezone])]
+        return _common_html_doc_items(self)
+
+
+class ParallelReadS3File(_ParallelRead):
+    def __init__(self, id: str, description: str, s3_bucket_name: str, file_pattern: str, read_mode: ReadMode,
+                 compression: files.Compression, target_table: str, file_dependencies: [str] = None,
+                 date_regex: str = None, partition_target_table_by_day_id: bool = False,
+                 truncate_partitions: bool = False,
+                 commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
+                 mapper_script_file_name: str = None, make_unique: bool = False, db_alias: str = None,
+                 delimiter_char: str = None, quote_char: str = None, null_value_string: str = None,
+                 skip_header: bool = None, csv_format: bool = False,
+                 timezone: str = None, max_number_of_parallel_tasks: int = None,
+                 aws_access_key_id: str = None, aws_secret_access_key: str = None, aws_profile: str = None
+                 ) -> None:
+        _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
+                               read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
+                               date_regex=date_regex, partition_target_table_by_day_id=partition_target_table_by_day_id,
+                               truncate_partitions=truncate_partitions,
+                               commands_before=commands_before, commands_after=commands_after,
+                               db_alias=db_alias, timezone=timezone,
+                               max_number_of_parallel_tasks=max_number_of_parallel_tasks)
+        self.compression = compression
+        self.mapper_script_file_name = mapper_script_file_name or ''
+        self.make_unique = make_unique
+        self.delimiter_char = delimiter_char
+        self.quote_char = quote_char
+        self.skip_header = skip_header
+        self.csv_format = csv_format
+        self.null_value_string = null_value_string
+        self.s3_bucket_name = s3_bucket_name
+        self.aws_access_key_id = aws_access_key_id
+        self.aws_secret_access_key = aws_secret_access_key
+        self.aws_profile = aws_profile
+        self._s3_client = None
+
+    def _get_s3_client(self):
+        if not self._s3_client:
+            import boto3
+            # profile will load credentials from ~.aws/credentials
+            # if non of them is set, both boto3 and aws cli will be take then from environment variables
+            # or the magic stuff on AWS hosts
+            session = boto3.session.Session(profile_name=self.aws_profile,
+                                            aws_access_key_id=self.aws_secret_access_key,
+                                            aws_secret_access_key=self.aws_secret_access_key,
+                                            )
+            self._s3_client = session.client('s3')
+
+        return self._s3_client
+
+    def _iterate_all_files(self):
+        # more or less from https://alexwlchan.net/2019/07/listing-s3-keys/
+        s3 = self._get_s3_client()
+        paginator = s3.get_paginator("list_objects_v2")
+        kwargs = {'Bucket': self.s3_bucket_name}
+
+        for page in paginator.paginate(**kwargs):
+            try:
+                contents = page["Contents"]
+            except KeyError:
+                break
+
+            for obj in contents:
+                key = obj["Key"]
+                yield key
+
+    def read_command(self, file_name: str) -> pipelines.Command:
+        s3_url = f's3://{self.s3_bucket_name}/{file_name}'
+        return files.ReadS3File(s3_url=s3_url, compression=self.compression, target_table=self.target_table,
+                                mapper_script_file_name=self.mapper_script_file_name, make_unique=self.make_unique,
+                                db_alias=self.db_alias, delimiter_char=self.delimiter_char,
+                                skip_header=self.skip_header,
+                                quote_char=self.quote_char, null_value_string=self.null_value_string,
+                                csv_format=self.csv_format, timezone=self.timezone,
+                                aws_access_key_id=self.aws_access_key_id,
+                                aws_secret_access_key=self.aws_secret_access_key,
+                                aws_profile=self.aws_profile)
+
+    def _last_modification_timestamp(self, file_name):
+        s3 = self._get_s3_client()
+        s3_obj = s3.head_object(Bucket=self.s3_bucket_name,  Key=file_name)
+        return s3_obj["LastModified"].astimezone()
+
+    def html_doc_items(self) -> [(str, str)]:
+        return [('AWS s3 bucket', _.i[self.s3_bucket_name]),
+                ('AWS credentials', _.i[self.aws_access_key_id] if self.aws_access_key_id else None),
+                ('AWS profile', _.i[self.aws_profile] if self.aws_profile else None),
+                ('class name', _.i[str(self.__class__.__name__)]),
+                ] + _common_html_doc_items(self)
+
+
+def _common_html_doc_items(command: t.Union[ParallelReadFile, ParallelReadS3File]):
+    path = command.parent.base_path() / command.mapper_script_file_name if command.mapper_script_file_name else ''
+
+    return [('file pattern', _.i[command.file_pattern]),
+            ('compression', _.tt[command.compression]),
+            ('read mode', _.tt[command.read_mode]),
+            ('date regex', _.tt[escape(command.date_regex)] if command.date_regex else None),
+            ('file dependencies', [_.i[dependency, _.br] for dependency in command.file_dependencies]),
+            ('mapper script file name', _.i[command.mapper_script_file_name]),
+            (_.i['mapper script'], html.highlight_syntax(path.read_text().strip('\n')
+                                                         if command.mapper_script_file_name and path.exists()
+                                                         else '', 'python')),
+            ('make unique', _.tt[repr(command.make_unique)]),
+            ('skip header', _.tt[command.skip_header]),
+            ('target_table', _.tt[command.target_table]),
+            ('db alias', _.tt[command.db_alias]),
+            ('partion target table by day_id', _.tt[command.partition_target_table_by_day_id]),
+            ('truncate partitions', _.tt[command.truncate_partitions]),
+            ('sql delimiter char',
+             _.tt[json.dumps(command.delimiter_char) if command.delimiter_char != None else None]),
+            ('quote char', _.tt[json.dumps(command.quote_char) if command.quote_char != None else None]),
+            ('null value string',
+             _.tt[json.dumps(command.null_value_string) if command.null_value_string != None else None]),
+            ('time zone', _.tt[command.timezone])]
 
 
 class ParallelReadSqlite(_ParallelRead):
