@@ -34,7 +34,7 @@ class _ParallelRead(pipelines.ParallelTask):
                  max_number_of_parallel_tasks: int = None, file_dependencies: [str] = None, date_regex: str = None,
                  partition_target_table_by_day_id: bool = False, truncate_partitions: bool = False,
                  commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
-                 db_alias: str = None, timezone: str = None) -> None:
+                 db_alias: str = None) -> None:
         pipelines.ParallelTask.__init__(self, id=id, description=description,
                                         max_number_of_parallel_tasks=max_number_of_parallel_tasks,
                                         commands_before=commands_before, commands_after=commands_after)
@@ -52,7 +52,6 @@ class _ParallelRead(pipelines.ParallelTask):
 
         self.target_table = target_table
         self._db_alias = db_alias
-        self.timezone = timezone
 
     @property
     def db_alias(self):
@@ -180,14 +179,13 @@ class ParallelReadFile(_ParallelRead):
                  mapper_script_file_name: str = None, make_unique: bool = False, db_alias: str = None,
                  delimiter_char: str = None, quote_char: str = None, null_value_string: str = None,
                  skip_header: bool = None, csv_format: bool = False,
-                 timezone: str = None, max_number_of_parallel_tasks: int = None) -> None:
+                 max_number_of_parallel_tasks: int = None) -> None:
         _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
                                read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
                                date_regex=date_regex, partition_target_table_by_day_id=partition_target_table_by_day_id,
                                truncate_partitions=truncate_partitions,
                                commands_before=commands_before, commands_after=commands_after,
-                               db_alias=db_alias, timezone=timezone,
-                               max_number_of_parallel_tasks=max_number_of_parallel_tasks)
+                               db_alias=db_alias, max_number_of_parallel_tasks=max_number_of_parallel_tasks)
         self.compression = compression
         self.mapper_script_file_name = mapper_script_file_name or ''
         self.make_unique = make_unique
@@ -202,7 +200,7 @@ class ParallelReadFile(_ParallelRead):
                               mapper_script_file_name=self.mapper_script_file_name, make_unique=self.make_unique,
                               db_alias=self.db_alias, delimiter_char=self.delimiter_char, skip_header=self.skip_header,
                               quote_char=self.quote_char, null_value_string=self.null_value_string,
-                              csv_format=self.csv_format, timezone=self.timezone)
+                              csv_format=self.csv_format)
 
     def html_doc_items(self) -> [(str, str)]:
         path = self.parent.base_path() / self.mapper_script_file_name if self.mapper_script_file_name else ''
@@ -225,8 +223,7 @@ class ParallelReadFile(_ParallelRead):
                  _.tt[json.dumps(self.delimiter_char) if self.delimiter_char != None else None]),
                 ('quote char', _.tt[json.dumps(self.quote_char) if self.quote_char != None else None]),
                 ('null value string',
-                 _.tt[json.dumps(self.null_value_string) if self.null_value_string != None else None]),
-                ('time zone', _.tt[self.timezone])]
+                 _.tt[json.dumps(self.null_value_string) if self.null_value_string != None else None])]
 
 
 class ParallelReadSqlite(_ParallelRead):
@@ -234,18 +231,18 @@ class ParallelReadSqlite(_ParallelRead):
                  target_table: str, file_dependencies: [str] = None, date_regex: str = None,
                  partition_target_table_by_day_id: bool = False, truncate_partitions: bool = False,
                  commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
-                 db_alias: str = None, timezone=None, max_number_of_parallel_tasks: int = None) -> None:
+                 db_alias: str = None, max_number_of_parallel_tasks: int = None) -> None:
         _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
                                read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
                                date_regex=date_regex, partition_target_table_by_day_id=partition_target_table_by_day_id,
                                truncate_partitions=truncate_partitions,
                                commands_before=commands_before, commands_after=commands_after, db_alias=db_alias,
-                               timezone=timezone, max_number_of_parallel_tasks=max_number_of_parallel_tasks)
+                               max_number_of_parallel_tasks=max_number_of_parallel_tasks)
         self.sql_file_name = sql_file_name
 
     def read_command(self, file_name: str) -> [pipelines.Command]:
         return files.ReadSQLite(sqlite_file_name=file_name, sql_file_name=self.sql_file_name,
-                                target_table=self.target_table, db_alias=self.db_alias, timezone=self.timezone)
+                                target_table=self.target_table, db_alias=self.db_alias)
 
     def sql_file_path(self):
         return self.parent.base_path() / self.sql_file_name
@@ -263,5 +260,4 @@ class ParallelReadSqlite(_ParallelRead):
                 ('target_table', _.tt[self.target_table]),
                 ('db alias', _.tt[self.db_alias]),
                 ('partion target table by day_id', _.tt[self.partition_target_table_by_day_id]),
-                ('truncate partitions', _.tt[self.truncate_partitions]),
-                ('time zone', _.tt[self.timezone])]
+                ('truncate partitions', _.tt[self.truncate_partitions])]

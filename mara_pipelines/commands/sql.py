@@ -82,7 +82,7 @@ class _SQLCommand(pipelines.Command):
 class ExecuteSQL(_SQLCommand):
     def __init__(self, sql_statement: str = None, sql_file_name: Union[str, Callable] = None,
                  replace: {str: str} = None, file_dependencies=None, db_alias: str = None,
-                 echo_queries: bool = None, timezone: str = None) -> None:
+                 echo_queries: bool = None) -> None:
         """
         Runs an sql file or statement in a database
 
@@ -94,7 +94,6 @@ class ExecuteSQL(_SQLCommand):
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
 
         self._db_alias = db_alias
-        self.timezone = timezone
         self.file_dependencies = file_dependencies or []
         self.echo_queries = echo_queries
 
@@ -133,14 +132,13 @@ class ExecuteSQL(_SQLCommand):
 
     def shell_command(self):
         return _SQLCommand.shell_command(self) \
-               + '  | ' + mara_db.shell.query_command(self.db_alias, self.timezone, self.echo_queries)
+               + '  | ' + mara_db.shell.query_command(self.db_alias, echo_queries=self.echo_queries)
 
     def html_doc_items(self):
         return [('db', _.tt[self.db_alias]),
                 ('file dependencies', [_.i[dependency, _.br] for dependency in self.file_dependencies])] \
                + _SQLCommand.html_doc_items(self, self.db_alias) \
                + [('echo queries', _.tt[str(self.echo_queries)]),
-                  ('timezone', _.tt[self.timezone or '']),
                   (_.i['shell command'], html.highlight_syntax(self.shell_command(), 'bash'))]
 
 
@@ -149,13 +147,12 @@ class Copy(_SQLCommand):
 
     def __init__(self, source_db_alias: str, target_table: str, target_db_alias: str = None,
                  sql_statement: str = None, sql_file_name: Union[Callable, str] = None, replace: {str: str} = None,
-                 timezone: str = None, csv_format: bool = None, delimiter_char: str = None,
+                 csv_format: bool = None, delimiter_char: str = None,
                  file_dependencies=None) -> None:
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
         self.source_db_alias = source_db_alias
         self.target_table = target_table
         self._target_db_alias = target_db_alias
-        self.timezone = timezone
         self.csv_format = csv_format
         self.delimiter_char = delimiter_char
         self.file_dependencies = file_dependencies or []
@@ -197,14 +194,13 @@ class Copy(_SQLCommand):
     def shell_command(self):
         return _SQLCommand.shell_command(self) \
                + '  | ' + mara_db.shell.copy_command(self.source_db_alias, self.target_db_alias, self.target_table,
-                                                     self.timezone, self.csv_format, self.delimiter_char)
+                                                     csv_format=self.csv_format, delimiter_char=self.delimiter_char)
 
     def html_doc_items(self) -> [(str, str)]:
         return [('source db', _.tt[self.source_db_alias])] \
                + _SQLCommand.html_doc_items(self, self.source_db_alias) \
                + [('target db', _.tt[self.target_db_alias]),
                   ('target table', _.tt[self.target_table]),
-                  ('timezone', _.tt[self.timezone or '']),
                   ('csv format', _.tt[self.csv_format or '']),
                   ('delimiter char', _.tt[self.delimiter_char or '']),
                   (_.i['shell command'], html.highlight_syntax(self.shell_command(), 'bash'))]
@@ -215,7 +211,7 @@ class CopyIncrementally(_SQLCommand):
                  modification_comparison: str, comparison_value_placeholder: str,
                  target_table: str, primary_keys: [str],
                  sql_file_name: Union[str, Callable] = None, sql_statement: Union[str, Callable] = None,
-                 target_db_alias: str = None, timezone: str = None, replace: {str: str} = None,
+                 target_db_alias: str = None, replace: {str: str} = None,
                  use_explicit_upsert: bool = False,
                  csv_format: bool = None, delimiter_char: str = None,
                  modification_comparison_type: str = None) -> None:
@@ -241,7 +237,6 @@ class CopyIncrementally(_SQLCommand):
             target_db_alias: The database to write to
             target_table: The table for loading data into
             primary_keys: A combination of primary key columns that are used for upserting into the target table
-            timezone: How to interpret timestamps in the target db
             use_explicit_upsert: When True, uses an Update + Insert query combination. Otherwise ON CONFLICT DO UPDATE.
         """
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
@@ -254,7 +249,6 @@ class CopyIncrementally(_SQLCommand):
         self._target_db_alias = target_db_alias
         self.target_table = target_table
         self.primary_keys = primary_keys
-        self.timezone = timezone
         self.use_explicit_upsert = use_explicit_upsert
         self.csv_format = csv_format
         self.delimiter_char = delimiter_char
@@ -397,8 +391,8 @@ DO UPDATE SET {set_clause}"""
         return (_SQLCommand.shell_command(self)
                 + '  | ' + shell.sed_command(replace)
                 + '  | ' + mara_db.shell.copy_command(self.source_db_alias, self.target_db_alias,
-                                                      target_table, timezone=self.timezone,
-                                                      csv_format=self.csv_format, delimiter_char=self.delimiter_char))
+                                                      target_table, csv_format=self.csv_format,
+                                                      delimiter_char=self.delimiter_char))
 
     def html_doc_items(self) -> [(str, str)]:
         return [('source db', _.tt[self.source_db_alias]),
@@ -410,7 +404,6 @@ DO UPDATE SET {set_clause}"""
                   ('target db', _.tt[self.target_db_alias]),
                   ('target table', _.tt[self.target_table]),
                   ('primary_keys', _.tt[repr(self.primary_keys)]),
-                  ('timezone', _.tt[self.timezone or '']),
                   ('csv format', _.tt[self.csv_format or '']),
                   ('delimiter char', _.tt[self.delimiter_char or '']),
                   ('use explicit upsert', _.tt[repr(self.use_explicit_upsert)])]
