@@ -23,7 +23,7 @@ setup(
     install_requires=[
         'mara-db>=4.7.1',
         'mara-page>=1.3.0',
-        'mara-storage>=0.9.4',
+        'mara-storage>=1.0.0',
         'deprecation>=2.1.0',
         'graphviz>=0.8',
         'python-dateutil>=2.6.1',
