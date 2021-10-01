@@ -1,6 +1,5 @@
 """Logging pipeline runs, node output and status information in mara database"""
 
-import psycopg2.extensions
 import sqlalchemy.orm
 from sqlalchemy.ext.declarative import declarative_base
 

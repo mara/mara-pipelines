@@ -4,7 +4,6 @@ import datetime
 import json
 
 import flask
-import psycopg2.extensions
 
 import mara_db.postgresql
 from mara_page import bootstrap, html, acl, _

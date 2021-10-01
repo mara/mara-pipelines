@@ -2,7 +2,6 @@ import json
 import pathlib
 
 import flask
-import psycopg2.extensions
 
 import mara_db.config
 import mara_db.postgresql
