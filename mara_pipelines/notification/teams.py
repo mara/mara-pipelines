@@ -10,7 +10,7 @@ class Teams(ChatNotifier):
         Pipeline notifications via Microsoft Teams
 
         Args:
-            url: The id of the notification web hook, e.g. `'1234abcd-1234-abcd-1234-12345abcdef@1234abcd-1234-abcd-1234-abcde12345/IncomingWebhook/12345678abcdefg/123abc-1235-abcd-1234-12345abcdef`
+            url: The url of the notification web hook
         """
         super().__init__()
         self.url = url
