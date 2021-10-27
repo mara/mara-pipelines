@@ -5,15 +5,15 @@ from .notifier import ChatNotifier
 
 
 class Teams(ChatNotifier):
-    def __init__(self, token):
+    def __init__(self, url):
         """
         Pipeline notifications via Microsoft Teams
 
         Args:
-            token: The id of the notification web hook, e.g. `'1234abcd-1234-abcd-1234-12345abcdef@1234abcd-1234-abcd-1234-abcde12345/IncomingWebhook/12345678abcdefg/123abc-1235-abcd-1234-12345abcdef`
+            url: The id of the notification web hook, e.g. `'1234abcd-1234-abcd-1234-12345abcdef@1234abcd-1234-abcd-1234-abcde12345/IncomingWebhook/12345678abcdefg/123abc-1235-abcd-1234-12345abcdef`
         """
         super().__init__()
-        self.token = token
+        self.url = url
 
     def send_run_started_interactively_message(self, event: pipeline_events.RunStarted):
         text = ('<font size="4">&#x1F423;</font> ' + event.user
@@ -51,7 +51,7 @@ class Teams(ChatNotifier):
         self._send_message({'text': text})
 
     def _send_message(self, message):
-        response = requests.post(url='https://outlook.office.com/webhook/' + self.token, json=message)
+        response = requests.post(url=self.url, json=message)
 
         if response.status_code != 200:
             raise ValueError(f'Could not send message. Status {response.status_code}, response "{response.text}"')
