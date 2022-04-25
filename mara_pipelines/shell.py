@@ -6,13 +6,14 @@ from . import config
 from .logging import logger
 
 
-def run_shell_command(command: str, log_command: bool = True):
+def run_shell_command(command: str, log_command: bool = True, bash_command_string: str = None):
     """
     Runs a command in a bash shell and logs the output of the command in (near)real-time.
 
     Args:
         command: The command to run
         log_command: When true, then the command itself is logged before execution
+        bash_command_string: The command used for running a bash, should somehow include the `pipefail` option
 
     Returns:
         Either (in order)
@@ -25,7 +26,7 @@ def run_shell_command(command: str, log_command: bool = True):
     if log_command:
         logger.log(command, format=logger.Format.ITALICS)
 
-    process = subprocess.Popen(shlex.split(config.bash_command_string()) + ['-c', command],
+    process = subprocess.Popen(shlex.split(bash_command_string or config.bash_command_string()) + ['-c', command],
                                stdout=subprocess.PIPE, stderr=subprocess.PIPE,
                                universal_newlines=True)
 

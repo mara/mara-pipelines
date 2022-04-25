@@ -14,6 +14,7 @@ from .. import config, shell, pipelines
 from ..incremental_processing import file_dependencies
 from ..incremental_processing import incremental_copy_status
 from ..logging import logger
+from ..contexts import ExecutionContext
 
 
 class _SQLCommand(pipelines.Command):
@@ -102,7 +103,7 @@ class ExecuteSQL(_SQLCommand):
     def db_alias(self):
         return self._db_alias or config.default_db_alias()
 
-    def run(self) -> bool:
+    def run(self, context: ExecutionContext = None) -> bool:
         if self.sql_file_name:
             logger.log(self.sql_file_name, logger.Format.ITALICS)
 
@@ -124,7 +125,7 @@ class ExecuteSQL(_SQLCommand):
                 # probably not be there (usually the first step is a DROP).
                 file_dependencies.delete(self.node_path(), dependency_type)
 
-        if not super().run():
+        if not super().run(context=context):
             return False
 
         if self.file_dependencies:

@@ -12,6 +12,8 @@ import mara_storage.config
 import mara_storage.storages
 
 from . import pipelines, events
+from .contexts import ExecutionContext
+from .contexts.bash import BashExecutionContext
 import mara_pipelines
 
 
@@ -65,6 +67,16 @@ def max_number_of_parallel_tasks():
 def bash_command_string() -> str:
     """The command used for running a bash, should somehow include the `pipefail` option"""
     return '/usr/bin/env bash -o pipefail'
+
+
+def default_execution_context() -> str:
+    """Sets the default execution context"""
+    return 'bash'
+
+
+def execution_contexts() -> {str: ExecutionContext}:
+    """The available execution contexts"""
+    return {'bash': BashExecutionContext()}
 
 
 def system_statistics_collection_period() -> typing.Union[float, None]:

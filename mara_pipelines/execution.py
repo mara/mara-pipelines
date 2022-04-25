@@ -17,7 +17,7 @@ from multiprocessing import queues
 from multiprocessing.context import BaseContext
 from queue import Empty
 
-from . import pipelines, config
+from . import pipelines, config, contexts
 from .logging import logger, pipeline_events, system_statistics, run_log, node_cost
 from . import events
 
@@ -67,6 +67,18 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
         statistics_process: multiprocessing.Process = None
 
+        def exit_contexts(active_contexts: {str: contexts.ExecutionContext}, exception: Exception = None):
+            for context_alias, context in active_contexts.items():
+                try:
+                    print(f"exit execution context '{context_alias}'")
+                    if exception:
+                        context.__exit__(type(exception), exception, exception.__traceback__)
+                    else:
+                        context.__exit__(None, None, None)
+                except e:
+                    print(f"failed to exit execution context '{context_alias}'. Exception: {e}")
+                    pass
+
         try:
             # capture output of print statements and other unplanned output
             logger.redirect_output(event_queue, pipeline.path())
@@ -107,6 +119,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 # queue whole pipeline
                 queue([pipeline])
 
+            # execution contexts
+            active_contexts: {str: contexts.ExecutionContext} = {}
             # book keeping
             run_start_time = datetime.datetime.now(tz.utc)
             # all nodes that already ran or that won't be run anymore
@@ -262,6 +276,20 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                 logger.redirect_output(event_queue, pipeline.path())
 
                         else:
+                            # initialize context
+                            next_node_context = next_node.context() or config.default_execution_context()
+                            if next_node_context not in active_contexts:
+                                # enter context
+                                new_context = contexts.context(next_node_context)
+
+                                # TODO add better logging here
+                                print(f"enter execution context '{next_node_context}'")
+
+                                if not new_context.__enter__() or not new_context.is_active:
+                                    raise Exception(f'Could not enter execution context {next_node_context}')
+
+                                active_contexts[next_node_context] = new_context
+
                             # run a task in a subprocess
                             if next_node.parent in running_pipelines:
                                 running_pipelines[next_node.parent][1] += 1
@@ -272,7 +300,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                 message='★ ' + node_cost.format_duration(
                                     node_durations_and_run_times.get(tuple(next_node.path()), [0, 0])[0])))
 
-                            process = TaskProcess(next_node, event_queue, multiprocessing_context)
+                            status_queue = multiprocessing_context.Queue()
+                            process = TaskProcess(next_node, event_queue, status_queue, active_contexts[next_node_context])
                             process.start()
                             running_task_processes[next_node] = process
 
@@ -306,9 +335,16 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 # don't busy-wait
                 time.sleep(0.001)
 
-        except:
+        except e:
+            # exit active contexts
+            exit_contexts(active_contexts, exception=e)
+
             event_queue.put(pipeline_events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
                                                    format=logger.Format.ITALICS, is_error=True))
+
+        finally:
+            # exit active contexts
+            exit_contexts(active_contexts)
 
         # run again because `dequeue` might have moved more nodes to `finished_nodes`
         track_finished_pipelines()
@@ -424,7 +460,7 @@ def initialize_run_logger() -> events.EventHandler:
 
 
 class TaskProcess:
-    def __init__(self, task: pipelines.Task, event_queue: multiprocessing.Queue, multiprocessing_context: BaseContext):
+    def __init__(self, task: pipelines.Task, event_queue: multiprocessing.Queue, multiprocessing_context: BaseContext, context: contexts.ExecutionContext):
         """
         Runs a task in a separate sub process.
 
@@ -440,6 +476,7 @@ class TaskProcess:
         self.task = task
         self.event_queue = event_queue
         self._status_queue = multiprocessing_context.Queue()
+        self.context = context
         self.start_time = datetime.datetime.now(tz.utc)
         self._succeeded: bool = None
 
@@ -451,7 +488,7 @@ class TaskProcess:
         attempt = 0
         try:
             while True:
-                if not self.task.run():
+                if not self.task.run(context=self.context):
                     max_retries = self.task.max_retries or config.default_task_max_retries()
                     if attempt < max_retries:
                         attempt += 1

@@ -8,6 +8,7 @@ from html import escape
 from typing import Union, Callable, List
 from ..incremental_processing import file_dependencies
 from ..logging import logger
+from ..contexts import ExecutionContext
 
 from mara_page import html, _
 from .. import pipelines
@@ -78,7 +79,7 @@ class ExecutePython(pipelines.Command):
     def args(self):
         return self._args() if callable(self._args) else self._args
 
-    def run(self) -> bool:
+    def run(self, context: ExecutionContext = None) -> bool:
         dependency_type = 'ExecutePython ' + self.file_name
         if self.file_dependencies:
             assert (self.parent)
@@ -89,7 +90,7 @@ class ExecutePython(pipelines.Command):
                 logger.log('no changes')
                 return True
 
-        if not super().run():
+        if not super().run(context=context):
             return False
 
         if self.file_dependencies:
