@@ -14,7 +14,7 @@ from .. import config, shell, pipelines
 from ..incremental_processing import file_dependencies
 from ..incremental_processing import incremental_copy_status
 from ..logging import logger
-from ..contexts import ExecutionContext, _LocalShellExecutionContext
+from ..contexts import ExecutionContext
 
 
 class _SQLCommand(pipelines.Command):
@@ -265,12 +265,7 @@ class CopyIncrementally(_SQLCommand):
         return self._target_db_alias or config.default_db_alias()
 
     def run(self, context: ExecutionContext = None) -> bool:
-        if isinstance(context, _LocalShellExecutionContext):
-            run_shell_command = context.run_shell_command
-        elif context is None:
-            run_shell_command = shell.run_shell_command
-        else:
-            raise ValueError('The context must inherit type _LocalShellExecutionContext')
+        run_shell_command = context.run_shell_command if context else shell.run_shell_command
 
         # retrieve the highest current value for the modification comparison (e.g.: the highest timestamp)
         # We intentionally use the command line here (rather than sqlalchemy) to avoid forcing people python drivers,

@@ -479,6 +479,12 @@ class TaskProcess:
         self.context = context
         self.start_time = datetime.datetime.now(tz.utc)
         self._succeeded: bool = None
+        self.run_kargs = {}
+
+        # add dynamic kargs for self.task.run(...)
+        from inspect import signature
+        if 'context' in signature(task.run).parameters:
+            self.run_kargs['context'] = context
 
     def run(self):
         # redirect stdout and stderr to queue
@@ -488,7 +494,7 @@ class TaskProcess:
         attempt = 0
         try:
             while True:
-                if not self.task.run(context=self.context):
+                if not self.task.run(**self.run_kargs):
                     max_retries = self.task.max_retries or config.default_task_max_retries()
                     if attempt < max_retries:
                         attempt += 1
