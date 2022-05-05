@@ -14,7 +14,6 @@ from .. import config, shell, pipelines
 from ..incremental_processing import file_dependencies
 from ..incremental_processing import incremental_copy_status
 from ..logging import logger
-from ..contexts import ExecutionContext
 
 
 class _SQLCommand(pipelines.Command):

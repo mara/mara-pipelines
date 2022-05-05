@@ -4,7 +4,6 @@ import re
 import typing
 
 from . import config
-from .contexts import ExecutionContext
 
 
 class Node():
@@ -75,7 +74,6 @@ class Command():
             return kargs['context'].run_shell_command(shell_command)
 
         from . import shell
-
         # logger.log(f'{config.bash_command_string()} -c {shlex.quote(shell_command)}', format=logger.Format.ITALICS)
         return shell.run_shell_command(shell_command)
 

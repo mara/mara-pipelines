@@ -16,6 +16,7 @@ import traceback
 from multiprocessing import queues
 from multiprocessing.context import BaseContext
 from queue import Empty
+from inspect import signature
 
 from . import pipelines, config, contexts
 from .logging import logger, pipeline_events, system_statistics, run_log, node_cost
@@ -482,7 +483,6 @@ class TaskProcess:
         self.run_kargs = {}
 
         # add dynamic kargs for self.task.run(...)
-        from inspect import signature
         if 'context' in signature(task.run).parameters:
             self.run_kargs['context'] = context
 

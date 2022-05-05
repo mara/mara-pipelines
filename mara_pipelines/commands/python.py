@@ -8,7 +8,6 @@ from html import escape
 from typing import Union, Callable, List
 from ..incremental_processing import file_dependencies
 from ..logging import logger
-from ..contexts import ExecutionContext
 
 from mara_page import html, _
 from .. import pipelines
