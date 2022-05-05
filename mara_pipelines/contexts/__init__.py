@@ -1,3 +1,5 @@
+import functools
+
 from .. import shell
 
 
@@ -46,6 +48,7 @@ class _LocalShellExecutionContext(ExecutionContext):
         return shell.run_shell_command(shell_command, bash_command_string=self.bash_command_string)
 
 
+@functools.lru_cache(maxsize=None)
 def context(alias: str) -> ExecutionContext:
     """Returns a execution config by alias"""
     from .. import config
