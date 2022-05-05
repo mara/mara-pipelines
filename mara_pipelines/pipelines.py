@@ -59,7 +59,7 @@ class Command():
     """
     parent: Node = None
 
-    def run(self, context: ExecutionContext = None) -> bool:
+    def run(self, *args, **kargs) -> bool:
         """
         Runs the command
 
@@ -71,8 +71,8 @@ class Command():
         """
         shell_command = self.shell_command()
 
-        if context:
-            return context.run_shell_command(shell_command)
+        if 'context' in kargs:
+            return kargs['context'].run_shell_command(shell_command)
 
         from . import shell
 
@@ -115,9 +115,9 @@ class Task(Node):
         for command in commands:
             self.add_command(command)
 
-    def run(self, context: ExecutionContext = None):
+    def run(self, *args, **kargs):
         for command in self.commands:
-            if not command.run(context=context):
+            if not command.run(*args, **kargs):
                 return False
         return True
 

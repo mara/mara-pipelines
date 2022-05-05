@@ -103,7 +103,7 @@ class ExecuteSQL(_SQLCommand):
     def db_alias(self):
         return self._db_alias or config.default_db_alias()
 
-    def run(self, context: ExecutionContext = None) -> bool:
+    def run(self, *args, **kargs) -> bool:
         if self.sql_file_name:
             logger.log(self.sql_file_name, logger.Format.ITALICS)
 
@@ -125,7 +125,7 @@ class ExecuteSQL(_SQLCommand):
                 # probably not be there (usually the first step is a DROP).
                 file_dependencies.delete(self.node_path(), dependency_type)
 
-        if not super().run(context=context):
+        if not super().run(*args, **kargs):
             return False
 
         if self.file_dependencies:
@@ -168,7 +168,7 @@ class Copy(_SQLCommand):
     def file_path(self) -> pathlib.Path:
         return self.parent.parent.base_path() / self.sql_file_name
 
-    def run(self, context: ExecutionContext = None) -> bool:
+    def run(self, *args, **kargs) -> bool:
         if self.sql_file_name:
             logger.log(self.sql_file_name, logger.Format.ITALICS)
 
@@ -188,7 +188,7 @@ class Copy(_SQLCommand):
                 # (see also above in ExecuteSQL)
                 file_dependencies.delete(self.node_path(), dependency_type)
 
-        if not super().run(context=context):
+        if not super().run(*args, **kargs):
             return False
 
         if self.file_dependencies:
@@ -264,8 +264,8 @@ class CopyIncrementally(_SQLCommand):
     def target_db_alias(self):
         return self._target_db_alias or config.default_db_alias()
 
-    def run(self, context: ExecutionContext = None) -> bool:
-        run_shell_command = context.run_shell_command if context else shell.run_shell_command
+    def run(self, *args, **kargs) -> bool:
+        run_shell_command = kargs['context'].run_shell_command if 'context' in kargs else shell.run_shell_command
 
         # retrieve the highest current value for the modification comparison (e.g.: the highest timestamp)
         # We intentionally use the command line here (rather than sqlalchemy) to avoid forcing people python drivers,
