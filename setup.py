@@ -28,6 +28,12 @@ setup(
         'requests>=2.19.1'
     ],
 
+    extras_require={
+        'test': [
+            'pytest',
+            'mara_app>=1.5.2'],
+    },
+
     setup_requires=['setuptools_scm'],
     include_package_data=True,
 

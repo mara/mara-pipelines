@@ -53,6 +53,11 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     # A queue for receiving events from forked sub processes
     event_queue = multiprocessing_context.Queue()
 
+    # The historical node cost is taken from the 'mara' db. If the 'mara' datatabase is not defined
+    # (e.g. in testing scenarios) we do not use the node cost.
+    import mara_db.config
+    use_historical_node_cost = 'mara' in mara_db.config.databases()
+
     # The function that is run in a sub process
     def run():
 
@@ -64,7 +69,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             node_queue: [pipelines.Node] = []
 
             # data needed for computing cost
-            node_durations_and_run_times = node_cost.node_durations_and_run_times(pipeline)
+            node_durations_and_run_times = node_cost.node_durations_and_run_times(pipeline) if use_historical_node_cost else {}
 
             # Putting nodes into the node queue
             def queue(nodes: [pipelines.Node]):
@@ -207,7 +212,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                         next_node.add_dependency(pipeline_node, downstream)
 
                             # get cost information for children
-                            node_durations_and_run_times.update(node_cost.node_durations_and_run_times(next_node))
+                            if use_historical_node_cost:
+                                node_durations_and_run_times.update(node_cost.node_durations_and_run_times(next_node))
 
                             # queue all child nodes
                             queue(list(next_node.nodes.values()))
