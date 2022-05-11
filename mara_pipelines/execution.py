@@ -57,6 +57,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     # (e.g. in testing scenarios) we do not use the node cost.
     import mara_db.config
     use_historical_node_cost = 'mara' in mara_db.config.databases()
+    if not use_historical_node_cost:
+        print(f"[WARNING] The 'mara' database is not defined. The historical node costs are not used, the execution path might be inefficient.", file=sys.stderr)
 
     # The function that is run in a sub process
     def run():
@@ -320,7 +322,11 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     run_process = multiprocessing_context.Process(target=run, name='pipeline-' + '-'.join(pipeline.path()))
     run_process.start()
 
-    runlogger = run_log.RunLogger()
+    if 'mara' in mara_db.config.databases():
+        runlogger = run_log.DbRunLogger()
+    else:
+        runlogger = run_log.RunLogger()
+        print(f"[WARNING] The events of the pipeline execution are not logged", file=sys.stderr)
 
     # make sure that we close this run (if still open) as failed when we close this python process
     # On SIGKILL we will still leave behind open runs...

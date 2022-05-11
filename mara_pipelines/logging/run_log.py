@@ -106,15 +106,15 @@ RETURNING run_id
 
 
 class RunLogger(events.EventHandler):
+    """A base class for a run logger of pipeline events"""
     run_id: int = None
+
+
+class DbRunLogger(RunLogger):
+    """A run logger saving the pipeline events to the 'mara' database alias"""
     node_output: {tuple: [pipeline_events.Output]} = None
 
     def handle_event(self, event: events.Event):
-        import mara_db.config
-
-        if 'mara' not in mara_db.config.databases():
-            return
-
         import psycopg2.extensions
         import mara_db.postgresql
 
