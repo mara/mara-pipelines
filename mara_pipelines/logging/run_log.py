@@ -105,12 +105,12 @@ RETURNING run_id
             print(f'Cleaned up open runs/node_runs (run_id = {run_id})')
 
 
-class RunLogger(events.EventHandler):
-    """A base class for a run logger of pipeline events"""
+class NullLogger(events.EventHandler):
+    """A run logger not handling events"""
     run_id: int = None
 
 
-class DbRunLogger(RunLogger):
+class RunLogger(events.EventHandler):
     """A run logger saving the pipeline events to the 'mara' database alias"""
     node_output: {tuple: [pipeline_events.Output]} = None
 

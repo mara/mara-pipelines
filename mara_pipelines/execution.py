@@ -323,10 +323,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     run_process.start()
 
     if 'mara' in mara_db.config.databases():
-        runlogger = run_log.DbRunLogger()
-    else:
         runlogger = run_log.RunLogger()
-        print(f"[WARNING] The events of the pipeline execution are not logged", file=sys.stderr)
+    else:
+        runlogger = run_log.NullLogger()
+        print(f"[WARNING] The events of the pipeline execution are not saved in a db", file=sys.stderr)
 
     # make sure that we close this run (if still open) as failed when we close this python process
     # On SIGKILL we will still leave behind open runs...
