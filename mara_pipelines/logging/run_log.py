@@ -109,9 +109,13 @@ class NullLogger(events.EventHandler):
     """A run logger not handling events"""
     run_id: int = None
 
+    def handle_event(self, event: events.Event):
+        pass
+
 
 class RunLogger(events.EventHandler):
     """A run logger saving the pipeline events to the 'mara' database alias"""
+    run_id: int = None
     node_output: {tuple: [pipeline_events.Output]} = None
 
     def handle_event(self, event: events.Event):
