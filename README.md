@@ -1,6 +1,6 @@
 # Mara Pipelines
 
-[![Build Status](https://travis-ci.org/mara/mara-pipelines.svg?branch=master)](https://travis-ci.org/mara/mara-pipelines)
+[![Build & Test](https://github.com/mara/mara-pipelines/actions/workflows/build.yaml/badge.svg)](https://github.com/mara/mara-pipelines/actions/workflows/build.yaml)
 [![PyPI - License](https://img.shields.io/pypi/l/mara-pipelines.svg)](https://github.com/mara/mara-pipelines/blob/master/LICENSE)
 [![PyPI version](https://badge.fury.io/py/mara-pipelines.svg)](https://badge.fury.io/py/mara-pipelines)
 [![Slack Status](https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social)](https://communityinviter.com/apps/mara-users/public-invite)
