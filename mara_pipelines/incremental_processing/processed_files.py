@@ -57,3 +57,21 @@ SELECT file_name, last_modified_timestamp
 FROM data_integration_processed_file WHERE node_path = {'%s'}
 """, (node_path,))
         return {row[0]: row[1] for row in cursor.fetchall()}
+
+
+def already_processed_file(node_path: str, file_name: str) -> datetime:
+    """
+    Returns the last modified timestamp for a single file if it has
+    already been processed, otherwise None.
+
+    Args:
+        node_path: The path of the node that processed the file
+        file_name: The file name
+    """
+    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
+        cursor.execute(f"""
+SELECT last_modified_timestamp
+FROM data_integration_processed_file WHERE node_path = {'%s'}
+AND file_name = {'%s'}
+""", (node_path, file_name,))
+        return cursor.fetchone()[0]

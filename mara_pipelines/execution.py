@@ -245,6 +245,21 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                 next_node.parent.replace(next_node, sub_pipeline)
                                 queue([sub_pipeline])
 
+                                if next_node.use_workers:
+                                    # run the generation of commands in a subprocess
+                                    if next_node.parent in running_pipelines:
+                                        running_pipelines[next_node.parent][1] += 1
+
+                                    command_queue = multiprocessing_context.Queue()
+
+                                    for _, node in sub_pipeline.nodes.items():
+                                        if isinstance(node, pipelines.Worker):
+                                            node.command_queue = command_queue
+
+                                    process = FeedWorkersProcess(next_node, command_queue, event_queue, multiprocessing_context)
+                                    process.start()
+                                    running_task_processes[next_node] = process
+
                             except Exception as e:
                                 event_queue.put(pipeline_events.NodeStarted(
                                     node_path=next_node.path(), start_time=task_start_time, is_pipeline=True))
@@ -272,7 +287,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                 message='★ ' + node_cost.format_duration(
                                     node_durations_and_run_times.get(tuple(next_node.path()), [0, 0])[0])))
 
-                            process = TaskProcess(next_node, event_queue, multiprocessing_context)
+                            if isinstance(next_node, pipelines.Worker):
+                                process = WorkerProcess(next_node, event_queue, multiprocessing_context)
+                            else:
+                                process = TaskProcess(next_node, event_queue, multiprocessing_context)
                             process.start()
                             running_task_processes[next_node] = process
 
@@ -462,6 +480,150 @@ class TaskProcess:
                     else:
                         succeeded = False
                         break
+                else:
+                    break
+        except Exception as e:
+            logger.log(message=traceback.format_exc(), format=logger.Format.VERBATIM, is_error=True)
+            succeeded = False
+
+        self._status_queue.put(succeeded)
+
+    def start(self):
+        self._process.start()
+
+    def terimate(self):
+        self._process.terminate()
+
+    def kill(self):
+        self._process.kill()
+
+    def join(self, timeout=None):
+        self._process.join(timeout=timeout)
+
+    def is_alive(self):
+        return self._process.is_alive()
+
+    @property
+    def succeeded(self):
+        if self._succeeded is None:
+            if self.is_alive():
+                return None
+
+            succeeded_from_queue = None
+            try:
+                succeeded_from_queue = self._status_queue.get(False)
+            except Empty:
+                pass
+
+            self._succeeded = succeeded_from_queue == True
+
+        return self._succeeded
+
+
+class FeedWorkersProcess:
+    def __init__(self, task: pipelines.ParallelTask, command_queue: multiprocessing.Queue, event_queue: multiprocessing.Queue, multiprocessing_context: BaseContext) -> None:
+        self._process: multiprocessing.Process = multiprocessing_context.Process(
+            name='feed-workers-' + '-'.join(task.path()),
+            target=FeedWorkersProcess.run,
+            args=(self,))
+        self.task = task
+        self.command_queue = command_queue
+        self.event_queue = event_queue
+        self._status_queue = multiprocessing_context.Queue()
+        self.start_time = datetime.datetime.now(tz.utc)
+
+    def run(self):
+        # redirect stdout and stderr to queue
+        logger.redirect_output(self.event_queue, self.task.path())
+
+        succeeded = True
+        try:
+            for commands in self.task.feed_workers():
+                self.command_queue.put(commands)
+
+            for _ in range(self.task.max_number_of_parallel_tasks):
+                # per worker send a "DONE" message to inform that all commands are send
+                self.command_queue.put("DONE")
+        except Exception as e:
+            logger.log(message=traceback.format_exc(), format=logger.Format.VERBATIM, is_error=True)
+            succeeded = False
+        finally:
+            self.command_queue.close()
+
+        self._status_queue.put(succeeded)
+
+    def start(self):
+        self._process.start()
+
+    def terimate(self):
+        self._process.terminate()
+
+    def kill(self):
+        self._process.kill()
+
+    def join(self, timeout=None):
+        self._process.join(timeout=timeout)
+
+    def is_alive(self):
+        return self._process.is_alive()
+
+    @property
+    def succeeded(self):
+        if self._succeeded is None:
+            if self.is_alive():
+                return None
+
+            succeeded_from_queue = None
+            try:
+                succeeded_from_queue = self._status_queue.get(False)
+            except Empty:
+                pass
+
+            self._succeeded = succeeded_from_queue == True
+
+        return self._succeeded
+
+
+class WorkerProcess:
+    def __init__(self, task: pipelines.Worker, event_queue: multiprocessing.Queue, multiprocessing_context: BaseContext):
+        """
+        Runs a task in a separate sub process.
+
+        Args:
+            task: The task to run
+            event_queue: The query for writing events to
+            status_queue: A queue for reporting whether the task succeeded
+        """
+        self._process: multiprocessing.Process = multiprocessing_context.Process(
+            name='worker-' + '-'.join(task.path()),
+            target=FeedWorkersProcess.run,
+            args=(self,))
+        self.task = task
+        self.event_queue = event_queue
+        self._status_queue = multiprocessing_context.Queue()
+        self.start_time = datetime.datetime.now(tz.utc)
+
+    def run(self):
+        # redirect stdout and stderr to queue
+        logger.redirect_output(self.event_queue, self.task.path())
+
+        succeeded = True
+        attempt = 0
+        try:
+            while True:
+                if not self.task.run():
+                    #max_retries = self.task.max_retries or config.default_task_max_retries()
+                    #if attempt < max_retries:
+                    #    attempt += 1
+                    #    delay = pow(2, attempt + 2)
+                    #    logger.log(message=f'Retry {attempt}/{max_retries} in {delay} seconds',
+                    #               is_error=True, format=logger.Format.ITALICS)
+                    #    time.sleep(delay)
+                    #else:
+                    #    succeeded = False
+                    #    break
+                    succeeded = False
+                    break
                 else:
                     break
         except Exception as e:
