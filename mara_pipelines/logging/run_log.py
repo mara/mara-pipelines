@@ -1,10 +1,8 @@
 """Logging pipeline runs, node output and status information in mara database"""
 
-import psycopg2.extensions
 import sqlalchemy.orm
 from sqlalchemy.ext.declarative import declarative_base
 
-import mara_db.postgresql
 from .. import config
 from ..logging import pipeline_events, system_statistics
 from .. import events
@@ -73,6 +71,15 @@ def close_open_run_after_error(run_id: int):
     """Closes all open run and node_run for this run_id as failed"""
     if run_id is None:
         return
+
+    import mara_db.config
+
+    if 'mara' not in mara_db.config.databases():
+        return
+
+    import psycopg2.extensions
+    import mara_db.postgresql
+
     _close_run = f'''
 UPDATE  data_integration_run
 SET end_time = now(), succeeded = FALSE
@@ -98,11 +105,22 @@ RETURNING run_id
             print(f'Cleaned up open runs/node_runs (run_id = {run_id})')
 
 
+class NullLogger(events.EventHandler):
+    """A run logger not handling events"""
+    run_id: int = None
+
+    def handle_event(self, event: events.Event):
+        pass
+
+
 class RunLogger(events.EventHandler):
+    """A run logger saving the pipeline events to the 'mara' database alias"""
     run_id: int = None
     node_output: {tuple: [pipeline_events.Output]} = None
 
     def handle_event(self, event: events.Event):
+        import psycopg2.extensions
+        import mara_db.postgresql
 
         if isinstance(event, pipeline_events.RunStarted):
             with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
