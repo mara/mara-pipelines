@@ -181,7 +181,7 @@ class ParallelTask(Node):
 
         return sub_pipeline
 
-    def feed_workers(self) -> t.Iterable[t.Union[pipelines.Command, t.List[pipelines.Command]]]:
+    def feed_workers(self) -> t.Iterable[t.Union[Command, t.List[Command]]]:
         """
         Generates the commands which the worker tasks shall execute.
 
