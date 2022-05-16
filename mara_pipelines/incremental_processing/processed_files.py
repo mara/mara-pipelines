@@ -74,4 +74,5 @@ SELECT last_modified_timestamp
 FROM data_integration_processed_file WHERE node_path = {'%s'}
 AND file_name = {'%s'}
 """, (node_path, file_name,))
-        return cursor.fetchone()[0]
+        row = cursor.fetchone()
+        return row[0] if row else None

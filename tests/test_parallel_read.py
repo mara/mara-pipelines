@@ -25,7 +25,7 @@ def empty_files():
     root_path = EMPTY_FILES_BASE_PATH
     root_path.mkdir(parents=True, exist_ok=True)
 
-    file_list = [str((root_path / str(file)).absolute()) for file in range(1, 8*3)]
+    file_list = [str((root_path / str(file)).absolute()) for file in range(25)]
 
     # create empty files
     for file in file_list:
@@ -64,6 +64,7 @@ def test_read_mode_all(empty_files):
             description="Runs a test pipeline which checks if a file exist",
             file_pattern='*',
             read_mode=ReadMode.ALL,
-            target_table=None))
+            target_table=None,
+            max_number_of_parallel_tasks=4))
 
     run_pipeline(pipeline)

@@ -55,7 +55,14 @@ class _ParallelRead(pipelines.ParallelTask):
         self._db_alias = db_alias
         self.timezone = timezone
 
-        self.use_workers = self.read_mode == [ReadMode.ALL, ReadMode.ONLY_NEW, ReadMode.ONLY_CHANGED]
+        self.use_workers = self.read_mode in [ReadMode.ALL] # NOTE: It should be possible to implement here ReadMode.ONLY_NEW
+                                                            #       and ReadMode.ONLY_CHANGED as well. I tried it but run into
+                                                            #        issues with the lambda function used in `process_commands`:
+                                                            #
+                                                            #       The commands passed via `feed_workers` are processed through a
+                                                            #       multiprocessing.Queue. Probably all objects/functions passed over
+                                                            #       there need to be declared on root level. See as well:
+                                                            #       https://stackoverflow.com/a/8805244
 
     @property
     def db_alias(self):

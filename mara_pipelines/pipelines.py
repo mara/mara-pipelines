@@ -116,11 +116,15 @@ class Worker(Node):
 
     def run(self):
         import time
+        import queue
 
         while True:
             while not self.command_queue.empty():
                 try:
                     value = self.command_queue.get(timeout=0.001)
+                except queue.Empty:
+                    # this happens when the worker is waiting for the feed_worker command
+                    break
                 except ValueError:
                     # the queue is closed, all task are done
                     return True
@@ -137,6 +141,7 @@ class Worker(Node):
                     raise ValueError(f"Unexecpted type passed to command_queue: {value}")
 
                 for command in commands:
+                    command.parent = self
                     if not command.run():
                         return False
 
@@ -167,6 +172,7 @@ class ParallelTask(Node):
 
     def add_parallel_tasks(self, sub_pipeline: 'Pipeline') -> None:
         if self.use_workers:
+            print(f'Use {self.max_number_of_parallel_tasks} worker tasks')
             for n in range(self.max_number_of_parallel_tasks):
                 sub_pipeline.add(
                     Worker(id=str(n), description=f'Worker {n}'))
