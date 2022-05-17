@@ -483,7 +483,8 @@ class TaskProcess:
         self.run_kargs = {}
 
         # add dynamic kargs for self.task.run(...)
-        if 'context' in signature(task.run).parameters:
+        task_run_signature = signature(task.run)
+        if 'context' in task_run_signature.parameters or 'kargs' in task_run_signature.parameters:
             self.run_kargs['context'] = context
 
     def run(self):
