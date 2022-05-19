@@ -557,6 +557,9 @@ class FeedWorkersProcess:
         succeeded = True
         try:
             for commands in self.task.feed_workers():
+                if not commands:
+                    # skip empty command chains
+                    continue
                 self._command_queue_put(commands)
         except Exception as e:
             logger.log(message=traceback.format_exc(), format=logger.Format.VERBATIM, is_error=True)
