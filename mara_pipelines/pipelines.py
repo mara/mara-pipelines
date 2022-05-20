@@ -113,10 +113,16 @@ class Task(Node):
         for command in commands:
             self.add_command(command)
 
-    def run(self, *args, **kargs):
+    def run(self, *args, **kargs) -> bool:
+        from inspect import signature
         for command in self.commands:
-            if not command.run(*args, **kargs):
-                return False
+            if signature(command.run).parameters:
+                if not command.run(*args, **kargs):
+                    return False
+            else:
+                # call run for legacy commands which do not implement parameter *args and **kargs
+                if not command.run():
+                    return False
         return True
 
 
