@@ -1,6 +1,7 @@
 """Command execution in bash shells"""
 
 import time
+import shlex
 
 from . import config
 from .logging import logger
@@ -82,6 +83,31 @@ def sed_command(replace: {str: str}) -> str:
                ['s/' + quote(search) + '/' + quote(_replace) + '/g' for search, _replace in
                 replace.items()]) \
            + '"'
+
+
+def http_request_command(url: str, headers: {str: str} = None, method: str = 'GET', body: str = None, body_from_stdin: bool = False) -> str:
+    """
+    Creates a curl command sending a HTTP request
+
+    Args:
+        url: The url
+        headers: The HTTP headers as dict
+        method: The HTTP method to be used
+        body: The body string to be used in the HTTP request
+        body_from_stdin: Read the body for the HTTP request from stdin
+    """
+    if body and body_from_stdin:
+        raise ValueError('You can only use body or body_from_stdin but not both')
+
+    def quote(s):
+        return str(s).replace('\\', '\\\\').replace('"', '\\"')
+
+    return ("curl -sf"
+            + (f' -X {method}' if method and method != 'GET' else '')
+            + (''.join([f' -H "{quote(header)}: {quote(content)}"' for header, content in headers.items()]) if headers else '')
+            + (f' --data {shlex.quote(body)}' if body else '')
+            + (' --data-binary @-' if body_from_stdin else '')
+            + f" {shlex.quote(url)}")
 
 
 if __name__ == "__main__":
