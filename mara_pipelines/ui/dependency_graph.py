@@ -43,6 +43,7 @@ def dependency_graph(nodes: {str: pipelines.Node},
         An svg representation of the graph
     """
     import graphviz
+    import uuid
 
     graph = graphviz.Digraph(graph_attr={'rankdir': 'TD', 'ranksep': '0.25', 'nodesep': '0.1'})
 
@@ -105,7 +106,18 @@ def dependency_graph(nodes: {str: pipelines.Node},
     try:
         return graph.pipe('svg').decode('utf-8')
     except graphviz.backend.ExecutableNotFound as e:
-        return str(_.tt(style='color:red')[str(e)])
+        # This exception occurs when the graphviz tools are not found.
+        # We use here a fallback to client-side rendering using the javascript library d3-graphviz.
+        graph_id = f'dependency_graph_{uuid.uuid4().hex}'
+        escaped_graph_source = graph.source.replace("`","\\`")
+        return str(_.div(id=graph_id)[
+            _.tt(style="color:red")[str(e)],
+        ]) + str(_.script[
+            f'div=d3.select("#{graph_id}");',
+            'graph=div.graphviz();',
+            'div.text("");',
+            f'graph.renderDot(`{escaped_graph_source}`);',
+        ])
 
 
 @dependency_graph.register(pipelines.Pipeline)
