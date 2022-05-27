@@ -322,9 +322,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     run_process = multiprocessing_context.Process(target=run, name='pipeline-' + '-'.join(pipeline.path()))
     run_process.start()
 
-    if 'mara' in mara_db.config.databases():
-        runlogger = run_log.RunLogger()
-    else:
+    runlogger = initialize_run_logger()
+    if not runlogger:
         runlogger = run_log.NullLogger()
         print(f"[WARNING] The events of the pipeline execution are not saved in a db", file=sys.stderr)
 
@@ -404,6 +403,19 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             ensure_closed_run_on_abort()
             break
         time.sleep(0.001)
+
+
+def initialize_run_logger() -> events.EventHandler:
+    """
+    Initializes the base run logger used during pipeline execution.
+
+    Note:
+        The event handler must have an attribute 'run_id' which holds a
+        unique id for the current execution after event RunStarted is processed.
+    """
+    import mara_db.config
+    if 'mara' in mara_db.config.databases():
+        return run_log.RunLogger()
 
 
 class TaskProcess(multiprocessing.Process):
