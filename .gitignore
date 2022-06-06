@@ -1,2 +1,16 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Distribution / packaging
+build/
+dist/
 *.egg-info/
-__pycache__
+.eggs/
+
+# Dev tools
+.idea
+
+# Environments
+/.venv
