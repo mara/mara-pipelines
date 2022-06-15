@@ -12,7 +12,7 @@ class DockerBashExecutionContext(_LocalShellExecutionContext):
         self.bash_command_string = ('/usr/bin/env docker'
                                     + (f' --context={context}' if context else '')
                                     + f' exec -i {container}'
-                                    + f' bash -o pipefail -c')
+                                    + f' bash -o pipefail')
 
 
 class DockerComposeBashExecutionContext(_LocalShellExecutionContext):
@@ -30,4 +30,4 @@ class DockerComposeBashExecutionContext(_LocalShellExecutionContext):
                                      + (f' --context={context}' if context else '')
                                      + ' compose'
                                      + f' exec -i {container}'
-                                     + f' bash -o pipefail -c')
+                                     + f' bash -o pipefail')
