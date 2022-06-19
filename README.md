@@ -120,7 +120,7 @@ from mara_pipelines.ui.cli import run_pipeline
 run_pipeline(pipeline)
 ```
 
-![Example run cli 1](docs/example-run-cli-1.gif)
+![Example run cli 1](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/example-run-cli-1.gif)
 
 &nbsp;
 
@@ -130,7 +130,7 @@ And this runs a single node of pipeline `sub_pipeline` together with all the nod
 run_pipeline(sub_pipeline, nodes=[sub_pipeline.nodes['ping_amazon']], with_upstreams=True)
 ```
 
-![Example run cli 2](docs/example-run-cli-2.gif)
+![Example run cli 2](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/example-run-cli-2.gif)
 
 &nbsp;
 
@@ -143,13 +143,13 @@ from mara_pipelines.ui.cli import run_interactively
 run_interactively()
 ```
 
-![Example run cli 3](docs/example-run-cli-3.gif)
+![Example run cli 3](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/example-run-cli-3.gif)
 
 
 
 ### Web UI
 
-More importantly, this package provides an extensive web interface. It can be easily integrated into any [Flask](http://flask.pocoo.org/) based app and the [mara example project](https://github.com/mara/mara-example-project) demonstrates how to do this using [mara-app](https://github.com/mara/mara-app).
+More importantly, this package provides an extensive web interface. It can be easily integrated into any [Flask](https://flask.palletsprojects.com/) based app and the [mara example project](https://github.com/mara/mara-example-project) demonstrates how to do this using [mara-app](https://github.com/mara/mara-app).
 
 For each pipeline, there is a page that shows
 
@@ -159,7 +159,7 @@ For each pipeline, there is a page that shows
 - output and timeline for the last runs of the pipeline
 
 
-![Mara pipelines web ui 1](docs/mara-pipelines-web-ui-1.png)
+![Mara pipelines web ui 1](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/mara-pipelines-web-ui-1.png)
 
 For each task, there is a page showing 
 
@@ -168,12 +168,12 @@ For each task, there is a page showing
 - all commands of the task
 - output of the last runs of the task
 
-![Mara pipelines web ui 2](docs/mara-pipelines-web-ui-2.png)
+![Mara pipelines web ui 2](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/mara-pipelines-web-ui-2.png)
 
 
 Pipelines and tasks can be run from the web ui directly, which is probably one of the main features of this package: 
 
-![Example run web ui](docs/example-run-web-ui.gif)
+![Example run web ui](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/example-run-web-ui.gif)
 
 &nbsp;
 
