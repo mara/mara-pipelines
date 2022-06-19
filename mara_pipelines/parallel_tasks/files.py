@@ -172,7 +172,7 @@ class _ParallelRead(pipelines.ParallelTask):
     def parallel_commands(self, file_name: str) -> [pipelines.Command]:
         return [self.read_command(file_name)] + (
             [python.RunFunction(function=lambda: _processed_files.track_processed_file(
-                self.path(), file_name, self._storage_client.path_last_modification_timestamp(file_name)))]
+                self.path(), file_name, self._storage_client.last_modification_timestamp(file_name)))]
             if self.read_mode != ReadMode.ALL else [])
 
     def read_command(self, file_name: str) -> pipelines.Command:
