@@ -9,6 +9,9 @@ dist/
 *.egg-info/
 .eggs/
 
+# Sphinx documentation
+docs/_build/
+
 # Dev tools
 .idea
 

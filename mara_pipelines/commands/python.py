@@ -14,17 +14,17 @@ from .. import pipelines
 
 
 class RunFunction(pipelines.Command):
-    def __init__(self, function: Callable = None, args: [str] = None, file_dependencies: [str] = None) -> None:
-        """
-        Runs an arbitrary python function
+    """
+    Runs an arbitrary python function
 
-        Args:
-            function: The parameterless function to run
-            args: A list of arguments to be passed to the script
-            file_dependencies: Run triggered based on whether a list of files changed since the last pipeline run
-        Note:
-            if you want to pass arguments, then use a lambda function
-        """
+    Args:
+        function: The parameterless function to run
+        args: A list of arguments to be passed to the script
+        file_dependencies: Run triggered based on whether a list of files changed since the last pipeline run
+    Note:
+        if you want to pass arguments, then use a lambda function
+    """
+    def __init__(self, function: Callable = None, args: [str] = None, file_dependencies: [str] = None) -> None:
         self.function = function
         self.args = args or []
         self.file_dependencies = file_dependencies or []
@@ -56,16 +56,16 @@ class RunFunction(pipelines.Command):
 
 
 class ExecutePython(pipelines.Command):
+    """
+    Runs a python script in a separate interpreter process
+
+    Args:
+        file_name: the path of the file to run, relative to the pipeline directory
+        args: A list of arguments to be passed to the script
+        file_dependencies: Run triggered based on whether a list of files changed since the last pipeline run
+    """
     def __init__(self, file_name: Union[Callable, str],
                  args: Union[Callable, List[str]] = None, file_dependencies: [str] = None) -> None:
-        """
-        Runs a python script in a separate interpreter process
-
-        Args:
-            file_name: the path of the file to run, relative to the pipeline directory
-            args: A list of arguments to be passed to the script
-            file_dependencies: Run triggered based on whether a list of files changed since the last pipeline run
-        """
         self._file_name = file_name
         self._args = args or []
         self.file_dependencies = file_dependencies or []

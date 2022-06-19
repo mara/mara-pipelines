@@ -1,51 +1,4 @@
-# Mara Pipelines
-
-[![Build & Test](https://github.com/mara/mara-pipelines/actions/workflows/build.yaml/badge.svg)](https://github.com/mara/mara-pipelines/actions/workflows/build.yaml)
-[![PyPI - License](https://img.shields.io/pypi/l/mara-pipelines.svg)](https://github.com/mara/mara-pipelines/blob/master/LICENSE)
-[![PyPI version](https://badge.fury.io/py/mara-pipelines.svg)](https://badge.fury.io/py/mara-pipelines)
-[![Slack Status](https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social)](https://communityinviter.com/apps/mara-users/public-invite)
-
-
-
-This package contains a lightweight data transformation framework with a focus on transparency and complexity reduction. It has a number of baked-in assumptions/ principles:
-
-- Data integration pipelines as code: pipelines, tasks and commands are created using declarative Python code.
-
-- PostgreSQL as a data processing engine.
-
-- Extensive web ui. The web browser as the main tool for inspecting, running and debugging pipelines.
-
-- GNU make semantics. Nodes depend on the completion of upstream nodes. No data dependencies or data flows.
-
-- No in-app data processing: command line tools as the main tool for interacting with databases and data.
-
-- Single machine pipeline execution based on Python's [multiprocessing](https://docs.python.org/3.6/library/multiprocessing.html). No need for distributed task queues. Easy debugging and output logging.
-
-- Cost based priority queues: nodes with higher cost (based on recorded run times) are run first.
-
-&nbsp;
-
-## Installation
-
-To use the library directly, use pip:
-
-```
-pip install mara-pipelines
-```
-
-or
- 
-```
-pip install git+https://github.com/mara/mara-pipelines.git
-```
-
-For an example of an integration into a flask application, have a look at the [mara example project 1](https://github.com/mara/mara-example-project-1) and [mara example project 2](https://github.com/mara/mara-example-project-2).
-
-Due to the heavy use of forking, Mara Pipelines does not run natively on Windows. If you want to run it on Windows, then please use Docker or the [Windows Subsystem for Linux](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux). 
-
-&nbsp;
-
-## Example
+# Example
 
 Here is a pipeline "demo" consisting of three nodes that depend on each other: the task `ping_localhost`, the pipeline `sub_pipeline` and the task `sleep`:
 
@@ -110,7 +63,7 @@ CREATE TABLE data_integration_file_dependency (
 .. more tables
 ```
 
-### CLI UI
+## CLI UI
 
 This runs a pipeline with output to stdout:
 
@@ -120,7 +73,7 @@ from mara_pipelines.ui.cli import run_pipeline
 run_pipeline(pipeline)
 ```
 
-![Example run cli 1](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/_static/example-run-cli-1.gif)
+![Example run cli 1](_static/example-run-cli-1.gif)
 
 &nbsp;
 
@@ -130,7 +83,7 @@ And this runs a single node of pipeline `sub_pipeline` together with all the nod
 run_pipeline(sub_pipeline, nodes=[sub_pipeline.nodes['ping_amazon']], with_upstreams=True)
 ```
 
-![Example run cli 2](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/_static/example-run-cli-2.gif)
+![Example run cli 2](_static/example-run-cli-2.gif)
 
 &nbsp;
 
@@ -143,13 +96,13 @@ from mara_pipelines.ui.cli import run_interactively
 run_interactively()
 ```
 
-![Example run cli 3](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/_static/example-run-cli-3.gif)
+![Example run cli 3](_static/example-run-cli-3.gif)
 
 
 
-### Web UI
+## Web UI
 
-More importantly, this package provides an extensive web interface. It can be easily integrated into any [Flask](https://flask.palletsprojects.com/) based app and the [mara example project](https://github.com/mara/mara-example-project) demonstrates how to do this using [mara-app](https://github.com/mara/mara-app).
+More importantly, this package provides an extensive web interface. It can be easily integrated into any [Flask](https://flask.palletsprojects.com/) based app and the [mara example project](https://github.com/mara/mara-example-project) demonstrates how to do this using [mara-app](https://mara-app.readthedocs.io/).
 
 For each pipeline, there is a page that shows
 
@@ -159,7 +112,7 @@ For each pipeline, there is a page that shows
 - output and timeline for the last runs of the pipeline
 
 
-![Mara pipelines web ui 1](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/_static/mara-pipelines-web-ui-1.png)
+![Mara pipelines web ui 1](_static/mara-pipelines-web-ui-1.png)
 
 For each task, there is a page showing 
 
@@ -168,17 +121,9 @@ For each task, there is a page showing
 - all commands of the task
 - output of the last runs of the task
 
-![Mara pipelines web ui 2](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/_static/mara-pipelines-web-ui-2.png)
+![Mara pipelines web ui 2](_static/mara-pipelines-web-ui-2.png)
 
 
 Pipelines and tasks can be run from the web ui directly, which is probably one of the main features of this package: 
 
-![Example run web ui](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/_static/example-run-web-ui.gif)
-
-&nbsp;
-
-# Getting started
-
-Documentation is currently work in progress. Please use the [mara example project 1](https://github.com/mara/mara-example-project-1) and [mara example project 2](https://github.com/mara/mara-example-project-2) as a reference for getting started. 
-
-
+![Example run web ui](_static/example-run-web-ui.gif)

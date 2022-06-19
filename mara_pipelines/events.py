@@ -5,10 +5,10 @@ import sys
 
 
 class Event():
+    """
+    Base class for events that are emitted from mara.
+    """
     def __init__(self) -> None:
-        """
-        Base class for events that are emitted from mara.
-        """
         pass
 
     def to_json(self):
