@@ -177,8 +177,14 @@ Pipelines and tasks can be run from the web ui directly, which is probably one o
 
 &nbsp;
 
-# Getting started
+## Getting started
 
 Documentation is currently work in progress. Please use the [mara example project 1](https://github.com/mara/mara-example-project-1) and [mara example project 2](https://github.com/mara/mara-example-project-2) as a reference for getting started. 
 
+## Links
 
+* Documentation: https://mara-pipelines.readthedocs.io/
+* Changes: https://mara-pipelines.readthedocs.io/en/latest/changes.html
+* PyPI Releases: https://pypi.org/project/mara-pipelines/
+* Source Code: https://github.com/mara/mara-pipelines
+* Issue Tracker: https://github.com/mara/mara-pipelines/issues
