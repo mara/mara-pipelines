@@ -14,6 +14,8 @@ import atexit
 import time
 import traceback
 from multiprocessing import queues
+from multiprocessing.context import BaseContext
+from queue import Empty
 
 from . import pipelines, config
 from .logging import logger, pipeline_events, system_statistics, run_log, node_cost
@@ -266,8 +268,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                 message='★ ' + node_cost.format_duration(
                                     node_durations_and_run_times.get(tuple(next_node.path()), [0, 0])[0])))
 
-                            status_queue = multiprocessing_context.Queue()
-                            process = TaskProcess(next_node, event_queue, status_queue)
+                            process = TaskProcess(next_node, event_queue)
                             process.start()
                             running_task_processes[next_node] = process
 
@@ -282,19 +283,18 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
                         processed_nodes.add(task_process.task)
 
-                        succeeded = not (task_process.status_queue.get() == False or task_process.exitcode != 0)
-                        if not succeeded and not task_process.task.parent.ignore_errors:
+                        if not task_process.succeeded and not task_process.task.parent.ignore_errors:
                             for parent in task_process.task.parents()[:-1]:
                                 failed_pipelines.add(parent)
 
                         end_time = datetime.datetime.now(tz.utc)
                         event_queue.put(
                             pipeline_events.Output(task_process.task.path(),
-                                                   ('succeeded' if succeeded else 'failed') + ',  '
+                                                   ('succeeded' if task_process.succeeded else 'failed') + ',  '
                                                    + logger.format_time_difference(task_process.start_time, end_time),
-                                                   format=logger.Format.ITALICS, is_error=not succeeded))
+                                                   format=logger.Format.ITALICS, is_error=not task_process.succeeded))
                         event_queue.put(pipeline_events.NodeFinished(task_process.task.path(), task_process.start_time,
-                                                                     end_time, False, succeeded))
+                                                                     end_time, False, task_process.succeeded))
 
                 # check if some pipelines finished
                 track_finished_pipelines()
@@ -418,21 +418,25 @@ def initialize_run_logger() -> events.EventHandler:
         return run_log.RunLogger()
 
 
-class TaskProcess(multiprocessing.Process):
-    def __init__(self, task: pipelines.Task, event_queue: multiprocessing.Queue, status_queue: multiprocessing.Queue):
+class TaskProcess:
+    def __init__(self, task: pipelines.Task, event_queue: multiprocessing.Queue, multiprocessing_context: BaseContext):
         """
         Runs a task in a separate sub process.
 
         Args:
             task: The task to run
             event_queue: The query for writing events to
-            status_queue: A queue for reporting whether the task succeeded
+            multiprocessing_context: The multiprocessing context in which the task process shall run
         """
-        super().__init__(name='task-' + '-'.join(task.path()))
+        self._process: multiprocessing.Process = multiprocessing_context.Process(
+            name='task-' + '-'.join(task.path()),
+            target=TaskProcess.run,
+            args=(self,))
         self.task = task
         self.event_queue = event_queue
-        self.status_queue = status_queue
+        self._status_queue = multiprocessing_context.Queue()
         self.start_time = datetime.datetime.now(tz.utc)
+        self._succeeded: bool = None
 
     def run(self):
         # redirect stdout and stderr to queue
@@ -459,4 +463,35 @@ class TaskProcess(multiprocessing.Process):
             logger.log(message=traceback.format_exc(), format=logger.Format.VERBATIM, is_error=True)
             succeeded = False
 
-        self.status_queue.put(succeeded)
+        self._status_queue.put(succeeded)
+
+    def start(self):
+        self._process.start()
+
+    def terimate(self):
+        self._process.terminate()
+
+    def kill(self):
+        self._process.kill()
+
+    def join(self, timeout=None):
+        self._process.join(timeout=timeout)
+
+    def is_alive(self):
+        return self._process.is_alive()
+
+    @property
+    def succeeded(self):
+        if self._succeeded is None:
+            if self.is_alive():
+                return None
+
+            succeeded_from_queu = None
+            try:
+                succeeded_from_queu = self._status_queue.get(False)
+            except Empty:
+                pass
+
+            self._succeeded = (succeeded_from_queu == True and self._process.exitcode == 0)
+
+        return self._succeeded
