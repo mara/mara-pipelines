@@ -492,6 +492,6 @@ class TaskProcess:
             except Empty:
                 pass
 
-            self._succeeded = (succeeded_from_queue == True and self._process.exitcode == 0)
+            self._succeeded = succeeded_from_queue == True
 
         return self._succeeded
