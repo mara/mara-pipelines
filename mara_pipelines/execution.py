@@ -486,12 +486,12 @@ class TaskProcess:
             if self.is_alive():
                 return None
 
-            succeeded_from_queu = None
+            succeeded_from_queue = None
             try:
-                succeeded_from_queu = self._status_queue.get(False)
+                succeeded_from_queue = self._status_queue.get(False)
             except Empty:
                 pass
 
-            self._succeeded = (succeeded_from_queu == True and self._process.exitcode == 0)
+            self._succeeded = (succeeded_from_queue == True and self._process.exitcode == 0)
 
         return self._succeeded
