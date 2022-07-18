@@ -65,6 +65,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     # The function that is run in a sub process
     def run():
 
+        statistics_process: multiprocessing.Process = None
+
         try:
             # capture output of print statements and other unplanned output
             logger.redirect_output(event_queue, pipeline.path())
@@ -125,7 +127,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                         if tp.is_alive():
                             # give it a chance to gracefully shutdown
                             tp.terminate()
-                    statistics_process.kill()
+                    if statistics_process:
+                        statistics_process.kill()
                 except BaseException as e:
                     print(f"Exception during TaskProcess cleanup: {repr(e)}", file=sys.stderr, flush=True)
                 return
@@ -188,9 +191,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             )
 
             # collect system stats in a separate Process
-            statistics_process = multiprocessing.Process(
-                target=lambda: system_statistics.generate_system_statistics(event_queue), name='system_statistics')
-            statistics_process.start()
+            if config.system_statistics_collection_period():
+                statistics_process = multiprocessing.Process(
+                    target=lambda: system_statistics.generate_system_statistics(event_queue), name='system_statistics')
+                statistics_process.start()
 
             # run as long
             # - as task processes are still running
@@ -309,9 +313,10 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
         # run again because `dequeue` might have moved more nodes to `finished_nodes`
         track_finished_pipelines()
 
-        # kill the stats process (joining or terminating does not work in gunicorn)
-        os.kill(statistics_process.pid, signal.SIGKILL)
-        statistics_process.join()
+        if statistics_process:
+            # kill the stats process (joining or terminating does not work in gunicorn)
+            os.kill(statistics_process.pid, signal.SIGKILL)
+            statistics_process.join()
 
         # run finished
         event_queue.put(pipeline_events.RunFinished(node_path=pipeline.path(), end_time=datetime.datetime.now(tz.utc),

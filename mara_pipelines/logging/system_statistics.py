@@ -51,6 +51,11 @@ def generate_system_statistics(event_queue: multiprocessing.Queue) -> None:
 
     :param event_queue: The queue to write the events to
     """
+    period = config.system_statistics_collection_period()
+    if not period:
+        # the collecting of system statistics is disabled.
+        return
+
     import psutil
 
     def cpu_usage():
@@ -68,7 +73,6 @@ def generate_system_statistics(event_queue: multiprocessing.Queue) -> None:
     # immediately send event for current cpu, mem and swap usage
     event_queue.put(SystemStatistics(
         datetime.datetime.now(), cpu_usage=cpu_usage(), mem_usage=mem_usage(), swap_usage=swap_usage()))
-    period = config.system_statistics_collection_period()
 
     n = 0
 
