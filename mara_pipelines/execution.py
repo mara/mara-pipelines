@@ -268,7 +268,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                 message='★ ' + node_cost.format_duration(
                                     node_durations_and_run_times.get(tuple(next_node.path()), [0, 0])[0])))
 
-                            process = TaskProcess(next_node, event_queue)
+                            process = TaskProcess(next_node, event_queue, multiprocessing_context)
                             process.start()
                             running_task_processes[next_node] = process
 
