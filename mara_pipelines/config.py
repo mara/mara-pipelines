@@ -49,8 +49,12 @@ def bash_command_string() -> str:
     return '/usr/bin/env bash -o pipefail'
 
 
-def system_statistics_collection_period() -> int:
-    """How often should system statistics be collected in seconds"""
+def system_statistics_collection_period() -> typing.Union[float, None]:
+    """
+    How often should system statistics be collected in seconds.
+
+    When zero or None the collecting of system statistics is disabled.
+    """
     return 1
 
 
