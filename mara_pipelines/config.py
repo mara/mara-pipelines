@@ -68,6 +68,11 @@ def allow_run_from_web_ui() -> bool:
     return True
 
 
+def display_system_statistics() -> bool:
+    """If the system statistics shall be visible in the web UI."""
+    return True
+
+
 def base_url() -> str:
     """External url of flask app, for linking nodes in slack messages"""
     return 'http://127.0.0.1:5000/pipelines'
