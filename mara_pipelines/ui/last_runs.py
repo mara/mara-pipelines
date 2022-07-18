@@ -9,22 +9,26 @@ import psycopg2.extensions
 import mara_db.postgresql
 from mara_page import bootstrap, html, acl, _
 from . import views
-from .. import pipelines
+from .. import config, pipelines
 
 
 def card(node: pipelines.Node) -> str:
     """A card that shows the system stats, the time line and output for the last runs or a node"""
+    statistic_content = []
+    if config.display_system_statistics():
+        statistic_content.append(
+            html.asynchronous_content(url=flask.url_for('mara_pipelines.system_stats', path=node.url_path(), run_id=None),
+                                      div_id='system-stats'))
+
     return bootstrap.card(
         id='last-runs-card',
         header_left=[
             'Last runs ',
             _.div(style='display:inline-block;margin-left:20px;')[html.asynchronous_content(
                 flask.url_for('mara_pipelines.last_runs_selector', path=node.url_path()))]],
-        body=[html.spinner_js_function(),
-              html.asynchronous_content(
-                  url=flask.url_for('mara_pipelines.system_stats', path=node.url_path(), run_id=None),
-                  div_id='system-stats'),
-              html.asynchronous_content(
+        body=[html.spinner_js_function()] \
+             + statistic_content + \
+             [html.asynchronous_content(
                   url=flask.url_for('mara_pipelines.timeline_chart', path=node.url_path(), run_id=None),
                   div_id='timeline-chart'),
               html.asynchronous_content(
@@ -123,6 +127,9 @@ nodePage.showOutput({json.dumps(rows[:line_limit] if limit else rows)},
 @views.blueprint.route('/system-stats/<int:run_id>', defaults={'path': ''})
 @acl.require_permission(views.acl_resource, do_abort=False)
 def system_stats(path: str, run_id: int):
+    if not config.display_system_statistics():
+        return ''
+
     node, __ = pipelines.find_node(path.split('/'))
 
     run_id = run_id or _latest_run_id(node.path())
