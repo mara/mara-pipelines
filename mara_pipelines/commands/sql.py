@@ -430,3 +430,5 @@ def _sql_syntax_higlighting_lexter(db):
 _sql_syntax_higlighting_lexter.register(str, lambda alias: _sql_syntax_higlighting_lexter(mara_db.dbs.db(alias)))
 _sql_syntax_higlighting_lexter.register(mara_db.dbs.PostgreSQLDB, lambda _: 'postgresql')
 _sql_syntax_higlighting_lexter.register(mara_db.dbs.MysqlDB, lambda _: 'mysql')
+_sql_syntax_higlighting_lexter.register(mara_db.dbs.SQLiteDB, lambda _: 'sqlite3')
+_sql_syntax_higlighting_lexter.register(mara_db.dbs.SQLServerDB, lambda _: 'tsql')
