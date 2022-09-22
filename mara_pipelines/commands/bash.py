@@ -7,13 +7,13 @@ from .. import pipelines
 
 
 class RunBash(pipelines.Command):
-    def __init__(self, command: Union[str, Callable]) -> None:
-        """
-        Runs a command in a bash shell
+    """
+    Runs a command in a bash shell
 
-        Args:
-            command: The command to run
-        """
+    Args:
+        command: The command to run
+    """
+    def __init__(self, command: Union[str, Callable]) -> None:
         super().__init__()
         self._command = command
 

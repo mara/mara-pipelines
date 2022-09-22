@@ -17,16 +17,16 @@ from ..logging import logger
 
 
 class _SQLCommand(pipelines.Command):
+    """
+    Something that runs a sql query (either a query string or a query file).
+
+    Args:
+        sql_statement: The statement to run as a string
+        sql_file_name: The name of the file to run (relative to the directory of the parent pipeline)
+        replace: A set of replacements to perform against the sql query `{'replace`: 'with', ..}`
+    """
     def __init__(self, sql_statement: Union[Callable, str] = None, sql_file_name: str = None,
                  replace: {str: str} = None) -> None:
-        """
-        Something that runs a sql query (either a query string or a query file).
-
-        Args:
-            sql_statement: The statement to run as a string
-            sql_file_name: The name of the file to run (relative to the directory of the parent pipeline)
-            replace: A set of replacements to perform against the sql query `{'replace`: 'with', ..}`
-        """
         if (not (sql_statement or sql_file_name)) or (sql_statement and sql_file_name):
             raise ValueError('Please provide either sql_statement or sql_file_name (but not both)')
 
@@ -80,17 +80,17 @@ class _SQLCommand(pipelines.Command):
 
 
 class ExecuteSQL(_SQLCommand):
+    """
+    Runs an sql file or statement in a database
+
+    Args:
+        sql_statement: The statement to run as a string
+        sql_file_name: The name of the file to run (relative to the directory of the parent pipeline)
+        replace: A set of replacements to perform against the sql query `{'replace`: 'with', ..}`
+    """
     def __init__(self, sql_statement: str = None, sql_file_name: Union[str, Callable] = None,
                  replace: {str: str} = None, file_dependencies=None, db_alias: str = None,
                  echo_queries: bool = None, timezone: str = None) -> None:
-        """
-        Runs an sql file or statement in a database
-
-        Args:
-            sql_statement: The statement to run as a string
-            sql_file_name: The name of the file to run (relative to the directory of the parent pipeline)
-            replace: A set of replacements to perform against the sql query `{'replace`: 'with', ..}`
-        """
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
 
         self._db_alias = db_alias
@@ -211,6 +211,31 @@ class Copy(_SQLCommand):
 
 
 class CopyIncrementally(_SQLCommand):
+    """
+    Incrementally loads data from one database into another.
+
+    Requires the source table to have an monotonously increasing column or combination of columns that
+    allow to identify "newer" columns (the modification comparison).
+
+    After an initial full load, only those rows with a with a a higher modification comparison than the last
+    comparison value are read.
+
+    Args:
+        source_db_alias: The database to load from
+        source_table: The table to read from
+        sql_statement: A query that is run to query the source database
+        sql_file_name: The path of a file name that is run to query the source database
+        replace: A set of replacements to perform against the sql query
+        modification_comparison: SQL expression that evaluates to a comparable value
+        modification_comparison_type: type of the saved (as string) modification_comparison value
+        comparison_value_placeholder: A placeholder in the sql code that gets replaced with the
+                                        actual incremental load comparison or `1=1`.
+        target_db_alias: The database to write to
+        target_table: The table for loading data into
+        primary_keys: A combination of primary key columns that are used for upserting into the target table
+        timezone: How to interpret timestamps in the target db
+        use_explicit_upsert: When True, uses an Update + Insert query combination. Otherwise ON CONFLICT DO UPDATE.
+    """
     def __init__(self, source_db_alias: str, source_table: str,
                  modification_comparison: str, comparison_value_placeholder: str,
                  target_table: str, primary_keys: [str],
@@ -219,31 +244,6 @@ class CopyIncrementally(_SQLCommand):
                  use_explicit_upsert: bool = False,
                  csv_format: bool = None, delimiter_char: str = None,
                  modification_comparison_type: str = None) -> None:
-        """
-        Incrementally loads data from one database into another.
-
-        Requires the source table to have an monotonously increasing column or combination of columns that
-        allow to identify "newer" columns (the modification comparison).
-
-        After an initial full load, only those rows with a with a a higher modification comparison than the last
-        comparison value are read.
-
-        Args:
-            source_db_alias: The database to load from
-            source_table: The table to read from
-            sql_statement: A query that is run to query the source database
-            sql_file_name: The path of a file name that is run to query the source database
-            replace: A set of replacements to perform against the sql query
-            modification_comparison: SQL expression that evaluates to a comparable value
-            modification_comparison_type: type of the saved (as string) modification_comparison value
-            comparison_value_placeholder: A placeholder in the sql code that gets replaced with the
-                                          actual incremental load comparison or `1=1`.
-            target_db_alias: The database to write to
-            target_table: The table for loading data into
-            primary_keys: A combination of primary key columns that are used for upserting into the target table
-            timezone: How to interpret timestamps in the target db
-            use_explicit_upsert: When True, uses an Update + Insert query combination. Otherwise ON CONFLICT DO UPDATE.
-        """
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
         self.source_db_alias = source_db_alias
         self.source_table = source_table

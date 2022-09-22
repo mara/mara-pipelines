@@ -149,6 +149,18 @@ class ParallelTask(Node):
 
 
 class Pipeline(Node):
+    """
+    A directed acyclic graph (DAG) of nodes with dependencies between them.
+
+    Args:
+        id: The id of the pipeline
+        description: A short summary of what the pipeline is doing
+        max_number_of_parallel_tasks: Only that many nodes of the pipeline will run in parallel
+        base_path: The absolute path of the pipeline root, file names are relative to that
+        labels: An arbitrary dictionary application specific tags, schemas and so on.
+        ignore_errors: When true, then the pipeline execution will not fail when a child node fails
+        force_run_all_children: When true, child nodes will run even when their upstreams failed
+    """
     nodes: {str: Node} = None
     initial_node: Node = None
     final_node: Node = None
@@ -160,18 +172,6 @@ class Pipeline(Node):
                  labels: {str: str} = None,
                  ignore_errors: bool = False,
                  force_run_all_children: bool = False) -> None:
-        """
-        A directed acyclic graph (DAG) of nodes with dependencies between them.
-
-        Args:
-            id: The id of the pipeline
-            description: A short summary of what the pipeline is doing
-            max_number_of_parallel_tasks: Only that many nodes of the pipeline will run in parallel
-            base_path: The absolute path of the pipeline root, file names are relative to that
-            labels: An arbitrary dictionary application specific tags, schemas and so on.
-            ignore_errors: When true, then the pipeline execution will not fail when a child node fails
-            force_run_all_children: When true, child nodes will run even when their upstreams failed
-        """
         super().__init__(id, description, labels)
         self.nodes = {}
         self._base_path = base_path

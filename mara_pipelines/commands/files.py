@@ -14,7 +14,7 @@ from mara_page import _, html
 from .. import config, pipelines
 
 
-class Compression(enum.EnumMeta):
+class Compression(enum.Enum):
     """Different compression formats that are understood by file readers"""
     NONE = 'none'
     GZIP = 'gzip'
