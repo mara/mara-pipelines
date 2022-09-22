@@ -1,5 +1,15 @@
 # Changelog
 
+## 3.3.0 (2022-09-22)
+
+- Add option to hide system stats in the UI #72
+- Add option to disable the collection of system statistics (#72)
+- Add syntax highlighting for TSQL and SQLite3 (#86)
+- Support pipeline execution without 'mara' database (#71)
+- Fix getting exitcode from process issue since python 3.8 (#87)
+- Use client-side rendering for graphviz when shell command is not available (#70)
+
+
 ## 3.2.0 (2021-03-08)
 
 - Fix CopyIncrementally with no data (#54)
