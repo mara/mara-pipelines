@@ -70,8 +70,8 @@ def sed_command(replace: {str: str}) -> str:
     Creates a sed command string from a dictionary of replacements
 
     Examples:
-    >>> print(sed_command({'foo':'a','bar':'b'}))
-    sed "s/foo/a/g; s/bar/b/g"
+        >>> print(sed_command({'foo':'a','bar':'b'}))
+        sed "s/foo/a/g; s/bar/b/g"
     """
 
     def quote(s):
