@@ -1,0 +1,99 @@
+import os
+import pathlib
+import pytest
+import typing as t
+
+from mara_app.monkey_patch import patch
+import mara_db.config
+import mara_db.format
+import mara_pipelines.config
+from mara_pipelines.commands.files import WriteFile
+from mara_pipelines.commands.sql import ExecuteSQL
+from mara_pipelines.pipelines import Pipeline, Task
+from mara_pipelines.ui.cli import run_pipeline
+
+from tests.db_test_helper import db_is_responsive, db_replace_placeholders
+from tests.local_config import POSTGRES_DB
+
+
+if not POSTGRES_DB:
+    pytest.skip("skipping PostgreSQL tests: variable POSTGRES_DB not set", allow_module_level=True)
+
+
+# Configuration of test pipeline
+patch(mara_db.config.databases)(lambda: {'dwh': POSTGRES_DB})
+patch(mara_pipelines.config.default_db_alias)(lambda: 'dwh')
+
+
+@pytest.fixture(scope="session")
+def postgres_db(docker_ip, docker_services) -> t.Tuple[str, int]:
+    """Ensures that PostgreSQL server is running on docker."""
+
+    docker_port = docker_services.port_for("postgres", 5432)
+    db = db_replace_placeholders(POSTGRES_DB, docker_ip, docker_port)
+
+    # here we need to wait until the PostgreSQL port is available.
+    docker_services.wait_until_responsive(
+        timeout=30.0, pause=0.1, check=lambda: db_is_responsive(db)
+    )
+
+    return db
+
+
+@pytest.mark.dependency()
+def test_postgres_command_WriteFile(postgres_db):
+
+    pipeline = Pipeline(
+        id='test_postgres_command_write_file',
+        description="",
+        base_path=pathlib.Path(__file__).parent)
+
+    pipeline.add(
+        Task(id='initial_ddl',
+             description="",
+             commands=[ExecuteSQL("""
+DROP TABLE IF EXISTS "test_postgres_command_WriteFile";
+
+CREATE TABLE "test_postgres_command_WriteFile"
+(
+    Id INT IDENTITY(1,1) NOT NULL,
+    LongTest1 TEXT
+    LongTest2 TEXT
+);
+INSERT INTO "test_postgres_command_WriteFile" (
+    LongText1, LongText2
+) VALUES
+('Hello', 'World!'),
+('He lo', ' orld! '),
+('Hello\t', ', World! '),
+""")]))
+
+    pipeline.add(
+        Task(id='write_file_csv',
+             description="Wirte content of table to file",
+             commands=[WriteFile(dest_file_name='_tmp-write-file.csv',
+                                 sql_statement="""SELECT * FROM "test_postgres_command_WriteFile";""",
+                                 delimiter_char=',', header=False)]))
+
+    pipeline.add(
+        Task(id='write_file_tsv',
+             description="Wirte content of table to file",
+             commands=[WriteFile(dest_file_name='_tmp-write-file.tsv',
+                                 sql_statement="""SELECT * FROM "test_postgres_command_WriteFile";""",
+                                 delimiter_char='\t', header=False)]))
+
+    assert run_pipeline(pipeline)
+
+    files = [
+        str((pipeline.base_path / '_tmp-write-file.csv').absolute()),
+        str((pipeline.base_path / '_tmp-write-file.tsv').absolute())
+    ]
+
+    file_not_found = []
+    for file in files:
+        if not os.path.exists(file):
+            file_not_found.append(file)
+        else:
+            os.remove(file)
+
+    assert not file_not_found

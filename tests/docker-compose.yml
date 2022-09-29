@@ -10,3 +10,11 @@ services:
       POSTGRES_HOST_AUTH_METHOD: md5
     ports:
       - "5432"
+
+  mssql:
+    image: mcr.microsoft.com/mssql/server:2019-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourStrong@Passw0rd
+    ports:
+      - "1433"
