@@ -1,7 +1,7 @@
 # Mara Pipelines
 
 [![Build & Test](https://github.com/mara/mara-pipelines/actions/workflows/build.yaml/badge.svg)](https://github.com/mara/mara-pipelines/actions/workflows/build.yaml)
-[![PyPI - License](https://img.shields.io/pypi/l/mara-pipelines.svg)](https://github.com/mara/mara-pipelines/blob/master/LICENSE)
+[![PyPI - License](https://img.shields.io/pypi/l/mara-pipelines.svg)](https://github.com/mara/mara-pipelines/blob/main/LICENSE)
 [![PyPI version](https://badge.fury.io/py/mara-pipelines.svg)](https://badge.fury.io/py/mara-pipelines)
 [![Slack Status](https://img.shields.io/badge/slack-join_chat-white.svg?logo=slack&style=social)](https://communityinviter.com/apps/mara-users/public-invite)
 
@@ -81,7 +81,7 @@ Tasks contain lists of commands, which do the actual work (in this case running 
 
 &nbsp;
 
-In order to run the pipeline, a PostgreSQL database needs to be configured for storing run-time information, run output and status of incremental processing: 
+In order to run the pipeline, a PostgreSQL database is recommended to be configured for storing run-time information, run output and status of incremental processing: 
 
 ```python
 import mara_db.auto_migration
