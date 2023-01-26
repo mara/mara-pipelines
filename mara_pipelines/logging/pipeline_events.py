@@ -1,7 +1,6 @@
 """Events that are emitted during pipeline execution"""
 
 import datetime
-import json
 
 import enum
 import typing as t
@@ -10,7 +9,7 @@ from ..events import Event
 
 
 class PipelineEvent(Event):
-    def __init__(self, node_path: [str]) -> None:
+    def __init__(self, node_path: t.List[str]) -> None:
         """
         Base class for events that are emitted during a pipeline run.
 
@@ -23,7 +22,7 @@ class PipelineEvent(Event):
 
 
 class RunStarted(PipelineEvent):
-    def __init__(self, node_path: [str],
+    def __init__(self, node_path: t.List[str],
                  start_time: datetime.datetime,
                  pid: int,
                  is_root_pipeline: bool = False,
@@ -51,7 +50,7 @@ class RunStarted(PipelineEvent):
 
 
 class RunFinished(PipelineEvent):
-    def __init__(self, node_path: [str],
+    def __init__(self, node_path: t.List[str],
                  end_time: datetime.datetime,
                  succeeded: bool,
                  interactively_started: bool = False) -> None:
@@ -71,7 +70,7 @@ class RunFinished(PipelineEvent):
 
 
 class NodeStarted(PipelineEvent):
-    def __init__(self, node_path: [str], start_time: datetime.datetime, is_pipeline: bool) -> None:
+    def __init__(self, node_path: t.List[str], start_time: datetime.datetime, is_pipeline: bool) -> None:
         """
         A task run started.
         Args:
@@ -85,7 +84,7 @@ class NodeStarted(PipelineEvent):
 
 
 class NodeFinished(PipelineEvent):
-    def __init__(self, node_path: [str], start_time: datetime.datetime, end_time: datetime.datetime,
+    def __init__(self, node_path: t.List[str], start_time: datetime.datetime, end_time: datetime.datetime,
                  is_pipeline: bool, succeeded: bool) -> None:
         """
         A run of a task or pipeline finished.
@@ -110,7 +109,7 @@ class Output(PipelineEvent):
         VERBATIM = 'verbatim'
         ITALICS = 'italics'
 
-    def __init__(self, node_path: [str], message: str,
+    def __init__(self, node_path: t.List[str], message: str,
                  format: Format = Format.STANDARD, is_error: bool = False) -> None:
         """
         Some text output occurred.
