@@ -142,5 +142,8 @@ def get_user_display_name(interactively_started: bool) -> t.Optional[str]:
         return os.environ.get('MARA_RUN_USER_DISPLAY_NAME')
     if not interactively_started:
         return None
-    import getpass
-    return os.environ.get('SUDO_USER') or os.environ.get('USER') or getpass.getuser()
+    try:
+        import getpass
+        return os.environ.get('SUDO_USER') or os.environ.get('USER') or getpass.getuser()
+    except:
+        return None
