@@ -1,6 +1,8 @@
 """Events that are emitted during pipeline execution"""
 
 import datetime
+import os
+import getpass
 
 import enum
 import typing as t
@@ -136,13 +138,11 @@ def get_user_display_name(interactively_started: bool) -> t.Optional[str]:
 
     Patch if you have more sophisticated needs.
     """
-    import os
     if 'MARA_RUN_USER_DISPLAY_NAME' in os.environ:
         return os.environ.get('MARA_RUN_USER_DISPLAY_NAME')
     if not interactively_started:
         return None
     try:
-        import getpass
         return os.environ.get('SUDO_USER') or os.environ.get('USER') or getpass.getuser()
-    except:
+    except Exception: # pylint: disable=W0703
         return None
