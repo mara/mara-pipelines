@@ -6,7 +6,8 @@ import inspect
 
 from mara_pipelines.commands.python import RunFunction
 from mara_app.monkey_patch import patch
-from mara_pipelines.pipelines import ParallelTask, Command
+from mara_pipelines.pipelines import Pipeline, ParallelTask, Command
+from mara_pipelines.ui.cli import run_pipeline
 import mara_pipelines.config
 
 
@@ -39,9 +40,6 @@ def simple_print_call(n: str):
 
 
 def test_simple_parallel_process_succeeded():
-    from mara_pipelines.pipelines import Pipeline
-    from mara_pipelines.ui.cli import run_pipeline
-
     pipeline = Pipeline(id=method_name(), description="")
 
     pipeline.add(
@@ -55,9 +53,6 @@ def simple_print_call_fail(n: str):
     return False
 
 def test_simple_parallel_process_fail():
-    from mara_pipelines.pipelines import Pipeline
-    from mara_pipelines.ui.cli import run_pipeline
-
     pipeline = Pipeline(id=method_name(), description="")
 
     pipeline.add(
@@ -75,9 +70,6 @@ def test_queue_stress_fail():
     This is a test for this case: The main execution loop in this case must
     react on the worker process failed message and kill the FeedWorkerProcess.
     """
-
-    from mara_pipelines.pipelines import Pipeline
-    from mara_pipelines.ui.cli import run_pipeline
 
     pipeline = Pipeline(id=method_name(), description="")
 
