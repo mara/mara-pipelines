@@ -113,6 +113,7 @@ class Worker(Node):
     def __init__(self, id: str, description: str) -> None:
         super().__init__(id, description)
         self.command_queue: multiprocessing.Queue = None
+        self.origin_parent: Node = None  # ParallelTask nodes get converted during the execution via the ParallelTask.launch() method. This property returns the original parent of the worker node.
 
     def run(self):
         import time

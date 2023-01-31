@@ -257,6 +257,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
                                     for _, node in sub_pipeline.nodes.items():
                                         if isinstance(node, pipelines.Worker):
+                                            node.origin_parent = next_node
                                             node.command_queue = command_queue
 
                                     process = FeedWorkersProcess(next_node, command_queue, event_queue, multiprocessing_context)
@@ -311,6 +312,20 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                         if not task_process.succeeded and not task_process.task.parent.ignore_errors:
                             for parent in task_process.task.parents()[:-1]:
                                 failed_pipelines.add(parent)
+
+                        if not task_process.succeeded:
+                            # Note: We do not support 'task_process.task.parent.ignore_errors' here to avoid endless loops:
+                            #       It could happen that all worker nodes fail. For this case there is currently no control
+                            #       implemented to kill the feed worker process.
+
+                            if isinstance(task_process, WorkerProcess) and \
+                                isinstance(task_process.task.origin_parent, pipelines.ParallelTask) and \
+                                    task_process.task.origin_parent.use_workers:
+                                # A worker task failed. We check if the 'FeedWorkerProcess' is still running ...
+                                for node, process in running_task_processes.items():
+                                    if node == task_process.task.origin_parent and isinstance(process, FeedWorkersProcess):
+                                        # Feed worker process found --> terminate it
+                                        process.terimate()
 
                         end_time = datetime.datetime.now(tz.utc)
                         event_queue.put(
