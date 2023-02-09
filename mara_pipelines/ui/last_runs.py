@@ -4,9 +4,8 @@ import datetime
 import json
 
 import flask
-import psycopg2.extensions
 
-import mara_db.postgresql
+import mara_db.dbs
 from mara_page import bootstrap, html, acl, _
 from . import views
 from .. import config, pipelines
@@ -53,7 +52,7 @@ def last_runs_selector(path: str):
 
     node, __ = pipelines.find_node(path.split('/'))
 
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f'''
 SELECT
   run_id,
@@ -103,7 +102,7 @@ def run_output(path: str, run_id: int, limit: bool):
         return ''
 
     line_limit = 1000
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f'''
 SELECT node_path, message, format, is_error
 FROM data_integration_node_run
@@ -137,7 +136,7 @@ def system_stats(path: str, run_id: int):
     if not run_id:
         return ''
 
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f'''
 SELECT
   -- needs to be spelled out to be able to rely on the order in the postprocessing of the row
@@ -178,7 +177,7 @@ def timeline_chart(path: str, run_id: int):
     if not run_id:
         return ''
 
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f'''
 SELECT node_path, start_time, end_time, max(end_time) over () AS max_end_time, succeeded, is_pipeline
 FROM data_integration_node_run
@@ -202,6 +201,6 @@ WHERE node_path [1 :{'%(level)s'}] = {'%(node_path)s'}
 
 
 def _latest_run_id(node_path: [str]):
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute('SELECT max(run_id) FROM data_integration_node_run WHERE node_path=%s', (node_path,))
         return cursor.fetchone()[0]

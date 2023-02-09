@@ -2,10 +2,9 @@ import json
 import pathlib
 
 import flask
-import psycopg2.extensions
 
 import mara_db.config
-import mara_db.postgresql
+import mara_db.dbs
 from mara_page import acl, bootstrap, html, _
 from . import views
 from .. import pipelines
@@ -29,7 +28,7 @@ def run_time_chart(path: str):
 
     query = (pathlib.Path(__file__).parent / 'run_time_chart.sql').read_text()
 
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:  # type: psycopg2.extensions.cursor
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(query)
         cursor.execute(f'SELECT row_to_json(t) FROM pg_temp.node_run_times({"%s"}) t', (node.path(),))
         rows = [row[0] for row in cursor.fetchall()]

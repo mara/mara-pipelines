@@ -7,7 +7,6 @@ from sqlalchemy.ext.declarative import declarative_base
 
 import mara_db.config
 import mara_db.dbs
-import mara_db.postgresql
 
 Base = declarative_base()
 
@@ -32,7 +31,7 @@ def track_processed_file(node_path: str, file_name: str, last_modified_timestamp
 
     Returns: True
     """
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f'''
 INSERT INTO data_integration_processed_file (node_path, file_name, last_modified_timestamp) 
 VALUES ({'%s,%s,%s'})
@@ -51,7 +50,7 @@ def already_processed_files(node_path: str) -> {str: datetime}:
     Returns:
         A mapping of file names to timestamps of last modification
     """
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f"""
 SELECT file_name, last_modified_timestamp
 FROM data_integration_processed_file WHERE node_path = {'%s'}
