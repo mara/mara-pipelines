@@ -2,6 +2,7 @@
 import datetime
 import hashlib
 import pathlib
+from typing import List
 
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
@@ -22,7 +23,7 @@ class FileDependency(Base):
     timestamp = sqlalchemy.Column(sqlalchemy.TIMESTAMP(timezone=True))
 
 
-def update(node_path: [str], dependency_type: str, pipeline_base_path: str, file_dependencies: [str]):
+def update(node_path: List[str], dependency_type: str, pipeline_base_path: str, file_dependencies: List[str]):
     """
     Stores the combined hash of a list of files
 
@@ -40,7 +41,7 @@ ON CONFLICT (node_path, dependency_type)
 DO UPDATE SET timestamp = EXCLUDED.timestamp, hash = EXCLUDED.hash
     """, (node_path, dependency_type, hash(pipeline_base_path, file_dependencies), datetime.datetime.utcnow()))
 
-def delete(node_path: [str], dependency_type: str):
+def delete(node_path: List[str], dependency_type: str):
     """
     Delets the combined hash of a list of files for that node and dependency type
 
@@ -55,7 +56,7 @@ WHERE node_path = {'%s'} AND dependency_type = {'%s'}
     """, (node_path, dependency_type))
 
 
-def is_modified(node_path: [str], dependency_type: str, pipeline_base_path: str, file_dependencies: [str]):
+def is_modified(node_path: List[str], dependency_type: str, pipeline_base_path: str, file_dependencies: List[str]):
     """
     Checks whether a list of files have been modified since the last pipeline run
 
@@ -77,7 +78,7 @@ WHERE node_path=%s AND dependency_type=%s AND hash=%s """,
         return False if cursor.fetchone() else True
 
 
-def hash(pipeline_base_path: pathlib.Path, file_dependencies: [str]) -> str:
+def hash(pipeline_base_path: pathlib.Path, file_dependencies: List[str]) -> str:
     """
     Creates a combined hash of the content of a list of files
 

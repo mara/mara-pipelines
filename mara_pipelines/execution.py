@@ -16,16 +16,17 @@ import traceback
 from multiprocessing import queues
 from multiprocessing.context import BaseContext
 from queue import Empty
+from typing import Set, List, Dict, Optional
 
 from . import pipelines, config
 from .logging import logger, pipeline_events, system_statistics, run_log, node_cost
 from . import events
 
 
-def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
+def run_pipeline(pipeline: pipelines.Pipeline, nodes: Optional[Set[pipelines.Node]] = None,
                  with_upstreams: bool = False,
                  interactively_started: bool = False
-                 ) -> [events.Event]:
+                 ) -> List[events.Event]:
     """
     Runs a pipeline in a forked sub process. Acts as a generator that yields events from the sub process.
 
@@ -72,20 +73,20 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             logger.redirect_output(event_queue, pipeline.path())
 
             # all nodes that have not run yet, ordered by priority
-            node_queue: [pipelines.Node] = []
+            node_queue: List[pipelines.Node] = []
 
             # data needed for computing cost
             node_durations_and_run_times = node_cost.node_durations_and_run_times(pipeline) if use_historical_node_cost else {}
 
             # Putting nodes into the node queue
-            def queue(nodes: [pipelines.Node]):
+            def queue(nodes: List[pipelines.Node]):
                 for node in nodes:
                     node_cost.compute_cost(node, node_durations_and_run_times)
                     node_queue.append(node)
                 node_queue.sort(key=lambda node: node.cost, reverse=True)
 
             if nodes:  # only run a set of child nodes
-                def with_all_upstreams(nodes: {pipelines.Node}):
+                def with_all_upstreams(nodes: Set[pipelines.Node]):
                     """recursively find all upstreams of a list of nodes"""
                     return functools.reduce(set.union, [with_all_upstreams(node.upstreams) for node in nodes], nodes)
 
@@ -110,11 +111,11 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
             # book keeping
             run_start_time = datetime.datetime.now(tz.utc)
             # all nodes that already ran or that won't be run anymore
-            processed_nodes: {pipelines.Node} = set()
+            processed_nodes: Set[pipelines.Node] = set()
             # running pipelines with start times and number of running children
-            running_pipelines: {pipelines.Pipeline: [datetime.datetime, int]} = {}
-            failed_pipelines: {pipelines.Pipeline} = set()  # pipelines with failed tasks
-            running_task_processes: {pipelines.Task: TaskProcess} = {}
+            running_pipelines: Dict[pipelines.Pipeline, [datetime.datetime, int]] = {}
+            failed_pipelines: Set[pipelines.Pipeline] = set()  # pipelines with failed tasks
+            running_task_processes: Dict[pipelines.Task, TaskProcess] = {}
 
             # make sure any running tasks are killed when this executor process is shutdown
             executor_pid = os.getpid()

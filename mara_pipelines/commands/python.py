@@ -5,7 +5,7 @@ import shlex
 import sys
 import json
 from html import escape
-from typing import Union, Callable, List
+from typing import Union, Callable, List, Optional, Tuple
 from ..incremental_processing import file_dependencies
 from ..logging import logger
 
@@ -24,7 +24,7 @@ class RunFunction(pipelines.Command):
     Note:
         if you want to pass arguments, then use a lambda function
     """
-    def __init__(self, function: Callable = None, args: [str] = None, file_dependencies: [str] = None) -> None:
+    def __init__(self, function: Optional[Callable] = None, args: Optional[List[str]] = None, file_dependencies: Optional[List[str]] = None) -> None:
         self.function = function
         self.args = args or []
         self.file_dependencies = file_dependencies or []
@@ -48,7 +48,7 @@ class RunFunction(pipelines.Command):
 
         return True
 
-    def html_doc_items(self) -> [(str, str)]:
+    def html_doc_items(self) -> List[Tuple[str, str]]:
         return [('function', _.pre[escape(str(self.function))]),
                 ('args', _.tt[repr(self.args)]),
                 (_.i['implementation'], html.highlight_syntax(inspect.getsource(self.function), 'python')),
@@ -65,7 +65,7 @@ class ExecutePython(pipelines.Command):
         file_dependencies: Run triggered based on whether a list of files changed since the last pipeline run
     """
     def __init__(self, file_name: Union[Callable, str],
-                 args: Union[Callable, List[str]] = None, file_dependencies: [str] = None) -> None:
+                 args: Optional[Union[Callable, List[str]]] = None, file_dependencies: Optional[List[str]] = None) -> None:
         self._file_name = file_name
         self._args = args or []
         self.file_dependencies = file_dependencies or []

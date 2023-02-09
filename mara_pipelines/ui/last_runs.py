@@ -2,6 +2,7 @@
 
 import datetime
 import json
+from typing import List
 
 import flask
 
@@ -200,7 +201,7 @@ WHERE node_path [1 :{'%(level)s'}] = {'%(node_path)s'}
             return ''
 
 
-def _latest_run_id(node_path: [str]):
+def _latest_run_id(node_path: List[str]):
     with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute('SELECT max(run_id) FROM data_integration_node_run WHERE node_path=%s', (node_path,))
         return cursor.fetchone()[0]

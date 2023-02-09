@@ -1,13 +1,14 @@
 """Command line interface for running data pipelines"""
 
 import sys
+from typing import Set
 
 import click
 
 from .. import config, pipelines
 
 
-def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
+def run_pipeline(pipeline: pipelines.Pipeline, nodes: Set[pipelines.Node] = None,
                  with_upstreams: bool = False,
                  interactively_started: bool = False,
                  disable_colors: bool = False) -> bool:

@@ -1,5 +1,7 @@
 """Logging pipeline runs, node output and status information in mara database"""
 
+from typing import List, Dict
+
 import sqlalchemy.orm
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -115,7 +117,7 @@ class NullLogger(events.EventHandler):
 class RunLogger(events.EventHandler):
     """A run logger saving the pipeline events to the 'mara' database alias"""
     run_id: int = None
-    node_output: {tuple: [pipeline_events.Output]} = None
+    node_output: Dict[tuple, List[pipeline_events.Output]] = None
 
     def handle_event(self, event: events.Event):
         import mara_db.dbs

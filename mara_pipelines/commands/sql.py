@@ -4,7 +4,7 @@ import functools
 import json
 import pathlib
 import shlex
-from typing import Callable, Union
+from typing import Callable, Union, Dict, Optional, List, Tuple
 
 import mara_db.dbs
 import mara_db.shell
@@ -24,8 +24,8 @@ class _SQLCommand(pipelines.Command):
         sql_file_name: The name of the file to run (relative to the directory of the parent pipeline)
         replace: A set of replacements to perform against the sql query `{'replace`: 'with', ..}`
     """
-    def __init__(self, sql_statement: Union[Callable, str] = None, sql_file_name: str = None,
-                 replace: {str: str} = None) -> None:
+    def __init__(self, sql_statement: Optional[Union[Callable, str]] = None, sql_file_name: Optional[str] = None,
+                 replace: Optional[Dict[str, str]] = None) -> None:
         if (not (sql_statement or sql_file_name)) or (sql_statement and sql_file_name):
             raise ValueError('Please provide either sql_statement or sql_file_name (but not both)')
 
@@ -87,9 +87,9 @@ class ExecuteSQL(_SQLCommand):
         sql_file_name: The name of the file to run (relative to the directory of the parent pipeline)
         replace: A set of replacements to perform against the sql query `{'replace`: 'with', ..}`
     """
-    def __init__(self, sql_statement: str = None, sql_file_name: Union[str, Callable] = None,
-                 replace: {str: str} = None, file_dependencies=None, db_alias: str = None,
-                 echo_queries: bool = None, timezone: str = None) -> None:
+    def __init__(self, sql_statement: Optional[Union[str, Callable]] = None, sql_file_name: Optional[str] = None,
+                 replace: Optional[Dict[str, str]] = None, file_dependencies: Optional[List[str]] = None, db_alias: Optional[str] = None,
+                 echo_queries: Optional[bool] = None, timezone: Optional[str] = None) -> None:
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
 
         self._db_alias = db_alias
@@ -146,10 +146,10 @@ class ExecuteSQL(_SQLCommand):
 class Copy(_SQLCommand):
     """Loads data from an external database"""
 
-    def __init__(self, source_db_alias: str, target_table: str, target_db_alias: str = None,
-                 sql_statement: str = None, sql_file_name: Union[Callable, str] = None, replace: {str: str} = None,
-                 timezone: str = None, csv_format: bool = None, delimiter_char: str = None,
-                 file_dependencies=None) -> None:
+    def __init__(self, source_db_alias: str, target_table: str, target_db_alias: Optional[str] = None,
+                 sql_statement: Optional[Union[Callable, str]] = None, sql_file_name: Optional[str] = None, replace: Dict[str, str] = None,
+                 timezone: Optional[str] = None, csv_format: Optional[bool] = None, delimiter_char: Optional[str] = None,
+                 file_dependencies: Optional[List[str]]=None) -> None:
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
         self.source_db_alias = source_db_alias
         self.target_table = target_table
@@ -160,7 +160,7 @@ class Copy(_SQLCommand):
         self.file_dependencies = file_dependencies or []
 
     @property
-    def target_db_alias(self):
+    def target_db_alias(self) -> str:
         return self._target_db_alias or config.default_db_alias()
 
     def file_path(self) -> pathlib.Path:
@@ -193,12 +193,12 @@ class Copy(_SQLCommand):
             file_dependencies.update(self.node_path(), dependency_type, pipeline_base_path, self.file_dependencies)
         return True
 
-    def shell_command(self):
+    def shell_command(self) -> str:
         return _SQLCommand.shell_command(self) \
                + '  | ' + mara_db.shell.copy_command(self.source_db_alias, self.target_db_alias, self.target_table,
                                                      self.timezone, self.csv_format, self.delimiter_char)
 
-    def html_doc_items(self) -> [(str, str)]:
+    def html_doc_items(self) -> List[Tuple[str, str]]:
         return [('source db', _.tt[self.source_db_alias])] \
                + _SQLCommand.html_doc_items(self, self.source_db_alias) \
                + [('target db', _.tt[self.target_db_alias]),
@@ -237,12 +237,12 @@ class CopyIncrementally(_SQLCommand):
     """
     def __init__(self, source_db_alias: str, source_table: str,
                  modification_comparison: str, comparison_value_placeholder: str,
-                 target_table: str, primary_keys: [str],
-                 sql_file_name: Union[str, Callable] = None, sql_statement: Union[str, Callable] = None,
-                 target_db_alias: str = None, timezone: str = None, replace: {str: str} = None,
+                 target_table: str, primary_keys: List[str],
+                 sql_file_name: Optional[str] = None, sql_statement: Optional[Union[str, Callable]] = None,
+                 target_db_alias: Optional[str] = None, timezone: Optional[str] = None, replace: Dict[str, str] = None,
                  use_explicit_upsert: bool = False,
-                 csv_format: bool = None, delimiter_char: str = None,
-                 modification_comparison_type: str = None) -> None:
+                 csv_format: Optional[bool] = None, delimiter_char: Optional[str] = None,
+                 modification_comparison_type: Optional[str] = None) -> None:
         _SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
         self.source_db_alias = source_db_alias
         self.source_table = source_table
@@ -259,7 +259,7 @@ class CopyIncrementally(_SQLCommand):
         self.delimiter_char = delimiter_char
 
     @property
-    def target_db_alias(self):
+    def target_db_alias(self) -> str:
         return self._target_db_alias or config.default_db_alias()
 
     def run(self) -> bool:
@@ -399,7 +399,7 @@ DO UPDATE SET {set_clause}"""
                                                       target_table, timezone=self.timezone,
                                                       csv_format=self.csv_format, delimiter_char=self.delimiter_char))
 
-    def html_doc_items(self) -> [(str, str)]:
+    def html_doc_items(self) -> List[Tuple[str, str]]:
         return [('source db', _.tt[self.source_db_alias]),
                 ('source table', _.tt[self.source_table]),
                 ('modification comparison', _.tt[self.modification_comparison])] \
@@ -415,13 +415,13 @@ DO UPDATE SET {set_clause}"""
                   ('use explicit upsert', _.tt[repr(self.use_explicit_upsert)])]
 
 
-def _expand_pattern_substitution(replace: {str: str}) -> {str: str}:
+def _expand_pattern_substitution(replace: Dict[str, str]) -> Dict[str, str]:
     """Helper function for replacing callables with their value in a dictionary"""
     return {k: (str(v()) if callable(v) else str(v)) for k, v in replace.items()}
 
 
 @functools.singledispatch
-def _sql_syntax_higlighting_lexter(db):
+def _sql_syntax_higlighting_lexter(db) -> str:
     """Returns the best lexer from http://pygments.org/docs/lexers/ for a database dialect"""
     return 'sql'
 

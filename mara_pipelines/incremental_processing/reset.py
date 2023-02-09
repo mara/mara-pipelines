@@ -1,10 +1,12 @@
 """Resetting incremental copy status"""
 
+from typing import List
+
 import mara_db.config
 import mara_db.dbs
 
 
-def reset_incremental_processing(node_path: [str]):
+def reset_incremental_processing(node_path: List[str]):
     """
     Recursively resets all incremental processing status information that is stored in the mara db
     Args:

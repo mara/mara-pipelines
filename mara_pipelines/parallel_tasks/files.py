@@ -7,6 +7,7 @@ import os.path
 import pathlib
 import re
 from html import escape
+from typing import List, Tuple, Optional
 
 import mara_db.config
 import mara_db.dbs
@@ -30,10 +31,10 @@ class ReadMode(enum.EnumMeta):
 
 class _ParallelRead(pipelines.ParallelTask):
     def __init__(self, id: str, description: str, file_pattern: str, read_mode: ReadMode, target_table: str,
-                 max_number_of_parallel_tasks: int = None, file_dependencies: [str] = None, date_regex: str = None,
+                 max_number_of_parallel_tasks: Optional[int] = None, file_dependencies: Optional[List[str]] = None, date_regex: Optional[str] = None,
                  partition_target_table_by_day_id: bool = False, truncate_partitions: bool = False,
-                 commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
-                 db_alias: str = None, timezone: str = None) -> None:
+                 commands_before: Optional[List[pipelines.Command]] = None, commands_after: Optional[List[pipelines.Command]] = None,
+                 db_alias: Optional[str] = None, timezone: Optional[str] = None) -> None:
         pipelines.ParallelTask.__init__(self, id=id, description=description,
                                         max_number_of_parallel_tasks=max_number_of_parallel_tasks,
                                         commands_before=commands_before, commands_after=commands_after)
@@ -156,7 +157,7 @@ class _ParallelRead(pipelines.ParallelTask):
                     pipelines.Task(id=str(n), description=f'Reads {len(chunk)} files',
                                    commands=sum([self.parallel_commands(x[0]) for x in chunk], [])))
 
-    def parallel_commands(self, file_name: str) -> [pipelines.Command]:
+    def parallel_commands(self, file_name: str) -> List[pipelines.Command]:
         return [self.read_command(file_name)] + (
             [python.RunFunction(function=lambda: _processed_files.track_processed_file(
                 self.path(), file_name, self._last_modification_timestamp(file_name)))]
@@ -172,14 +173,14 @@ class _ParallelRead(pipelines.ParallelTask):
 
 class ParallelReadFile(_ParallelRead):
     def __init__(self, id: str, description: str, file_pattern: str, read_mode: ReadMode,
-                 compression: files.Compression, target_table: str, file_dependencies: [str] = None,
-                 date_regex: str = None, partition_target_table_by_day_id: bool = False,
+                 compression: files.Compression, target_table: str, file_dependencies: Optional[List[str]] = None,
+                 date_regex: Optional[str] = None, partition_target_table_by_day_id: bool = False,
                  truncate_partitions: bool = False,
-                 commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
-                 mapper_script_file_name: str = None, make_unique: bool = False, db_alias: str = None,
-                 delimiter_char: str = None, quote_char: str = None, null_value_string: str = None,
-                 skip_header: bool = None, csv_format: bool = False,
-                 timezone: str = None, max_number_of_parallel_tasks: int = None) -> None:
+                 commands_before: Optional[List[pipelines.Command]] = None, commands_after: Optional[List[pipelines.Command]] = None,
+                 mapper_script_file_name: Optional[str] = None, make_unique: bool = False, db_alias: Optional[str] = None,
+                 delimiter_char: Optional[str] = None, quote_char: Optional[str] = None, null_value_string: Optional[str] = None,
+                 skip_header: Optional[bool] = None, csv_format: bool = False,
+                 timezone: Optional[str] = None, max_number_of_parallel_tasks: Optional[int] = None) -> None:
         _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
                                read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
                                date_regex=date_regex, partition_target_table_by_day_id=partition_target_table_by_day_id,
@@ -203,8 +204,8 @@ class ParallelReadFile(_ParallelRead):
                               quote_char=self.quote_char, null_value_string=self.null_value_string,
                               csv_format=self.csv_format, timezone=self.timezone)
 
-    def html_doc_items(self) -> [(str, str)]:
-        path = self.parent.base_path() / self.mapper_script_file_name if self.mapper_script_file_name else ''
+    def html_doc_items(self) -> List[Tuple[str, str]]:
+        path = self.parent.base_path() / self.mapper_script_file_name if self.mapper_script_file_name else pathlib.Path()
         return [('file pattern', _.i[self.file_pattern]),
                 ('compression', _.tt[self.compression]),
                 ('read mode', _.tt[self.read_mode]),
@@ -230,9 +231,9 @@ class ParallelReadFile(_ParallelRead):
 
 class ParallelReadSqlite(_ParallelRead):
     def __init__(self, id: str, description: str, file_pattern: str, read_mode: ReadMode, sql_file_name: str,
-                 target_table: str, file_dependencies: [str] = None, date_regex: str = None,
+                 target_table: str, file_dependencies: List[str] = None, date_regex: str = None,
                  partition_target_table_by_day_id: bool = False, truncate_partitions: bool = False,
-                 commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
+                 commands_before: List[pipelines.Command] = None, commands_after: List[pipelines.Command] = None,
                  db_alias: str = None, timezone=None, max_number_of_parallel_tasks: int = None) -> None:
         _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
                                read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
@@ -242,14 +243,14 @@ class ParallelReadSqlite(_ParallelRead):
                                timezone=timezone, max_number_of_parallel_tasks=max_number_of_parallel_tasks)
         self.sql_file_name = sql_file_name
 
-    def read_command(self, file_name: str) -> [pipelines.Command]:
+    def read_command(self, file_name: str) -> List[pipelines.Command]:
         return files.ReadSQLite(sqlite_file_name=file_name, sql_file_name=self.sql_file_name,
                                 target_table=self.target_table, db_alias=self.db_alias, timezone=self.timezone)
 
     def sql_file_path(self):
         return self.parent.base_path() / self.sql_file_name
 
-    def html_doc_items(self) -> [(str, str)]:
+    def html_doc_items(self) -> List[Tuple[str, str]]:
         path = self.sql_file_path()
         return [('file pattern', _.i[self.file_pattern]),
                 ('read mode', _.tt[self.read_mode]),

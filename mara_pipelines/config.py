@@ -39,7 +39,7 @@ def last_date() -> datetime.date:
     return datetime.date(3000, 1, 1)
 
 
-def max_number_of_parallel_tasks():
+def max_number_of_parallel_tasks() -> int:
     """How many tasks can run in parallel at maximum"""
     return multiprocessing.cpu_count()
 
@@ -90,7 +90,7 @@ def slack_token() -> typing.Optional[str]:
 
 
 @functools.lru_cache(maxsize=None)
-def event_handlers() -> [events.EventHandler]:
+def event_handlers() -> typing.List[events.EventHandler]:
     """
     Configure additional event handlers that listen to pipeline events, e.g. chat bots that announce failed runs
 

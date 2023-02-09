@@ -1,6 +1,6 @@
 import inspect
 import re
-import typing
+from typing import Callable, List, Optional, Dict, Tuple
 
 from mara_page import _, html
 from .. import config, pipelines
@@ -8,11 +8,11 @@ from ..commands import sql
 
 
 class ParallelExecuteSQL(pipelines.ParallelTask, sql._SQLCommand):
-    def __init__(self, id: str, description: str, parameter_function: typing.Callable, parameter_placeholders: [str],
-                 max_number_of_parallel_tasks: int = None, sql_statement: str = None, file_name: str = None,
-                 commands_before: [pipelines.Command] = None, commands_after: [pipelines.Command] = None,
-                 db_alias: str = None, echo_queries: bool = None, timezone: str = None,
-                 replace: {str: str} = None) -> None:
+    def __init__(self, id: str, description: str, parameter_function: Callable, parameter_placeholders: List[str],
+                 max_number_of_parallel_tasks: Optional[int] = None, sql_statement: Optional[str] = None, file_name: Optional[str] = None,
+                 commands_before: Optional[List[pipelines.Command]] = None, commands_after: Optional[List[pipelines.Command]] = None,
+                 db_alias: Optional[str] = None, echo_queries: Optional[bool] = None, timezone: Optional[str] = None,
+                 replace: Dict[str, str] = None) -> None:
 
         if (not (sql_statement or file_name)) or (sql_statement and file_name):
             raise ValueError('Please provide either sql_statement or file_name (but not both)')
@@ -53,7 +53,7 @@ class ParallelExecuteSQL(pipelines.ParallelTask, sql._SQLCommand):
                     sql.ExecuteSQL(sql_statement=self.sql_statement, db_alias=self.db_alias,
                                    echo_queries=self.echo_queries, timezone=self.timezone, replace=replace)]))
 
-    def html_doc_items(self) -> [(str, str)]:
+    def html_doc_items(self) -> List[Tuple[str, str]]:
         return [('db', _.tt[self.db_alias])] \
                + sql._SQLCommand.html_doc_items(self, self.db_alias) \
                + [('parameter function', html.highlight_syntax(inspect.getsource(self.parameter_function), 'python')),

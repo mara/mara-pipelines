@@ -1,4 +1,5 @@
 import abc
+from typing import Dict, List
 
 from .. import events
 from ..logging import pipeline_events
@@ -10,7 +11,7 @@ class ChatNotifier(events.EventHandler, abc.ABC):
         """ Abstract class for sending notifications to chat bots when pipeline errors occur"""
 
         # keep a list of log messages and error log messages for each node
-        self.node_output: {tuple: {bool: [events.Event]}} = None
+        self.node_output: Dict[tuple, Dict[bool, List[events.Event]]] = None
 
 
     def handle_event(self, event: events.Event):

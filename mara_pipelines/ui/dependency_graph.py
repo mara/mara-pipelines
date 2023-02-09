@@ -1,6 +1,7 @@
 """Visualization of pipelines using graphviz"""
 
 import functools
+from typing import Dict
 
 import flask
 
@@ -30,7 +31,7 @@ def dependency_graph(path: str):
 
 
 @functools.singledispatch
-def dependency_graph(nodes: {str: pipelines.Node},
+def dependency_graph(nodes: Dict[str, pipelines.Node],
                      current_node: pipelines.Node = None) -> str:
     """
     Draws a list of pipeline nodes and the dependencies between them using graphviz
