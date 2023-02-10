@@ -7,6 +7,7 @@ from mara_app.monkey_patch import patch
 import mara_db.config
 from mara_db import formats
 import mara_pipelines.config
+from mara_pipelines.commands.bash import RunBash
 from mara_pipelines.commands.files import WriteFile
 from mara_pipelines.commands.sql import ExecuteSQL
 from mara_pipelines.pipelines import Pipeline, Task
@@ -43,50 +44,56 @@ def postgres_db(docker_ip, docker_services) -> t.Tuple[str, int]:
 @pytest.mark.dependency()
 def test_postgres_command_WriteFile(postgres_db):
 
+    # set local temp path
+    patch(mara_pipelines.config.data_dir)(lambda: str((pathlib.Path(__file__).parent / '.tmp').absolute()))
+
     pipeline = Pipeline(
         id='test_postgres_command_write_file',
-        description="",
-        base_path=pathlib.Path(__file__).parent)
+        description="")
 
     pipeline.add_initial(
         Task(id='initial_ddl',
              description="",
-             commands=[ExecuteSQL("""
+             commands=[
+                 ExecuteSQL("""
 DROP TABLE IF EXISTS "test_postgres_command_WriteFile";
 
 CREATE TABLE "test_postgres_command_WriteFile"
 (
-    Id INT IDENTITY(1,1) NOT NULL,
-    LongTest1 TEXT
-    LongTest2 TEXT
+    Id INT GENERATED ALWAYS AS IDENTITY,
+    LongText1 TEXT,
+    LongText2 TEXT
 );
+
 INSERT INTO "test_postgres_command_WriteFile" (
     LongText1, LongText2
 ) VALUES
 ('Hello', 'World!'),
 ('He lo', ' orld! '),
-('Hello\t', ', World! '),
-""")]))
+('Hello\t', ', World! ');
+"""),
+                 RunBash(f'mkdir -p {mara_pipelines.config.data_dir()}')
+             ]))
 
     pipeline.add(
         Task(id='write_file_csv',
              description="Wirte content of table to file",
-             commands=[WriteFile(dest_file_name='_tmp-write-file.csv',
+             commands=[WriteFile(dest_file_name='write-file.csv',
                                  sql_statement="""SELECT * FROM "test_postgres_command_WriteFile";""",
                                  format=formats.CsvFormat(delimiter_char='\t', header=False))]))
 
     pipeline.add(
         Task(id='write_file_tsv',
              description="Wirte content of table to file",
-             commands=[WriteFile(dest_file_name='_tmp-write-file.tsv',
+             commands=[WriteFile(dest_file_name='write-file.tsv',
                                  sql_statement="""SELECT * FROM "test_postgres_command_WriteFile";""",
                                  format=formats.CsvFormat(delimiter_char='\t', header=False))]))
 
     assert run_pipeline(pipeline)
 
     files = [
-        str((pipeline.base_path / '_tmp-write-file.csv').absolute()),
-        str((pipeline.base_path / '_tmp-write-file.tsv').absolute())
+        str((pathlib.Path(mara_pipelines.config.data_dir()) / 'write-file.csv').absolute()),
+        str((pathlib.Path(mara_pipelines.config.data_dir()) / 'write-file.tsv').absolute())
     ]
 
     file_not_found = []
