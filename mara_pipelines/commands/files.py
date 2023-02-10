@@ -4,7 +4,7 @@ import json
 import pathlib
 import shlex
 import sys
-from typing import List, Tuple, Dict, Union, Callable
+from typing import List, Tuple, Dict, Union, Callable, Optional
 
 import enum
 
@@ -224,10 +224,9 @@ class ReadScriptOutput(pipelines.Command):
 class WriteFile(sql._SQLCommand):
     """Writes data from a local file"""
 
-    def __init__(self, dest_file_name: str, sql_statement: Union[Callable, str] = None, sql_file_name: str = None,
-                 replace: dict[str: str] = None, db_alias: str = None,
+    def __init__(self, dest_file_name: str, sql_statement: Optional[Union[Callable, str]] = None, sql_file_name: Optional[str] = None,
+                 replace: Optional[Dict[str, str]] = None, db_alias: Optional[str] = None,
                  compression: Compression = Compression.NONE,
-                 delimiter_char = None, header: bool = True,
                  format: formats.Format = formats.CsvFormat()) -> None:
         """
         Writes the output of a sql query to a file in a specific format.
@@ -239,8 +238,7 @@ class WriteFile(sql._SQLCommand):
             replace: A set of replacements to perform against the sql query `{'replace`: 'with', ..}`
             db_alias: db on which the SQL statement shall run
             storage_alias: storage on which the CSV file shall be saved
-            delimiter_char: delimiter character in CSV to separate fields. Default: ','
-            header: If a CSV header shall be added
+            format: the format in which the file shall be written. Default: CSV according to RFC 4180
         """
         if compression != Compression.NONE:
             raise ValueError('Currently WriteFile only supports compression NONE')
@@ -248,8 +246,6 @@ class WriteFile(sql._SQLCommand):
         self.dest_file_name = dest_file_name
         self._db_alias = db_alias
         self.compression = compression
-        self.header = header
-        self.delimiter_char = delimiter_char
         self.format = format
 
     @property
@@ -259,7 +255,7 @@ class WriteFile(sql._SQLCommand):
     def shell_command(self) -> str:
         command = super().shell_command() \
             + '  | ' + mara_db.shell.copy_to_stdout_command( \
-                self.db_alias, header=self.header, footer=None, delimiter_char=self.delimiter_char, \
+                self.db_alias, header=None, footer=None, delimiter_char=None, \
                 csv_format=None, pipe_format=self.format) +' \\\n'
         return command \
             + f'  > "{pathlib.Path(config.data_dir()) / self.dest_file_name}"'
@@ -270,6 +266,4 @@ class WriteFile(sql._SQLCommand):
                + sql._SQLCommand.html_doc_items(self, self.db_alias) \
                + [('format', _.tt[self.format]),
                   ('destination file name', _.tt[self.dest_file_name]),
-                  ('delimiter char', _.tt[self.delimiter_char]),
-                  ('header', _.tt[str(self.header)]),
                   (_.i['shell command'], html.highlight_syntax(self.shell_command(), 'bash'))]

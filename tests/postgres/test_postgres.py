@@ -5,7 +5,7 @@ import typing as t
 
 from mara_app.monkey_patch import patch
 import mara_db.config
-import mara_db.format
+from mara_db import formats
 import mara_pipelines.config
 from mara_pipelines.commands.files import WriteFile
 from mara_pipelines.commands.sql import ExecuteSQL
@@ -73,14 +73,14 @@ INSERT INTO "test_postgres_command_WriteFile" (
              description="Wirte content of table to file",
              commands=[WriteFile(dest_file_name='_tmp-write-file.csv',
                                  sql_statement="""SELECT * FROM "test_postgres_command_WriteFile";""",
-                                 delimiter_char=',', header=False)]))
+                                 format=formats.CsvFormat(delimiter_char='\t', header=False))]))
 
     pipeline.add(
         Task(id='write_file_tsv',
              description="Wirte content of table to file",
              commands=[WriteFile(dest_file_name='_tmp-write-file.tsv',
                                  sql_statement="""SELECT * FROM "test_postgres_command_WriteFile";""",
-                                 delimiter_char='\t', header=False)]))
+                                 format=formats.CsvFormat(delimiter_char='\t', header=False))]))
 
     assert run_pipeline(pipeline)
 
