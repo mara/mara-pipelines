@@ -48,7 +48,7 @@ def test_postgres_command_WriteFile(postgres_db):
         description="",
         base_path=pathlib.Path(__file__).parent)
 
-    pipeline.add(
+    pipeline.add_initial(
         Task(id='initial_ddl',
              description="",
              commands=[ExecuteSQL("""
