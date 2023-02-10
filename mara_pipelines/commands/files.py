@@ -222,14 +222,14 @@ class ReadScriptOutput(pipelines.Command):
 
 
 class WriteFile(sql._SQLCommand):
-    """Writes data from a local file"""
+    """Writes data to a local file. The command is executed on the shell."""
 
     def __init__(self, dest_file_name: str, sql_statement: Optional[Union[Callable, str]] = None, sql_file_name: Optional[str] = None,
                  replace: Optional[Dict[str, str]] = None, db_alias: Optional[str] = None,
                  compression: Compression = Compression.NONE,
                  format: formats.Format = formats.CsvFormat()) -> None:
         """
-        Writes the output of a sql query to a file in a specific format.
+        Writes the output of a sql query to a file in a specific format. The command is executed on the shell.
 
         Args:
             dest_file_name: destination file name
