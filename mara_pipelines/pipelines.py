@@ -133,8 +133,10 @@ class ParallelTask(Node):
     def launch(self) -> 'Pipeline':
         sub_pipeline = Pipeline(self.id, description=f'Runs f{self.id} in parallel',
                                 max_number_of_parallel_tasks=self.max_number_of_parallel_tasks)
-        sub_pipeline.add_initial(Task(id='before', description='Runs commands-before', commands=self.commands_before))
-        sub_pipeline.add_final(Task(id='after', description='Runs commands-after', commands=self.commands_after))
+        if self.commands_before:
+            sub_pipeline.add_initial(Task(id='before', description='Runs commands-before', commands=self.commands_before))
+        if self.commands_after:
+            sub_pipeline.add_final(Task(id='after', description='Runs commands-after', commands=self.commands_after))
 
         self.add_parallel_tasks(sub_pipeline)
 
