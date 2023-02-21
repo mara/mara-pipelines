@@ -37,7 +37,7 @@ class ReadFile(pipelines.Command):
 
     def __init__(self, file_name: str, compression: Compression, target_table: str,
                  mapper_script_file_name: str = None, make_unique: bool = False,
-                 db_alias: str = None, csv_format: bool = False, skip_header: bool = False,
+                 db_alias: str = None, csv_format: bool = None, skip_header: bool = None,
                  delimiter_char: str = None, quote_char: str = None,
                  null_value_string: str = None, timezone: str = None,
                  file_format: formats.Format = None) -> None:
@@ -144,7 +144,7 @@ class ReadScriptOutput(pipelines.Command):
     """Reads the output from a python script into a database table"""
 
     def __init__(self, file_name: str, target_table: str, make_unique: bool = False,
-                 db_alias: str = None, csv_format: bool = False, skip_header: bool = False,
+                 db_alias: str = None, csv_format: bool = None, skip_header: bool = None,
                  delimiter_char: str = None, quote_char: str = None,
                  null_value_string: str = None, timezone: str = None,
                  pipe_format: formats.Format = None) -> None:
