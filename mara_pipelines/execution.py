@@ -265,6 +265,9 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                                     process.start()
                                     running_task_processes[next_node] = process
 
+                                    event_queue.put(pipeline_events.NodeStarted(
+                                        node_path=next_node.path(), start_time=task_start_time, is_pipeline=True))
+
                             except Exception as e:
                                 event_queue.put(pipeline_events.NodeStarted(
                                     node_path=next_node.path(), start_time=task_start_time, is_pipeline=True))
