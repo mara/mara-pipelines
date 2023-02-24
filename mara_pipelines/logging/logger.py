@@ -1,8 +1,9 @@
 """Text output logging with redirection to queues"""
 
+from datetime import datetime
 import multiprocessing
 import sys
-from datetime import datetime
+from typing import List
 
 from ..logging import pipeline_events
 import mara_pipelines.config
@@ -46,7 +47,7 @@ _current_node_path = None
 """When running in a forked task process, this will be bound to the path of the currently running pipeline node"""
 
 
-def redirect_output(event_queue: multiprocessing.Queue, node_path: [str]):
+def redirect_output(event_queue: multiprocessing.Queue, node_path: List[str]):
     """
     Redirects the output of the `log` function as well as `sys.stdout` and `sys.stderr` to `event_queue`
     Args:

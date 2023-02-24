@@ -1,12 +1,14 @@
 """Commands for interacting with HTTP"""
 
+from typing import List, Tuple, Dict
+
 from mara_page import html, _
 from .. import pipelines
 from ..shell import http_request_command
 
 
 class HttpRequest(pipelines.Command):
-    def __init__(self, url: str, headers: {str: str} = None, method: str = None, body: str = None) -> None:
+    def __init__(self, url: str, headers: Dict[str, str] = None, method: str = None, body: str = None) -> None:
         """
         Executes a HTTP request
 
@@ -25,7 +27,7 @@ class HttpRequest(pipelines.Command):
     def shell_command(self):
         return http_request_command(self.url, self.headers, self.method, self.body)
 
-    def html_doc_items(self) -> [(str, str)]:
+    def html_doc_items(self) -> List[Tuple[str, str]]:
         return [
             ('method', _.tt[self.method or 'GET']),
             ('url', _.tt[self.url]),

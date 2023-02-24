@@ -1,5 +1,7 @@
 """Tracks the last comparison value of an incremental copy"""
 
+from typing import List
+
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
 
@@ -18,7 +20,7 @@ class IncrementalCopyStatus(Base):
     last_comparison_value = sqlalchemy.Column(sqlalchemy.Text)
 
 
-def update(node_path: [str], source_db_alias: str, source_table: str, last_comparison_value):
+def update(node_path: List[str], source_db_alias: str, source_table: str, last_comparison_value):
     """
     Updates the last_comparison_value for a pipeline node and table
     Args:
@@ -39,7 +41,7 @@ DO UPDATE SET last_comparison_value = EXCLUDED.last_comparison_value
 ''', (node_path, f'{source_db_alias}.{source_table}', last_comparison_value))
 
 
-def delete(node_path: [str], source_db_alias: str, source_table: str):
+def delete(node_path: List[str], source_db_alias: str, source_table: str):
     """
     Deletes the last_comparison_value for a pipeline node and table
     Args:
@@ -57,7 +59,7 @@ WHERE node_path = {'%s'} AND source_table = {'%s'}
 
 
 
-def get_last_comparison_value(node_path: [str], source_db_alias: str, source_table: str):
+def get_last_comparison_value(node_path: List[str], source_db_alias: str, source_table: str):
     """
     Returns the last comparison value for a pipeline node and table
     Args:

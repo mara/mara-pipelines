@@ -1,4 +1,5 @@
 import requests
+from typing import List
 from .. import config
 from ..logging import pipeline_events
 from .notifier import ChatNotifier
@@ -56,7 +57,7 @@ class Teams(ChatNotifier):
         if response.status_code != 200:
             raise ValueError(f'Could not send message. Status {response.status_code}, response "{response.text}"')
 
-    def _format_output(self, output_events: [pipeline_events.Output]):
+    def _format_output(self, output_events: List[pipeline_events.Output]):
         output, last_format = '', ''
         for event in output_events:
             if event.format == pipeline_events.Output.Format.VERBATIM:

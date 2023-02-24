@@ -2,12 +2,13 @@
 
 import time
 import shlex
+from typing import Dict, List, Optional, Union
 
 from . import config
 from .logging import logger
 
 
-def run_shell_command(command: str, log_command: bool = True):
+def run_shell_command(command: str, log_command: bool = True) -> Union[List[str], bool]:
     """
     Runs a command in a bash shell and logs the output of the command in (near)real-time.
 
@@ -66,7 +67,7 @@ def run_shell_command(command: str, log_command: bool = True):
     return output_lines or True
 
 
-def sed_command(replace: {str: str}) -> str:
+def sed_command(replace: Dict[str, str]) -> str:
     """
     Creates a sed command string from a dictionary of replacements
 
@@ -85,7 +86,7 @@ def sed_command(replace: {str: str}) -> str:
            + '"'
 
 
-def http_request_command(url: str, headers: {str: str} = None, method: str = 'GET', body: str = None, body_from_stdin: bool = False) -> str:
+def http_request_command(url: str, headers: Optional[Dict[str, str]] = None, method: str = 'GET', body: Optional[str] = None, body_from_stdin: bool = False) -> str:
     """
     Creates a curl command sending a HTTP request
 

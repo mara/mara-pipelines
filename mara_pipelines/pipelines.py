@@ -1,7 +1,7 @@
 import copy
 import pathlib
 import re
-import typing
+from typing import Optional, Dict, Set, List, Tuple, Union
 
 from . import config
 
@@ -9,18 +9,18 @@ from . import config
 class Node():
     """Base class for pipeline elements"""
 
-    def __init__(self, id: str, description: str, labels: {str: str} = None) -> None:
+    def __init__(self, id: str, description: str, labels: Optional[Dict[str, str]] = None) -> None:
         if not re.match('^[a-z0-9_]+$', id):
             raise ValueError(f'Invalid id "{id}". Should only contain lowercase letters, numbers and "_".')
         self.id: str = id
         self.description: str = description
-        self.labels: {str: str} = labels or {}
+        self.labels: Dict[str, str] = labels or {}
 
-        self.upstreams: {'Node'} = set()
-        self.downstreams: {'Node'} = set()
+        self.upstreams: Set[Node] = set()
+        self.downstreams: Set[Node] = set()
 
-        self.parent: typing.Optional['Pipeline'] = None
-        self.cost: typing.Optional[float] = None
+        self.parent: Optional['Pipeline'] = None
+        self.cost: Optional[float] = None
 
 
     def parents(self):
@@ -30,7 +30,7 @@ class Node():
         else:
             return [self]
 
-    def path(self) -> [str]:
+    def path(self) -> List[str]:
         """Returns a list of ids that identify the node across all pipelines, from top to bottom"""
         return [node.id for node in self.parents()[1:]]
 
@@ -64,7 +64,7 @@ class Command():
         # logger.log(f'{config.bash_command_string()} -c {shlex.quote(shell_command)}', format=logger.Format.ITALICS)
         return shell.run_shell_command(shell_command)
 
-    def shell_command(self):
+    def shell_command(self) -> str:
         """A bash command string that that runs the command"""
         raise NotImplementedError()
 
@@ -72,7 +72,7 @@ class Command():
         """The path of the parent node"""
         return self.parent.path() if self.parent else ''
 
-    def html_doc_items(self) -> [(str, str)]:
+    def html_doc_items(self) -> List[Tuple[str, str]]:
         """
         Things to display in the documentation of a command. Can contain html
         Example: `[('filename','/tmp/foo.txt'), ('max-retries', 15)]`
@@ -81,7 +81,7 @@ class Command():
 
 
 class Task(Node):
-    def __init__(self, id: str, description: str, commands: [Command] = None, max_retries: int = None) -> None:
+    def __init__(self, id: str, description: str, commands: Optional[List[Command]] = None, max_retries: Optional[int] = None) -> None:
         super().__init__(id, description)
         self.commands = []
         self.max_retries = max_retries
@@ -96,7 +96,7 @@ class Task(Node):
             self.commands.append(command)
         command.parent = self
 
-    def add_commands(self, commands: [Command]):
+    def add_commands(self, commands: List[Command]):
         for command in commands:
             self.add_command(command)
 
@@ -108,8 +108,8 @@ class Task(Node):
 
 
 class ParallelTask(Node):
-    def __init__(self, id: str, description: str, max_number_of_parallel_tasks: int = None,
-                 commands_before: [Command] = None, commands_after: [Command] = None) -> None:
+    def __init__(self, id: str, description: str, max_number_of_parallel_tasks: Optional[int] = None,
+                 commands_before: Optional[List[Command]] = None, commands_after: Optional[List[Command]] = None) -> None:
         super().__init__(id, description)
         self.commands_before = []
         for command in commands_before or []:
@@ -142,7 +142,7 @@ class ParallelTask(Node):
 
         return sub_pipeline
 
-    def html_doc_items(self) -> [(str, str)]:
+    def html_doc_items(self) -> List[Tuple[str, str]]:
         """
         Things to display in the documentation of the parallel task. Can contain html.
         Example: `[('filename','/tmp/foo.txt'), ('max-retries', 15)]`
@@ -163,7 +163,7 @@ class Pipeline(Node):
         ignore_errors: When true, then the pipeline execution will not fail when a child node fails
         force_run_all_children: When true, child nodes will run even when their upstreams failed
     """
-    nodes: {str: Node} = None
+    nodes: Dict[str, Node] = None
     initial_node: Node = None
     final_node: Node = None
 
@@ -171,7 +171,7 @@ class Pipeline(Node):
                  description: str,
                  max_number_of_parallel_tasks: int = None,
                  base_path: pathlib.Path = None,
-                 labels: {str: str} = None,
+                 labels: Dict[str, str] = None,
                  ignore_errors: bool = False,
                  force_run_all_children: bool = False) -> None:
         super().__init__(id, description, labels)
@@ -181,7 +181,7 @@ class Pipeline(Node):
         self.force_run_all_children = force_run_all_children
         self.ignore_errors = ignore_errors
 
-    def add(self, node: Node, upstreams: [typing.Union[str, Node]] = None) -> 'Pipeline':
+    def add(self, node: Node, upstreams: Optional[List[Union[str, Node]]] = None) -> 'Pipeline':
         if node.id in self.nodes:
             raise ValueError(f'A node with id "{node.id}" already exists in pipeline "{self.id}"')
 
@@ -242,7 +242,7 @@ class Pipeline(Node):
         self.remove(node)
         self.add(new_node)
 
-    def add_dependency(self, upstream: typing.Union[Node, str], downstream: typing.Union[Node, str]):
+    def add_dependency(self, upstream: Union[Node, str], downstream: Union[Node, str]):
         if isinstance(upstream, str):
             if not upstream in self.nodes:
                 raise KeyError(f'Node "{upstream}" not found in pipeline "{self.id}"')
@@ -284,7 +284,7 @@ class Pipeline(Node):
         return self._base_path or (self.parent.base_path() if self.parent else pathlib.Path('.'))
 
 
-def find_node(path: [str]) -> (Node, bool):
+def find_node(path: List[str]) -> Tuple[Node, bool]:
     """
     Retrieves a node by the the path from its parents
     Args:

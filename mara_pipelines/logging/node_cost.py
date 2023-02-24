@@ -2,13 +2,14 @@
 
 import functools
 import math
+from typing import Dict
 
 import mara_db.config
 import mara_db.dbs
 from .. import pipelines
 
 
-def node_durations_and_run_times(node: pipelines.Node) -> {tuple: [float, float]}:
+def node_durations_and_run_times(node: pipelines.Node) -> Dict[tuple, object]:  # object = [float, float]
     """
     Returns for children of `node` the average duration and run time (sum of average duration of all leaf nodes)
 
@@ -43,7 +44,7 @@ GROUP BY node_path;""", {'path': node.path(), 'level': len(node.path())})
         return {tuple(row[0]): row[1:] for row in cursor.fetchall()}
 
 
-def compute_cost(node: pipelines.Node, node_durations_and_run_times: {tuple: [float, float]}) -> float:
+def compute_cost(node: pipelines.Node, node_durations_and_run_times: Dict[tuple, object]) -> float:  # object = [float, float]
     """
     Computes the cost of a node as maximum cumulative run time of a node and all its downstreams.
     Stores the result in `node` and also returns it

@@ -1,6 +1,7 @@
 """Functions for keeping track whether an input file has already been 'processed' """
 
-import datetime
+from datetime import datetime
+from typing import Dict
 
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
@@ -41,7 +42,7 @@ DO UPDATE SET last_modified_timestamp = EXCLUDED.last_modified_timestamp
     return True
 
 
-def already_processed_files(node_path: str) -> {str: datetime}:
+def already_processed_files(node_path: str) -> Dict[str, datetime]:
     """
     Returns all files that already have been processed by a node
     Args:
