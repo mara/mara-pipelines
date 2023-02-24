@@ -73,14 +73,15 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
         def exit_contexts(active_contexts: {str: contexts.ExecutionContext}, exception: Exception = None):
             for context_alias, context in active_contexts.items():
                 try:
-                    print(f"exit execution context '{context_alias}'")
+                    logger.log(f"exit execution context '{context_alias}'",
+                               format=logger.Format.ITALICS)
                     if exception:
                         context.__exit__(type(exception), exception, exception.__traceback__)
                     else:
                         context.__exit__(None, None, None)
                 except e:
-                    print(f"failed to exit execution context '{context_alias}'. Exception: {e}")
-                    pass
+                    logger.log(f"failed to exit execution context '{context_alias}'.\nException: {e}",
+                               format=logger.Format.ITALICS, is_error=True)
 
         try:
             # capture output of print statements and other unplanned output
@@ -263,7 +264,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             except Exception as e:
                                 event_queue.put(pipeline_events.NodeStarted(
                                     node_path=next_node.path(), start_time=task_start_time, is_pipeline=True))
-                                logger.log(message=f'Could not launch parallel tasks', format=logger.Format.ITALICS,
+                                logger.log(message='Could not launch parallel tasks', format=logger.Format.ITALICS,
                                            is_error=True)
                                 logger.log(message=traceback.format_exc(),
                                            format=pipeline_events.Output.Format.VERBATIM, is_error=True)
@@ -302,7 +303,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
                                     active_contexts[next_node_context] = new_context
                                 except Exception as e:
-                                    logger.log(message=f"Could not initiate execution context", format=logger.Format.ITALICS,
+                                    logger.log(message="Could not initiate execution context", format=logger.Format.ITALICS,
                                                is_error=True)
                                     logger.log(message=traceback.format_exc(),
                                             format=pipeline_events.Output.Format.VERBATIM, is_error=True)
