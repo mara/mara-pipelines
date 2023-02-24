@@ -7,6 +7,7 @@ import os.path
 import pathlib
 import re
 from html import escape
+import typing as t
 
 import mara_db.config
 import mara_db.dbs
@@ -23,7 +24,7 @@ from ..logging import logger
 class ReadMode(enum.EnumMeta):
     """A mode for specifying which files from a list of files to load"""
     ALL = 'all'  # load all files that match the pattern
-    ONLY_LATEST = 'only_latest'  # load only the latest matching file (requires date-regex)
+    ONLY_LATEST = 'only_latest'  # load only the latest matching file (via date-regex or by file name)
     ONLY_NEW = 'only_new'  # load only files that have not been loaded yet
     ONLY_CHANGED = 'only_changed'  # load all files that were modified since the last run (or that are new)
     ONLY_NEW_EXCEPT_LATEST = 'only_new_except_latest'  # load only files that have not been loaded yet and not the last one
@@ -54,11 +55,24 @@ class _ParallelRead(pipelines.ParallelTask):
         self._db_alias = db_alias
         self.timezone = timezone
 
+        self.use_workers = self.read_mode in [ReadMode.ALL] # NOTE: It should be possible to implement here ReadMode.ONLY_NEW
+                                                            #       and ReadMode.ONLY_CHANGED as well. I tried it but run into
+                                                            #        issues with the lambda function used in `process_commands`:
+                                                            #
+                                                            #       The commands passed via `feed_workers` are processed through a
+                                                            #       multiprocessing.Queue. Probably all objects/functions passed over
+                                                            #       there need to be declared on root level. See as well:
+                                                            #       https://stackoverflow.com/a/8805244
+
     @property
     def db_alias(self):
         return self._db_alias or config.default_db_alias()
 
     def add_parallel_tasks(self, sub_pipeline: 'pipelines.Pipeline') -> None:
+        if self.use_workers and not self.file_dependencies:
+            pipelines.ParallelTask.add_parallel_tasks(self, sub_pipeline)
+            return
+
         import more_itertools
 
         files = []  # A list of (file_name, date_or_file_name) tuples
@@ -157,13 +171,37 @@ class _ParallelRead(pipelines.ParallelTask):
                     pipelines.Task(id=str(n), description=f'Reads {len(chunk)} files',
                                    commands=sum([self.parallel_commands(x[0]) for x in chunk], [])))
 
+    def feed_workers(self) -> t.Iterable[t.Union[pipelines.Command, t.List[pipelines.Command]]]:
+        """
+        Generates the commands which the worker shall execute.
+        """
+        data_dir = config.data_dir()
+        no_file_to_process = True
+
+        for file in glob.iglob(str(pathlib.Path(data_dir, self.file_pattern))):
+            #print(f'file: {file}')
+
+            # for incremental loading, determine which files already have been processed
+            if self.read_mode not in (ReadMode.ALL):
+                last_modified_datetime = _processed_files.already_processed_file(self.path(), file)
+
+                if last_modified_datetime and (self.read_mode != ReadMode.ONLY_CHANGED or self._last_modification_timestamp(file) <= last_modified_datetime):
+                    continue
+
+            no_file_to_process = False
+            yield self.parallel_commands(file)
+
+        if no_file_to_process:
+            logger.log('No newer files', format=logger.Format.ITALICS)
+            return
+
     def parallel_commands(self, file_name: str) -> [pipelines.Command]:
         return [self.read_command(file_name)] + (
             [python.RunFunction(function=lambda: _processed_files.track_processed_file(
                 self.path(), file_name, self._last_modification_timestamp(file_name)))]
             if self.read_mode != ReadMode.ALL else [])
 
-    def read_command(self) -> pipelines.Command:
+    def read_command(self, file_name: str) -> pipelines.Command:
         raise NotImplementedError
 
     def _last_modification_timestamp(self, file_name):

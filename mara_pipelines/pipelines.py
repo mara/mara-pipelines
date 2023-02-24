@@ -1,7 +1,8 @@
 import copy
+import multiprocessing
 import pathlib
 import re
-import typing
+import typing as t
 
 from . import config
 
@@ -19,8 +20,8 @@ class Node():
         self.upstreams: {'Node'} = set()
         self.downstreams: {'Node'} = set()
 
-        self.parent: typing.Optional['Pipeline'] = None
-        self.cost: typing.Optional[float] = None
+        self.parent: t.Optional['Pipeline'] = None
+        self.cost: t.Optional[float] = None
 
 
     def parents(self):
@@ -107,6 +108,48 @@ class Task(Node):
         return True
 
 
+class Worker(Node):
+    """A worker which retrieves a list of commands to be executed from a multiprocessing.Queue"""
+    def __init__(self, id: str, description: str) -> None:
+        super().__init__(id, description)
+        self.command_queue: multiprocessing.Queue = None
+        self.origin_parent: Node = None  # ParallelTask nodes get converted during the execution via the ParallelTask.launch() method. This property returns the original parent of the worker node.
+
+    def run(self):
+        import time
+        import queue
+
+        while True:
+            while not self.command_queue.empty():
+                try:
+                    value = self.command_queue.get(timeout=0.001)
+                except queue.Empty:
+                    # this happens when the worker is waiting for the feed_worker command
+                    break
+                except ValueError:
+                    # the queue is closed, all task are done
+                    return True
+
+                if isinstance(value, str) and value == "DONE":
+                    return True
+
+                commands: t.List[Command]
+                if isinstance(value, list):
+                    commands = value
+                elif isinstance(value, Command):
+                    commands = [value]
+                else:
+                    raise ValueError(f"Unexecpted type passed to command_queue: {value}")
+
+                for command in commands:
+                    command.parent = self
+                    if not command.run():
+                        return False
+
+            # don't busy-wait
+            time.sleep(0.001)
+
+
 class ParallelTask(Node):
     def __init__(self, id: str, description: str, max_number_of_parallel_tasks: int = None,
                  commands_before: [Command] = None, commands_after: [Command] = None) -> None:
@@ -117,7 +160,8 @@ class ParallelTask(Node):
         self.commands_after = []
         for command in commands_after or []:
             self.add_command_after(command)
-        self.max_number_of_parallel_tasks = max_number_of_parallel_tasks
+        self.max_number_of_parallel_tasks = max_number_of_parallel_tasks or config.max_number_of_parallel_tasks()
+        self.use_workers: bool = False
 
     def add_command_before(self, command: Command):
         self.commands_before.append(command)
@@ -128,7 +172,11 @@ class ParallelTask(Node):
         command.parent = self
 
     def add_parallel_tasks(self, sub_pipeline: 'Pipeline') -> None:
-        pass
+        if self.use_workers:
+            print(f'Use {self.max_number_of_parallel_tasks} worker tasks')
+            for n in range(self.max_number_of_parallel_tasks):
+                sub_pipeline.add(
+                    Worker(id=str(n), description=f'Worker {n}'))
 
     def launch(self) -> 'Pipeline':
         sub_pipeline = Pipeline(self.id, description=f'Runs f{self.id} in parallel',
@@ -141,6 +189,15 @@ class ParallelTask(Node):
         self.add_parallel_tasks(sub_pipeline)
 
         return sub_pipeline
+
+    def feed_workers(self) -> t.Iterable[t.Union[Command, t.List[Command]]]:
+        """
+        Generates the commands which the worker tasks shall execute.
+
+        Args:
+            command_queue: to this queue new command or command lists must be passed
+        """
+        pass
 
     def html_doc_items(self) -> [(str, str)]:
         """
@@ -181,7 +238,7 @@ class Pipeline(Node):
         self.force_run_all_children = force_run_all_children
         self.ignore_errors = ignore_errors
 
-    def add(self, node: Node, upstreams: [typing.Union[str, Node]] = None) -> 'Pipeline':
+    def add(self, node: Node, upstreams: [t.Union[str, Node]] = None) -> 'Pipeline':
         if node.id in self.nodes:
             raise ValueError(f'A node with id "{node.id}" already exists in pipeline "{self.id}"')
 
@@ -242,7 +299,7 @@ class Pipeline(Node):
         self.remove(node)
         self.add(new_node)
 
-    def add_dependency(self, upstream: typing.Union[Node, str], downstream: typing.Union[Node, str]):
+    def add_dependency(self, upstream: t.Union[Node, str], downstream: t.Union[Node, str]):
         if isinstance(upstream, str):
             if not upstream in self.nodes:
                 raise KeyError(f'Node "{upstream}" not found in pipeline "{self.id}"')

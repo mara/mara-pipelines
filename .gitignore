@@ -17,3 +17,5 @@ docs/_build/
 
 # Environments
 /.venv
+
+/tests/.tmp
