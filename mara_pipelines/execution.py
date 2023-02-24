@@ -597,19 +597,31 @@ class FeedWorkersProcess(_Subprocess):
                     continue
                 self._command_queue_put(commands)
         except Exception as e:
-            logger.log(message=traceback.format_exc(), format=logger.Format.VERBATIM, is_error=True)
+            logger.log(message=traceback.format_exc(), format=logger.Format.VERBATIM,
+                       is_error=True)
             succeeded = False
         finally:
             # per worker send a "DONE" message to inform that all commands are send
-            for _ in range(self.task.max_number_of_parallel_tasks):
-                # In case all workers crashed this might end into an endless loop.
-                # Therefore we use a max_retries here which will try over 3 seconds
-                # to put the "DONE" into the queue.
-                self._command_queue_put("DONE", max_retries=3)
+            self.inform_worker_nodes('DONE')
 
             self.command_queue.close()
 
         self._status_queue.put(succeeded)
+
+    def inform_worker_nodes(self, message: str):
+        """Sends a message to all worker nodes"""
+        for _ in range(self.task.max_number_of_parallel_tasks):
+            # In case all workers crashed this might end into an endless loop.
+            # Therefore we use a max_retries here which will try over 3 seconds
+            # to put the "DONE" into the queue.
+            self._command_queue_put(message, max_retries=3)
+
+    def terminate(self):
+        # before terminating, tell all worker nodes to end with failture when they are
+        # finished
+        self.inform_worker_nodes('TERMINATE')
+
+        super().terimate()
 
 
 class WorkerProcess(TaskProcess):
