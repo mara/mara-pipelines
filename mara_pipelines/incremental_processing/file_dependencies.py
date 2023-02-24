@@ -6,7 +6,7 @@ import pathlib
 import sqlalchemy
 from sqlalchemy.ext.declarative import declarative_base
 
-import mara_db.postgresql
+import mara_db.dbs
 from .. import config
 
 Base = declarative_base()
@@ -32,7 +32,7 @@ def update(node_path: [str], dependency_type: str, pipeline_base_path: str, file
         pipeline_base_path: The base directory of the pipeline
         file_dependencies: A list of file names relative to pipeline_base_path
     """
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f"""
 INSERT INTO data_integration_file_dependency (node_path, dependency_type, hash, timestamp)
 VALUES ({'%s,%s,%s,%s'})
@@ -48,7 +48,7 @@ def delete(node_path: [str], dependency_type: str):
         node_path: The path of the node that depends on the files
         dependency_type: An arbitrary string that allows to distinguish between multiple dependencies of a node
     """
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f"""
 DELETE FROM data_integration_file_dependency
 WHERE node_path = {'%s'} AND dependency_type = {'%s'}
@@ -68,7 +68,7 @@ def is_modified(node_path: [str], dependency_type: str, pipeline_base_path: str,
     Returns: True when at least one of the files was modified
 
     """
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute("""
 SELECT TRUE
 FROM data_integration_file_dependency

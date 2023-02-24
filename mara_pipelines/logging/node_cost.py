@@ -4,7 +4,7 @@ import functools
 import math
 
 import mara_db.config
-import mara_db.postgresql
+import mara_db.dbs
 from .. import pipelines
 
 
@@ -19,7 +19,7 @@ def node_durations_and_run_times(node: pipelines.Node) -> {tuple: [float, float]
         A dictionary of {(node_path,): [avg_duration, avg_run_time]} entries for all children of `node`
 
     """
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f"""
 WITH child_nodes AS
        (SELECT node.node_path [ 0 : {'%(level)s'} + 1]                     AS node_path,

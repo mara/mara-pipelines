@@ -5,7 +5,6 @@ from sqlalchemy.ext.declarative import declarative_base
 
 import mara_db.config
 import mara_db.dbs
-import mara_db.postgresql
 
 Base = declarative_base()
 
@@ -31,7 +30,7 @@ def update(node_path: [str], source_db_alias: str, source_table: str, last_compa
     Returns:
 
     """
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f'''
 INSERT INTO data_integration_incremental_copy_status (node_path, source_table, last_comparison_value)
 VALUES ({'%s,%s,%s'})
@@ -50,7 +49,7 @@ def delete(node_path: [str], source_db_alias: str, source_table: str):
     Returns:
 
     """
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f'''
 DELETE FROM data_integration_incremental_copy_status
 WHERE node_path = {'%s'} AND source_table = {'%s'}
@@ -69,7 +68,7 @@ def get_last_comparison_value(node_path: [str], source_db_alias: str, source_tab
     Returns:
         The value or None
     """
-    with mara_db.postgresql.postgres_cursor_context('mara') as cursor:
+    with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f"""
 SELECT last_comparison_value
 FROM data_integration_incremental_copy_status

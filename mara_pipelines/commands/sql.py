@@ -8,7 +8,6 @@ from typing import Callable, Union
 
 import mara_db.dbs
 import mara_db.shell
-import mara_db.postgresql
 from mara_page import _, html
 from .. import config, shell, pipelines
 from ..incremental_processing import file_dependencies
@@ -293,7 +292,7 @@ class CopyIncrementally(_SQLCommand):
         target_table_empty_query = f'SELECT TRUE FROM {self.target_table} LIMIT 1'
         logger.log(f'Check if target table is empty', format=logger.Format.ITALICS)
         logger.log(target_table_empty_query, format=logger.Format.VERBATIM)
-        with mara_db.postgresql.postgres_cursor_context(self.target_db_alias) as cursor:
+        with mara_db.dbs.cursor_context(self.target_db_alias) as cursor:
             cursor.execute(f'SELECT TRUE FROM {self.target_table} LIMIT 1')
             target_table_is_empty = not cursor.fetchone()
             logger.log(f"target table{'' if target_table_is_empty else ' not'} empty", format=logger.Format.ITALICS)
@@ -310,7 +309,7 @@ class CopyIncrementally(_SQLCommand):
             if not target_table_is_empty:
                 truncate_query = f'TRUNCATE TABLE {self.target_table}'
                 logger.log(truncate_query, format=logger.Format.VERBATIM)
-                with mara_db.postgresql.postgres_cursor_context(self.target_db_alias) as cursor:
+                with mara_db.dbs.cursor_context(self.target_db_alias) as cursor:
                     cursor.execute(truncate_query)
             elif last_comparison_value:
                 # table is empty but we have a last comparison value from earlier runs
@@ -347,7 +346,7 @@ class CopyIncrementally(_SQLCommand):
             # now the upsert table has to be merged with the target one
 
             # retrieve the target table columns to build the SET clause of the upsert query
-            with mara_db.postgresql.postgres_cursor_context(self.target_db_alias) as cursor:
+            with mara_db.dbs.cursor_context(self.target_db_alias) as cursor:
                 retrieve_column_query = f"SELECT attname FROM pg_attribute WHERE attrelid = '{self.target_table}'::REGCLASS AND attnum > 0;"
                 logger.log(retrieve_column_query, format=logger.Format.VERBATIM)
                 cursor.execute(retrieve_column_query)
