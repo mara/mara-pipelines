@@ -9,12 +9,13 @@ from . import config
 class Node():
     """Base class for pipeline elements"""
 
-    def __init__(self, id: str, description: str, labels: {str: str} = None) -> None:
+    def __init__(self, id: str, description: str, labels: {str: str} = None, context: str = None) -> None:
         if not re.match('^[a-z0-9_]+$', id):
             raise ValueError(f'Invalid id "{id}". Should only contain lowercase letters, numbers and "_".')
         self.id: str = id
         self.description: str = description
         self.labels: {str: str} = labels or {}
+        self._context: str = context
 
         self.upstreams: {'Node'} = set()
         self.downstreams: {'Node'} = set()
@@ -38,6 +39,12 @@ class Node():
         """Returns a uri fragment for referring to nodes"""
         return '/'.join(self.path()) or None
 
+    def context(self) -> str:
+        if self._context:
+            return self._context
+        if self.parent:
+            return self.parent.context()
+
     def __repr__(self):
         return f'<{self.__class__.__name__} "{self.id}">'
 
@@ -51,16 +58,22 @@ class Command():
     """
     parent: Node = None
 
-    def run(self) -> bool:
+    def run(self, *args, **kargs) -> bool:
         """
         Runs the command
+
+        Args:
+            context: The execution context for the shell command. If not set the local shell is used
 
         Returns:
             False on failure
         """
-        from . import shell
         shell_command = self.shell_command()
 
+        if 'context' in kargs:
+            return kargs['context'].run_shell_command(shell_command)
+
+        from . import shell
         # logger.log(f'{config.bash_command_string()} -c {shlex.quote(shell_command)}', format=logger.Format.ITALICS)
         return shell.run_shell_command(shell_command)
 
@@ -81,8 +94,8 @@ class Command():
 
 
 class Task(Node):
-    def __init__(self, id: str, description: str, commands: [Command] = None, max_retries: int = None) -> None:
-        super().__init__(id, description)
+    def __init__(self, id: str, description: str, commands: [Command] = None, max_retries: int = None, context: str = None) -> None:
+        super().__init__(id, description, context=context)
         self.commands = []
         self.max_retries = max_retries
 
@@ -100,17 +113,24 @@ class Task(Node):
         for command in commands:
             self.add_command(command)
 
-    def run(self):
+    def run(self, *args, **kargs) -> bool:
+        from inspect import signature
         for command in self.commands:
-            if not command.run():
-                return False
+            if signature(command.run).parameters:
+                if not command.run(*args, **kargs):
+                    return False
+            else:
+                # call run for legacy commands which do not implement parameter *args and **kargs
+                if not command.run():
+                    return False
         return True
 
 
 class ParallelTask(Node):
     def __init__(self, id: str, description: str, max_number_of_parallel_tasks: int = None,
-                 commands_before: [Command] = None, commands_after: [Command] = None) -> None:
-        super().__init__(id, description)
+                 commands_before: [Command] = None, commands_after: [Command] = None,
+                 context: str = None) -> None:
+        super().__init__(id, description, context=context)
         self.commands_before = []
         for command in commands_before or []:
             self.add_command_before(command)
@@ -149,18 +169,6 @@ class ParallelTask(Node):
 
 
 class Pipeline(Node):
-    """
-    A directed acyclic graph (DAG) of nodes with dependencies between them.
-
-    Args:
-        id: The id of the pipeline
-        description: A short summary of what the pipeline is doing
-        max_number_of_parallel_tasks: Only that many nodes of the pipeline will run in parallel
-        base_path: The absolute path of the pipeline root, file names are relative to that
-        labels: An arbitrary dictionary application specific tags, schemas and so on.
-        ignore_errors: When true, then the pipeline execution will not fail when a child node fails
-        force_run_all_children: When true, child nodes will run even when their upstreams failed
-    """
     nodes: {str: Node} = None
     initial_node: Node = None
     final_node: Node = None
@@ -171,8 +179,22 @@ class Pipeline(Node):
                  base_path: pathlib.Path = None,
                  labels: {str: str} = None,
                  ignore_errors: bool = False,
-                 force_run_all_children: bool = False) -> None:
-        super().__init__(id, description, labels)
+                 force_run_all_children: bool = False,
+                 context: str = None) -> None:
+        """
+        A directed acyclic graph (DAG) of nodes with dependencies between them.
+
+        Args:
+            id: The id of the pipeline
+            description: A short summary of what the pipeline is doing
+            max_number_of_parallel_tasks: Only that many nodes of the pipeline will run in parallel
+            base_path: The absolute path of the pipeline root, file names are relative to that
+            labels: An arbitrary dictionary application specific tags, schemas and so on.
+            ignore_errors: When true, then the pipeline execution will not fail when a child node fails
+            force_run_all_children: When true, child nodes will run even when their upstreams failed
+            context: The execution context for the pipeline
+        """
+        super().__init__(id, description, labels, context=context)
         self.nodes = {}
         self._base_path = base_path
         self.max_number_of_parallel_tasks = max_number_of_parallel_tasks

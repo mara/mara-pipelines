@@ -16,8 +16,9 @@ import traceback
 from multiprocessing import queues
 from multiprocessing.context import BaseContext
 from queue import Empty
+from inspect import signature
 
-from . import pipelines, config
+from . import pipelines, config, contexts
 from .logging import logger, pipeline_events, system_statistics, run_log, node_cost
 from . import events
 
@@ -66,6 +67,21 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
     def run():
 
         statistics_process: multiprocessing.Process = None
+        # execution contexts
+        active_contexts: {str: contexts.ExecutionContext} = {}
+
+        def exit_contexts(active_contexts: {str: contexts.ExecutionContext}, exception: Exception = None):
+            for context_alias, context in active_contexts.items():
+                try:
+                    logger.log(f"exit execution context '{context_alias}'",
+                               format=logger.Format.ITALICS)
+                    if exception:
+                        context.__exit__(type(exception), exception, exception.__traceback__)
+                    else:
+                        context.__exit__(None, None, None)
+                except e:
+                    logger.log(f"failed to exit execution context '{context_alias}'.\nException: {e}",
+                               format=logger.Format.ITALICS, is_error=True)
 
         try:
             # capture output of print statements and other unplanned output
@@ -248,7 +264,7 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                             except Exception as e:
                                 event_queue.put(pipeline_events.NodeStarted(
                                     node_path=next_node.path(), start_time=task_start_time, is_pipeline=True))
-                                logger.log(message=f'Could not launch parallel tasks', format=logger.Format.ITALICS,
+                                logger.log(message='Could not launch parallel tasks', format=logger.Format.ITALICS,
                                            is_error=True)
                                 logger.log(message=traceback.format_exc(),
                                            format=pipeline_events.Output.Format.VERBATIM, is_error=True)
@@ -263,18 +279,46 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
 
                         else:
                             # run a task in a subprocess
+                            task_start_time = datetime.datetime.now(tz.utc)
                             if next_node.parent in running_pipelines:
                                 running_pipelines[next_node.parent][1] += 1
                             event_queue.put(
-                                pipeline_events.NodeStarted(next_node.path(), datetime.datetime.now(tz.utc), False))
+                                pipeline_events.NodeStarted(next_node.path(), task_start_time, False))
                             event_queue.put(pipeline_events.Output(
                                 node_path=next_node.path(), format=logger.Format.ITALICS,
                                 message='★ ' + node_cost.format_duration(
                                     node_durations_and_run_times.get(tuple(next_node.path()), [0, 0])[0])))
 
-                            process = TaskProcess(next_node, event_queue, multiprocessing_context)
-                            process.start()
-                            running_task_processes[next_node] = process
+                            # initialize context
+                            next_node_context = next_node.context() or config.default_execution_context()
+                            if next_node_context not in active_contexts:
+                                # enter context
+                                try:
+                                    logger.log(message=f"enter execution context '{next_node_context}'", format=logger.Format.STANDARD)
+
+                                    new_context = contexts.context(next_node_context)
+
+                                    if not new_context.__enter__() or not new_context.is_active:
+                                        raise Exception(f'Could not enter execution context {next_node_context}')
+
+                                    active_contexts[next_node_context] = new_context
+                                except Exception as e:
+                                    logger.log(message="Could not initiate execution context", format=logger.Format.ITALICS,
+                                               is_error=True)
+                                    logger.log(message=traceback.format_exc(),
+                                            format=pipeline_events.Output.Format.VERBATIM, is_error=True)
+                                    event_queue.put(pipeline_events.NodeFinished(
+                                        node_path=next_node.path(), start_time=task_start_time,
+                                        end_time=datetime.datetime.now(tz.utc), is_pipeline=False, succeeded=False))
+
+                                    failed_pipelines.add(next_node.parent)
+                                    processed_nodes.add(next_node)
+
+                            if next_node_context in active_contexts:
+                                status_queue = multiprocessing_context.Queue()
+                                process = TaskProcess(next_node, event_queue, status_queue, active_contexts[next_node_context])
+                                process.start()
+                                running_task_processes[next_node] = process
 
                 # check whether some of the running processes finished
                 for task_process in list(running_task_processes.values()):  # type: TaskProcess
@@ -306,12 +350,19 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: {pipelines.Node} = None,
                 # don't busy-wait
                 time.sleep(0.001)
 
-        except:
+        except e:
+            # exit active contexts
+            exit_contexts(active_contexts, exception=e)
+
             event_queue.put(pipeline_events.Output(node_path=pipeline.path(), message=traceback.format_exc(),
                                                    format=logger.Format.ITALICS, is_error=True))
 
-        # run again because `dequeue` might have moved more nodes to `finished_nodes`
-        track_finished_pipelines()
+        finally:
+            # exit active contexts
+            exit_contexts(active_contexts)
+
+            # run again because `dequeue` might have moved more nodes to `finished_nodes`
+            track_finished_pipelines()
 
         if statistics_process:
             # kill the stats process (joining or terminating does not work in gunicorn)
@@ -424,7 +475,7 @@ def initialize_run_logger() -> events.EventHandler:
 
 
 class TaskProcess:
-    def __init__(self, task: pipelines.Task, event_queue: multiprocessing.Queue, multiprocessing_context: BaseContext):
+    def __init__(self, task: pipelines.Task, event_queue: multiprocessing.Queue, multiprocessing_context: BaseContext, context: contexts.ExecutionContext):
         """
         Runs a task in a separate sub process.
 
@@ -440,8 +491,15 @@ class TaskProcess:
         self.task = task
         self.event_queue = event_queue
         self._status_queue = multiprocessing_context.Queue()
+        self.context = context
         self.start_time = datetime.datetime.now(tz.utc)
         self._succeeded: bool = None
+        self.run_kargs = {}
+
+        # add dynamic kargs for self.task.run(...)
+        task_run_signature = signature(task.run)
+        if 'context' in task_run_signature.parameters or 'kargs' in task_run_signature.parameters:
+            self.run_kargs['context'] = context
 
     def run(self):
         # redirect stdout and stderr to queue
@@ -451,7 +509,7 @@ class TaskProcess:
         attempt = 0
         try:
             while True:
-                if not self.task.run():
+                if not self.task.run(**self.run_kargs):
                     max_retries = self.task.max_retries or config.default_task_max_retries()
                     if attempt < max_retries:
                         attempt += 1

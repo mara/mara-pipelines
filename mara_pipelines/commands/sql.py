@@ -102,7 +102,7 @@ class ExecuteSQL(_SQLCommand):
     def db_alias(self):
         return self._db_alias or config.default_db_alias()
 
-    def run(self) -> bool:
+    def run(self, *args, **kargs) -> bool:
         if self.sql_file_name:
             logger.log(self.sql_file_name, logger.Format.ITALICS)
 
@@ -124,7 +124,7 @@ class ExecuteSQL(_SQLCommand):
                 # probably not be there (usually the first step is a DROP).
                 file_dependencies.delete(self.node_path(), dependency_type)
 
-        if not super().run():
+        if not super().run(*args, **kargs):
             return False
 
         if self.file_dependencies:
@@ -167,7 +167,7 @@ class Copy(_SQLCommand):
     def file_path(self) -> pathlib.Path:
         return self.parent.parent.base_path() / self.sql_file_name
 
-    def run(self) -> bool:
+    def run(self, *args, **kargs) -> bool:
         if self.sql_file_name:
             logger.log(self.sql_file_name, logger.Format.ITALICS)
 
@@ -187,7 +187,7 @@ class Copy(_SQLCommand):
                 # (see also above in ExecuteSQL)
                 file_dependencies.delete(self.node_path(), dependency_type)
 
-        if not super().run():
+        if not super().run(*args, **kargs):
             return False
 
         if self.file_dependencies:
@@ -263,15 +263,17 @@ class CopyIncrementally(_SQLCommand):
     def target_db_alias(self):
         return self._target_db_alias or config.default_db_alias()
 
-    def run(self) -> bool:
+    def run(self, *args, **kargs) -> bool:
+        run_shell_command = kargs['context'].run_shell_command if 'context' in kargs else shell.run_shell_command
+
         # retrieve the highest current value for the modification comparison (e.g.: the highest timestamp)
         # We intentionally use the command line here (rather than sqlalchemy) to avoid forcing people python drivers,
         # which can be hard for example in the case of SQL Server
         logger.log(f'Get new max modification comparison value...', format=logger.Format.ITALICS)
         max_value_query = f'SELECT max({self.modification_comparison}) AS maxval FROM {self.source_table}'
         logger.log(max_value_query, format=logger.Format.VERBATIM)
-        result = shell.run_shell_command(f'echo {shlex.quote(max_value_query)} \\\n  | '
-                                         + mara_db.shell.copy_to_stdout_command(self.source_db_alias))
+        result = run_shell_command(f'echo {shlex.quote(max_value_query)} \\\n  | '
+                                   + mara_db.shell.copy_to_stdout_command(self.source_db_alias))
 
         if not result:
             return False
@@ -323,7 +325,7 @@ class CopyIncrementally(_SQLCommand):
             # overwrite the comparison criteria to get everything
             replace = {self.comparison_value_placeholder: '(1=1)'}
             complete_copy_command = self._copy_command(self.target_table, replace)
-            if not shell.run_shell_command(complete_copy_command):
+            if not run_shell_command(complete_copy_command):
                 return False
 
         else:
@@ -332,8 +334,8 @@ class CopyIncrementally(_SQLCommand):
             create_upsert_table_query = (f'DROP TABLE IF EXISTS {self.target_table}_upsert;\n'
                                          + f'CREATE TABLE {self.target_table}_upsert AS SELECT * from {self.target_table} WHERE FALSE')
 
-            if not shell.run_shell_command(f'echo {shlex.quote(create_upsert_table_query)} \\\n  | '
-                                           + mara_db.shell.query_command(self.target_db_alias)):
+            if not run_shell_command(f'echo {shlex.quote(create_upsert_table_query)} \\\n  | '
+                                     + mara_db.shell.query_command(self.target_db_alias)):
                 return False
 
             # perform the actual copy replacing the placeholder
@@ -341,7 +343,7 @@ class CopyIncrementally(_SQLCommand):
             modification_comparison_type = self.modification_comparison_type or ''
             replace = {self.comparison_value_placeholder:
                            f'({self.modification_comparison} >= {modification_comparison_type} \'{last_comparison_value}\')'}
-            if not shell.run_shell_command(self._copy_command(self.target_table + '_upsert', replace)):
+            if not run_shell_command(self._copy_command(self.target_table + '_upsert', replace)):
                 return False
 
             # now the upsert table has to be merged with the target one
@@ -370,11 +372,11 @@ INSERT INTO {self.target_table}
 SELECT src.*
 FROM {self.target_table}_upsert src
 WHERE NOT EXISTS (SELECT 1 FROM {self.target_table} dst WHERE {key_definition})"""
-                if not shell.run_shell_command(f'echo {shlex.quote(update_query)} \\\n  | '
-                                               + mara_db.shell.query_command(self.target_db_alias)):
+                if not run_shell_command(f'echo {shlex.quote(update_query)} \\\n  | '
+                                         + mara_db.shell.query_command(self.target_db_alias)):
                     return False
-                elif not shell.run_shell_command(f'echo {shlex.quote(insert_query)} \\\n  | '
-                                                 + mara_db.shell.query_command(self.target_db_alias)):
+                elif not run_shell_command(f'echo {shlex.quote(insert_query)} \\\n  | '
+                                           + mara_db.shell.query_command(self.target_db_alias)):
                     return False
             else:
                 upsery_query = f"""
@@ -383,8 +385,8 @@ SELECT {self.target_table}_upsert.*
 FROM {self.target_table}_upsert
 ON CONFLICT ({key_definition})
 DO UPDATE SET {set_clause}"""
-                if not shell.run_shell_command(f'echo {shlex.quote(upsery_query)} \\\n  | '
-                                               + mara_db.shell.query_command(self.target_db_alias)):
+                if not run_shell_command(f'echo {shlex.quote(upsery_query)} \\\n  | '
+                                         + mara_db.shell.query_command(self.target_db_alias)):
                     return False
 
         # update data_integration_incremental_copy_status

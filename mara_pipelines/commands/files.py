@@ -30,7 +30,7 @@ class Compression(enum.EnumMeta):
 
 
 @deprecation.deprecated(deprecated_in='3.2.0', removed_in='4.0.0',
-                        current_version=__version__,
+                        current_version=mara_pipelines.__version__,
                         details='Use mara_storage.compression.uncompressor instead')
 def uncompressor(compression: Compression) -> str:
     """Maps compression methods to command line programs that can unpack the respective files"""

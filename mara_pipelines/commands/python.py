@@ -29,7 +29,7 @@ class RunFunction(pipelines.Command):
         self.args = args or []
         self.file_dependencies = file_dependencies or []
 
-    def run(self) -> bool:
+    def run(self, *args, **kargs) -> bool:
         dependency_type = 'RunFunction ' + self.function.__name__
         if self.file_dependencies:
             assert (self.parent)
@@ -78,7 +78,7 @@ class ExecutePython(pipelines.Command):
     def args(self):
         return self._args() if callable(self._args) else self._args
 
-    def run(self) -> bool:
+    def run(self, *args, **kargs) -> bool:
         dependency_type = 'ExecutePython ' + self.file_name
         if self.file_dependencies:
             assert (self.parent)
@@ -89,7 +89,7 @@ class ExecutePython(pipelines.Command):
                 logger.log('no changes')
                 return True
 
-        if not super().run():
+        if not super().run(*args, **kargs):
             return False
 
         if self.file_dependencies:
