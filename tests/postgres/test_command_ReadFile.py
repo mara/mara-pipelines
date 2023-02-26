@@ -4,16 +4,13 @@ import sqlalchemy
 from typing import Tuple
 
 from mara_app.monkey_patch import patch
-
 from mara_db import dbs, formats
-import mara_pipelines.config
-patch(mara_pipelines.config.data_dir)(lambda: pathlib.Path(__file__).parent)
-
 from mara_pipelines.commands.sql import ExecuteSQL
 from mara_pipelines.commands.files import ReadFile, Compression
-from mara_pipelines.pipelines import Pipeline, Task
 from tests.command_helper import run_command
 
+import mara_pipelines.config
+patch(mara_pipelines.config.data_dir)(lambda: pathlib.Path(__file__).parent)
 
 FILE_PATH = pathlib.Path(__file__).parent
 
@@ -105,6 +102,8 @@ def test_read_file(postgres_db):
         result = conn.execute("SELECT COUNT(*) FROM names;")
         assert 10, result.fetchone()[0]
 
+        conn.execute('DELETE FROM names;')
+
 
 @pytest.mark.dependency(depends=["test_postgres_initial_ddl"])
 def test_read_file_old_parameters(postgres_db):
@@ -121,3 +120,5 @@ def test_read_file_old_parameters(postgres_db):
     with dbs.cursor_context('dwh') as conn:
         result = conn.execute("SELECT COUNT(*) FROM names;")
         assert 10, result.fetchone()[0]
+
+        conn.execute('DELETE FROM names;')
