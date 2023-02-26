@@ -50,3 +50,15 @@ def test_execute_without_db_failed():
              commands=[RunFunction(function=command_function)]))
 
     assert not run_pipeline(pipeline)
+
+
+def test_demo_pipeline():
+    """
+    Run the demo pipeline
+    """
+    from mara_pipelines.pipelines import demo_pipeline
+    from mara_pipelines.ui.cli import run_pipeline
+
+    pipeline = demo_pipeline()
+
+    assert not run_pipeline(pipeline)
