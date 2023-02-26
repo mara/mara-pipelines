@@ -41,6 +41,25 @@ class ReadFile(pipelines.Command):
                  delimiter_char: str = None, quote_char: str = None,
                  null_value_string: str = None, timezone: str = None,
                  file_format: formats.Format = None) -> None:
+        """
+        Reads data from a local file
+
+        Args:
+            file_name: local file name under mara_pipelines.config.data_dir()
+            compression: the compression of the file. If none, use Compression.NONE
+            target_table: the target database table the data should be imported to
+            mapper_script_file_name: a mapper shell script receiving the file content
+                                     from stdin, sends new data to stdout for further
+                                     processing
+            make_unique: drop duplicated lines
+            db_alias: the db alias of the target table
+            csv_format: Treat the input as a CSV file
+            skip_header: When true, skip the first line
+            delimiter_char: The character that separates columns
+            quote_char: The character for quoting strings
+            null_value_string: The string that denotes NULL values
+            file_format: The format of the file.
+        """
         super().__init__()
         formats._check_format_with_args_used(
             pipe_format=file_format,
