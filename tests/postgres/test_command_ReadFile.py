@@ -43,12 +43,14 @@ def postgres_db(docker_ip, docker_services) -> Tuple[str, int]:
     )
 
     # create the dwh database
-    conn = dbs.connect(mara_db)  # dbt.cursor_context cannot be used here because
-                                 # CREATE DATABASE cannot run inside a
-                                 # transaction block
-    cur = conn.cursor()
-    conn.autocommit = True
-    cur.execute('''
+    try:
+        conn = dbs.connect(mara_db)  # dbt.cursor_context cannot be used here because
+                                    # CREATE DATABASE cannot run inside a
+                                    # transaction block
+        try:
+            cur = conn.cursor()
+            conn.autocommit = True
+            cur.execute('''
 CREATE DATABASE "dwh"
   WITH OWNER "mara"
   ENCODING 'UTF8'
@@ -56,8 +58,12 @@ CREATE DATABASE "dwh"
   LC_COLLATE = 'en_US.UTF-8'
   LC_CTYPE = 'en_US.UTF-8'
 ''')
-    cur.close()
-    conn.close()
+        finally:
+            if cur:
+                cur.close()
+    finally:
+        if conn:
+            conn.close()
 
     dwh_db = dbs.PostgreSQLDB(host=docker_ip,
                               port=docker_port,
