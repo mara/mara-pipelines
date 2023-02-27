@@ -3,7 +3,7 @@
 from typing import List
 
 import sqlalchemy
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 import mara_db.config
 import mara_db.dbs

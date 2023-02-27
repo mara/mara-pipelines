@@ -3,7 +3,7 @@
 from typing import List, Dict
 
 import sqlalchemy.orm
-from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import declarative_base
 
 from .. import config
 from ..logging import pipeline_events, system_statistics
