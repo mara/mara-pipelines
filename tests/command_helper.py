@@ -9,8 +9,8 @@ def run_command(command: Command, base_path) -> bool:
     """
     test_name = inspect.stack()[0][3]
 
-    # we put the command inside a pipeline so that we
-    # can define the base path for the command via Pipeline(base_path=...)
+    # we put the command inside a pipeline so that we can define the base path for the
+    # command via Pipeline(base_path=...)
     pipeline = Pipeline(
         id=test_name,
         description="Internal pipeline for command execution",

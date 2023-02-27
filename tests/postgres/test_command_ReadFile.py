@@ -1,7 +1,7 @@
 import pathlib
 import pytest
 import sqlalchemy
-from typing import Tuple
+from typing import Tuple, Iterator
 
 from mara_app.monkey_patch import patch
 from mara_db import dbs, formats
@@ -20,7 +20,7 @@ def db_is_responsive(db: dbs.DB) -> bool:
     engine = sqlalchemy.create_engine(db.sqlalchemy_url, pool_pre_ping=True)
 
     try:
-        with engine.connect() as conn:
+        with engine.connect():
             return True
     except:
         return False
@@ -76,9 +76,21 @@ CREATE DATABASE "dwh"
 
 
 @pytest.mark.dependency()
-def test_postgres_initial_ddl(postgres_db):
-    """Creates DDL scripts required for other tests"""
-    ddl_file_path = str((pathlib.Path(__file__).parent / 'postgres_initial_ddl.sql').absolute())
+@pytest.fixture
+def names_table(postgres_db) -> Iterator[str]:
+    """
+    Provides a 'names' table for tests.
+    """
+    ddl_file_path = str((pathlib.Path(__file__).parent / 'names_dll_create.sql').absolute())
+    assert run_command(
+        ExecuteSQL(sql_file_name=ddl_file_path),
+
+        base_path=FILE_PATH
+    )
+
+    yield "names"
+
+    ddl_file_path = str((pathlib.Path(__file__).parent / 'names_dll_drop.sql').absolute())
     assert run_command(
         ExecuteSQL(sql_file_name=ddl_file_path),
 
@@ -86,39 +98,42 @@ def test_postgres_initial_ddl(postgres_db):
     )
 
 
-@pytest.mark.dependency(depends=["test_postgres_initial_ddl"])
-def test_read_file(postgres_db):
+def test_read_file(names_table):
     """Tests command ReadFile"""
     assert run_command(
         ReadFile(file_name='names.csv',
                  compression=Compression.NONE,
-                 target_table='names',
+                 target_table=names_table,
                  file_format=formats.CsvFormat()),
 
         base_path=FILE_PATH
     )
 
-    with dbs.cursor_context('dwh') as conn:
-        result = conn.execute("SELECT COUNT(*) FROM names;")
-        assert 10, result.fetchone()[0]
 
-        conn.execute('DELETE FROM names;')
+    with dbs.cursor_context('dwh') as cur:
+        try:
+                result = cur.execute(f'SELECT COUNT(*) FROM "{names_table}";')
+                assert 10, result.fetchone()[0]
+
+        finally:
+            cur.execute(f'DELETE FROM "{names_table}";')
 
 
-@pytest.mark.dependency(depends=["test_postgres_initial_ddl"])
-def test_read_file_old_parameters(postgres_db):
+def test_read_file_old_parameters(names_table):
     """Tests command ReadFile"""
     assert run_command(
         ReadFile(file_name='names.csv',
                  compression=Compression.NONE,
-                 target_table='names',
+                 target_table=names_table,
                  csv_format=True),
 
         base_path=FILE_PATH
     )
 
-    with dbs.cursor_context('dwh') as conn:
-        result = conn.execute("SELECT COUNT(*) FROM names;")
-        assert 10, result.fetchone()[0]
+    with dbs.cursor_context('dwh') as cur:
+        try:
+                result = cur.execute(f'SELECT COUNT(*) FROM "{names_table}";')
+                assert 10, result.fetchone()[0]
 
-        conn.execute('DELETE FROM names;')
+        finally:
+            cur.execute(f'DELETE FROM "{names_table}";')
