@@ -9,6 +9,7 @@ from typing import List, Tuple, Dict
 import enum
 
 import mara_db.dbs
+from mara_db import formats
 import mara_db.shell
 from . import sql
 from mara_page import _, html
@@ -36,10 +37,37 @@ class ReadFile(pipelines.Command):
 
     def __init__(self, file_name: str, compression: Compression, target_table: str,
                  mapper_script_file_name: str = None, make_unique: bool = False,
-                 db_alias: str = None, csv_format: bool = False, skip_header: bool = False,
+                 db_alias: str = None, csv_format: bool = None, skip_header: bool = None,
                  delimiter_char: str = None, quote_char: str = None,
-                 null_value_string: str = None, timezone: str = None) -> None:
+                 null_value_string: str = None, timezone: str = None,
+                 file_format: formats.Format = None) -> None:
+        """
+        Reads data from a local file
+
+        Args:
+            file_name: local file name under mara_pipelines.config.data_dir()
+            compression: the compression of the file. If none, use Compression.NONE
+            target_table: the target database table the data should be imported to
+            mapper_script_file_name: a mapper shell script receiving the file content
+                                     from stdin, sends new data to stdout for further
+                                     processing
+            make_unique: drop duplicated lines
+            db_alias: the db alias of the target table
+            csv_format: Treat the input as a CSV file
+            skip_header: When true, skip the first line
+            delimiter_char: The character that separates columns
+            quote_char: The character for quoting strings
+            null_value_string: The string that denotes NULL values
+            file_format: The format of the file.
+        """
         super().__init__()
+        formats._check_format_with_args_used(
+            pipe_format=file_format,
+            header=skip_header,
+            delimiter_char=delimiter_char,
+            csv_format=csv_format,
+            quote_char=quote_char,
+            null_value_string=null_value_string)
         self.file_name = file_name
         self.compression = compression
         self.mapper_script_file_name = mapper_script_file_name
@@ -53,6 +81,7 @@ class ReadFile(pipelines.Command):
         self.quote_char = quote_char
         self.null_value_string = null_value_string
         self.timezone = timezone
+        self.file_format = file_format
 
     def db_alias(self):
         return self._db_alias or config.default_db_alias()
@@ -62,7 +91,8 @@ class ReadFile(pipelines.Command):
             self.db_alias(), csv_format=self.csv_format, target_table=self.target_table,
             skip_header=self.skip_header,
             delimiter_char=self.delimiter_char, quote_char=self.quote_char,
-            null_value_string=self.null_value_string, timezone=self.timezone)
+            null_value_string=self.null_value_string, timezone=self.timezone,
+            pipe_format=self.file_format)
         if not isinstance(mara_db.dbs.db(self.db_alias()), mara_db.dbs.BigQueryDB):
             return \
                 f'{uncompressor(self.compression)} "{pathlib.Path(config.data_dir()) / self.file_name}" \\\n' \
@@ -87,6 +117,7 @@ class ReadFile(pipelines.Command):
                 ('make unique', _.tt[self.make_unique]),
                 ('target_table', _.tt[self.target_table]),
                 ('db alias', _.tt[self.db_alias()]),
+                ('file format', _.tt[self.file_format]),
                 ('csv format', _.tt[self.csv_format]),
                 ('skip header', _.tt[self.skip_header]),
                 ('delimiter char',
@@ -132,10 +163,18 @@ class ReadScriptOutput(pipelines.Command):
     """Reads the output from a python script into a database table"""
 
     def __init__(self, file_name: str, target_table: str, make_unique: bool = False,
-                 db_alias: str = None, csv_format: bool = False, skip_header: bool = False,
+                 db_alias: str = None, csv_format: bool = None, skip_header: bool = None,
                  delimiter_char: str = None, quote_char: str = None,
-                 null_value_string: str = None, timezone: str = None) -> None:
+                 null_value_string: str = None, timezone: str = None,
+                 pipe_format: formats.Format = None) -> None:
         super().__init__()
+        formats._check_format_with_args_used(
+            pipe_format=pipe_format,
+            header=skip_header,
+            delimiter_char=delimiter_char,
+            csv_format=csv_format,
+            quote_char=quote_char,
+            null_value_string=null_value_string)
         self.file_name = file_name
         self.make_unique = make_unique
 
@@ -147,6 +186,7 @@ class ReadScriptOutput(pipelines.Command):
         self.quote_char = quote_char
         self.null_value_string = null_value_string
         self.timezone = timezone
+        self.pipe_format = pipe_format
 
     def db_alias(self):
         return self._db_alias or config.default_db_alias()
@@ -157,7 +197,8 @@ class ReadScriptOutput(pipelines.Command):
                + '  | ' + mara_db.shell.copy_from_stdin_command(
             self.db_alias(), csv_format=self.csv_format, target_table=self.target_table, skip_header=self.skip_header,
             delimiter_char=self.delimiter_char, quote_char=self.quote_char,
-            null_value_string=self.null_value_string, timezone=self.timezone)
+            null_value_string=self.null_value_string, timezone=self.timezone,
+            pipe_format=self.pipe_format)
 
     def file_path(self):
         return self.parent.parent.base_path() / self.file_name
@@ -170,6 +211,7 @@ class ReadScriptOutput(pipelines.Command):
                 ('make unique', _.tt[self.make_unique]),
                 ('target_table', _.tt[self.target_table]),
                 ('db alias', _.tt[self.db_alias()]),
+                ('pipe format', _.tt[self.pipe_format])
                 ('delimiter char',
                  _.tt[json.dumps(self.delimiter_char) if self.delimiter_char is not None else None]),
                 ('quote char', _.tt[json.dumps(self.quote_char) if self.quote_char is not None else None]),
