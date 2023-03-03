@@ -118,5 +118,3 @@ function drawTimelineChart(divId, nodes) {
         draw();
     });
 }
-
-

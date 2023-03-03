@@ -34,14 +34,14 @@ pip install mara-pipelines
 ```
 
 or
- 
+
 ```
 pip install git+https://github.com/mara/mara-pipelines.git
 ```
 
 For an example of an integration into a flask application, have a look at the [mara example project 1](https://github.com/mara/mara-example-project-1) and [mara example project 2](https://github.com/mara/mara-example-project-2).
 
-Due to the heavy use of forking, Mara Pipelines does not run natively on Windows. If you want to run it on Windows, then please use Docker or the [Windows Subsystem for Linux](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux). 
+Due to the heavy use of forking, Mara Pipelines does not run natively on Windows. If you want to run it on Windows, then please use Docker or the [Windows Subsystem for Linux](https://en.wikipedia.org/wiki/Windows_Subsystem_for_Linux).
 
 &nbsp;
 
@@ -77,11 +77,11 @@ pipeline.add(Task(id='sleep', description='Sleeps for 2 seconds',
                   commands=[RunBash('sleep 2')]), ['sub_pipeline'])
 ```
 
-Tasks contain lists of commands, which do the actual work (in this case running bash commands that ping various hosts). 
+Tasks contain lists of commands, which do the actual work (in this case running bash commands that ping various hosts).
 
 &nbsp;
 
-In order to run the pipeline, a PostgreSQL database is recommended to be configured for storing run-time information, run output and status of incremental processing: 
+In order to run the pipeline, a PostgreSQL database is recommended to be configured for storing run-time information, run output and status of incremental processing:
 
 ```python
 import mara_db.auto_migration
@@ -100,10 +100,10 @@ Given that PostgresSQL is running and the credentials work, the output looks lik
 Created database "postgresql+psycopg2://root@localhost/example_etl_mara"
 
 CREATE TABLE data_integration_file_dependency (
-    node_path TEXT[] NOT NULL, 
-    dependency_type VARCHAR NOT NULL, 
-    hash VARCHAR, 
-    timestamp TIMESTAMP WITHOUT TIME ZONE, 
+    node_path TEXT[] NOT NULL,
+    dependency_type VARCHAR NOT NULL,
+    hash VARCHAR,
+    timestamp TIMESTAMP WITHOUT TIME ZONE,
     PRIMARY KEY (node_path, dependency_type)
 );
 
@@ -161,7 +161,7 @@ For each pipeline, there is a page that shows
 
 ![Mara pipelines web ui 1](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/_static/mara-pipelines-web-ui-1.png)
 
-For each task, there is a page showing 
+For each task, there is a page showing
 
 - the upstreams and downstreams of the task in the pipeline
 - the run times of the task in the last 30 days
@@ -171,7 +171,7 @@ For each task, there is a page showing
 ![Mara pipelines web ui 2](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/_static/mara-pipelines-web-ui-2.png)
 
 
-Pipelines and tasks can be run from the web ui directly, which is probably one of the main features of this package: 
+Pipelines and tasks can be run from the web ui directly, which is probably one of the main features of this package:
 
 ![Example run web ui](https://github.com/mara/mara-pipelines/raw/3.2.x/docs/_static/example-run-web-ui.gif)
 
@@ -179,7 +179,7 @@ Pipelines and tasks can be run from the web ui directly, which is probably one o
 
 ## Getting started
 
-Documentation is currently work in progress. Please use the [mara example project 1](https://github.com/mara/mara-example-project-1) and [mara example project 2](https://github.com/mara/mara-example-project-2) as a reference for getting started. 
+Documentation is currently work in progress. Please use the [mara example project 1](https://github.com/mara/mara-example-project-1) and [mara example project 2](https://github.com/mara/mara-example-project-2) as a reference for getting started.
 
 ## Links
 

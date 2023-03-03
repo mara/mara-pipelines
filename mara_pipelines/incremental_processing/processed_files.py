@@ -34,9 +34,9 @@ def track_processed_file(node_path: str, file_name: str, last_modified_timestamp
     """
     with mara_db.dbs.cursor_context('mara') as cursor:
         cursor.execute(f'''
-INSERT INTO data_integration_processed_file (node_path, file_name, last_modified_timestamp) 
+INSERT INTO data_integration_processed_file (node_path, file_name, last_modified_timestamp)
 VALUES ({'%s,%s,%s'})
-ON CONFLICT (node_path, file_name) 
+ON CONFLICT (node_path, file_name)
 DO UPDATE SET last_modified_timestamp = EXCLUDED.last_modified_timestamp
 ''', (node_path, file_name, last_modified_timestamp))
     return True

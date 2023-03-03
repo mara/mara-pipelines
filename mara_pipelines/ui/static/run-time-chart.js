@@ -106,5 +106,3 @@ function drawRunTimeChart(divId, nodeUrlPath, runs) {
         });
     }
 }
-
-

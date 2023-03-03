@@ -40,7 +40,7 @@ def test_execute_without_db_failed():
     pipeline = Pipeline(
         id='test_execute_without_db',
         description="Tests if a pipeline can be executed without database")
-    
+
     def command_function() -> bool:
         return False
 

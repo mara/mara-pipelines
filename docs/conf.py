@@ -63,4 +63,4 @@ html_theme = 'alabaster'
 html_static_path = ['_static']
 html_favicon = "_static/favicon.ico"
 html_logo = "_static/mara-animal.jpg"
-html_title = f"Mara Pipelines Documentation ({version})" 
+html_title = f"Mara Pipelines Documentation ({version})"

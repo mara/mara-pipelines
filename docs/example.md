@@ -30,11 +30,11 @@ pipeline.add(Task(id='sleep', description='Sleeps for 2 seconds',
                   commands=[RunBash('sleep 2')]), ['sub_pipeline'])
 ```
 
-Tasks contain lists of commands, which do the actual work (in this case running bash commands that ping various hosts). 
+Tasks contain lists of commands, which do the actual work (in this case running bash commands that ping various hosts).
 
 &nbsp;
 
-In order to run the pipeline, a PostgreSQL database needs to be configured for storing run-time information, run output and status of incremental processing: 
+In order to run the pipeline, a PostgreSQL database needs to be configured for storing run-time information, run output and status of incremental processing:
 
 ```python
 import mara_db.auto_migration
@@ -53,10 +53,10 @@ Given that PostgresSQL is running and the credentials work, the output looks lik
 Created database "postgresql+psycopg2://root@localhost/example_etl_mara"
 
 CREATE TABLE data_integration_file_dependency (
-    node_path TEXT[] NOT NULL, 
-    dependency_type VARCHAR NOT NULL, 
-    hash VARCHAR, 
-    timestamp TIMESTAMP WITHOUT TIME ZONE, 
+    node_path TEXT[] NOT NULL,
+    dependency_type VARCHAR NOT NULL,
+    hash VARCHAR,
+    timestamp TIMESTAMP WITHOUT TIME ZONE,
     PRIMARY KEY (node_path, dependency_type)
 );
 
@@ -114,7 +114,7 @@ For each pipeline, there is a page that shows
 
 ![Mara pipelines web ui 1](_static/mara-pipelines-web-ui-1.png)
 
-For each task, there is a page showing 
+For each task, there is a page showing
 
 - the upstreams and downstreams of the task in the pipeline
 - the run times of the task in the last 30 days
@@ -124,6 +124,6 @@ For each task, there is a page showing
 ![Mara pipelines web ui 2](_static/mara-pipelines-web-ui-2.png)
 
 
-Pipelines and tasks can be run from the web ui directly, which is probably one of the main features of this package: 
+Pipelines and tasks can be run from the web ui directly, which is probably one of the main features of this package:
 
 ![Example run web ui](_static/example-run-web-ui.gif)

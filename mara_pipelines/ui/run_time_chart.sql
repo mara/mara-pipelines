@@ -105,4 +105,3 @@ $$
 
 -- SELECT *
 -- FROM pg_temp.node_run_times(ARRAY [] :: TEXT []);
-

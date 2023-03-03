@@ -108,4 +108,3 @@ var SystemStatsChart = function (divId) {
         }
     };
 };
-
