@@ -242,7 +242,7 @@ class WriteFile(sql._SQLCommand):
         """
         if compression != Compression.NONE:
             raise ValueError('Currently WriteFile only supports compression NONE')
-        sql._SQLCommand.__init__(self, sql_statement, sql_file_name, replace)
+        super().__init__(self, sql_statement, sql_file_name, replace)
         self.dest_file_name = dest_file_name
         self._db_alias = db_alias
         self.compression = compression
