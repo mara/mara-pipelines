@@ -1,13 +1,15 @@
 import pathlib
 import pytest
-import sqlalchemy
 from typing import Tuple, Iterator
 
 from mara_app.monkey_patch import patch
 from mara_db import dbs, formats
 from mara_pipelines.commands.sql import ExecuteSQL
 from mara_pipelines.commands.files import ReadFile, Compression
+
 from tests.command_helper import run_command
+from tests.db_test_helper import db_is_responsive, db_replace_placeholders
+from tests.local_config import POSTGRES_DB
 
 import mara_pipelines.config
 patch(mara_pipelines.config.data_dir)(lambda: pathlib.Path(__file__).parent)
@@ -15,15 +17,8 @@ patch(mara_pipelines.config.data_dir)(lambda: pathlib.Path(__file__).parent)
 FILE_PATH = pathlib.Path(__file__).parent
 
 
-def db_is_responsive(db: dbs.DB) -> bool:
-    """Returns True when the DB is available on the given port, otherwise False"""
-    engine = sqlalchemy.create_engine(db.sqlalchemy_url, pool_pre_ping=True)
-
-    try:
-        with engine.connect():
-            return True
-    except:
-        return False
+if not POSTGRES_DB:
+    pytest.skip("skipping PostgreSQL tests: variable POSTGRES_DB not set", allow_module_level=True)
 
 
 @pytest.fixture(scope="session")
@@ -31,18 +26,14 @@ def postgres_db(docker_ip, docker_services) -> Tuple[str, int]:
     """Ensures that PostgreSQL server is running on docker."""
 
     docker_port = docker_services.port_for("postgres", 5432)
-    _mara_db = dbs.PostgreSQLDB(host=docker_ip,
-                                port=docker_port,
-                                user="mara",
-                                password="mara",
-                                database="mara")
+    _mara_db = db_replace_placeholders(POSTGRES_DB, docker_ip, docker_port, database='mara')
 
     # here we need to wait until the PostgreSQL port is available.
     docker_services.wait_until_responsive(
         timeout=30.0, pause=0.1, check=lambda: db_is_responsive(_mara_db)
     )
 
-    # create databases
+    # create the dwh database
     try:
         conn = dbs.connect(_mara_db)  # dbt.cursor_context cannot be used here because
                                     # CREATE DATABASE cannot run inside a
@@ -50,7 +41,7 @@ def postgres_db(docker_ip, docker_services) -> Tuple[str, int]:
         try:
             cur = conn.cursor()
             conn.autocommit = True
-            cur.execute(f'''
+            cur.execute('''
 CREATE DATABASE "dwh"
 WITH OWNER "mara"
 ENCODING 'UTF8'
@@ -65,11 +56,7 @@ LC_CTYPE = 'en_US.UTF-8'
         if conn:
             conn.close()
 
-    dwh_db = dbs.PostgreSQLDB(host=docker_ip,
-                              port=docker_port,
-                              user="mara",
-                              password="mara",
-                              database="dwh")
+    dwh_db = db_replace_placeholders(POSTGRES_DB, docker_ip, docker_port, database='dwh')
 
     import mara_db.config
     patch(mara_db.config.databases)(lambda: {
@@ -118,8 +105,8 @@ def test_read_file(names_table):
 
     with dbs.cursor_context('dwh') as cur:
         try:
-                result = cur.execute(f'SELECT COUNT(*) FROM "{names_table}";')
-                assert 10, result.fetchone()[0]
+            result = cur.execute(f'SELECT COUNT(*) FROM "{names_table}";')
+            assert 10, result.fetchone()[0]
 
         finally:
             cur.execute(f'DELETE FROM "{names_table}";')
@@ -138,8 +125,8 @@ def test_read_file_old_parameters(names_table):
 
     with dbs.cursor_context('dwh') as cur:
         try:
-                result = cur.execute(f'SELECT COUNT(*) FROM "{names_table}";')
-                assert 10, result.fetchone()[0]
+            result = cur.execute(f'SELECT COUNT(*) FROM "{names_table}";')
+            assert 10, result.fetchone()[0]
 
         finally:
             cur.execute(f'DELETE FROM "{names_table}";')
