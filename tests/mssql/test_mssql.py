@@ -13,19 +13,19 @@ from mara_pipelines.pipelines import Pipeline, Task
 from mara_pipelines.ui.cli import run_pipeline
 
 from tests.db_test_helper import db_is_responsive, db_replace_placeholders
-from tests.local_config import POSTGRES_DB
+from tests.local_config import MSSQL_SQLCMD_DB
 
 
-if not POSTGRES_DB:
-    pytest.skip("skipping PostgreSQL tests: variable POSTGRES_DB not set", allow_module_level=True)
+if not MSSQL_SQLCMD_DB:
+    pytest.skip("skipping MSSQL tests: variable MSSQL_SQLCMD_DB not set", allow_module_level=True)
 
 
 @pytest.fixture(scope="session")
-def postgres_db(docker_ip, docker_services) -> t.Tuple[str, int]:
-    """Ensures that PostgreSQL server is running on docker."""
+def mssql_db(docker_ip, docker_services) -> t.Tuple[str, int]:
+    """Ensures that MSSQL server is running on docker."""
 
-    docker_port = docker_services.port_for("postgres", 5432)
-    db = db_replace_placeholders(POSTGRES_DB, docker_ip, docker_port)
+    docker_port = docker_services.port_for("mssql", 1433)
+    db = db_replace_placeholders(MSSQL_SQLCMD_DB, docker_ip, docker_port)
 
     # here we need to wait until the PostgreSQL port is available.
     docker_services.wait_until_responsive(
@@ -40,14 +40,14 @@ def postgres_db(docker_ip, docker_services) -> t.Tuple[str, int]:
 
 
 @pytest.mark.dependency()
-@pytest.mark.postgres_db
-def test_postgres_command_WriteFile(postgres_db):
+@pytest.mark.mssql_db
+def test_command_WriteFile(mssql_db):
 
     # set local temp path
     patch(mara_pipelines.config.data_dir)(lambda: str((pathlib.Path(__file__).parent / '.tmp').absolute()))
 
     pipeline = Pipeline(
-        id='test_postgres_command_write_file',
+        id='test_command_write_file',
         description="")
 
     pipeline.add_initial(
@@ -55,16 +55,16 @@ def test_postgres_command_WriteFile(postgres_db):
              description="",
              commands=[
                  ExecuteSQL("""
-DROP TABLE IF EXISTS "test_postgres_command_WriteFile";
+DROP TABLE IF EXISTS "test_command_WriteFile";
 
-CREATE TABLE "test_postgres_command_WriteFile"
+CREATE TABLE "test_command_WriteFile"
 (
-    Id INT GENERATED ALWAYS AS IDENTITY,
-    LongText1 TEXT,
-    LongText2 TEXT
+    Id INT IDENTITY(1,1),
+    LongText1 NVARCHAR(MAX),
+    LongText2 NVARCHAR(MAX)
 );
 
-INSERT INTO "test_postgres_command_WriteFile" (
+INSERT INTO "test_command_WriteFile" (
     LongText1, LongText2
 ) VALUES
 ('Hello', 'World!'),
@@ -78,14 +78,14 @@ INSERT INTO "test_postgres_command_WriteFile" (
         Task(id='write_file_csv',
              description="Wirte content of table to file",
              commands=[WriteFile(dest_file_name='write-file.csv',
-                                 sql_statement="""SELECT * FROM "test_postgres_command_WriteFile";""",
+                                 sql_statement="""SELECT * FROM "test_command_WriteFile";""",
                                  format=formats.CsvFormat(delimiter_char='\t', header=False))]))
 
     pipeline.add(
         Task(id='write_file_tsv',
              description="Wirte content of table to file",
              commands=[WriteFile(dest_file_name='write-file.tsv',
-                                 sql_statement="""SELECT * FROM "test_postgres_command_WriteFile";""",
+                                 sql_statement="""SELECT * FROM "test_command_WriteFile";""",
                                  format=formats.CsvFormat(delimiter_char='\t', header=False))]))
 
     assert run_pipeline(pipeline)
