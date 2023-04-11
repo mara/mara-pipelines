@@ -24,6 +24,8 @@ Files commands
 
 .. autoclass:: ReadScriptOutput
 
+.. autoclass:: WriteFile
+
 
 Python commands
 ---------------

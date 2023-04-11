@@ -16,7 +16,9 @@ test:
 	make .venv/bin/python
 	# test of module
 	.venv/bin/pip install .[test]
-	.venv/bin/pytest
+	.venv/bin/pytest -m "not postgres_db and not mssql_db"
+	.venv/bin/pytest -m postgres_db
+	.venv/bin/pytest -m mssql_db
 
 
 publish:

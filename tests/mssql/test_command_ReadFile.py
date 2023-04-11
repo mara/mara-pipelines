@@ -9,7 +9,7 @@ from mara_pipelines.commands.files import ReadFile, Compression
 
 from tests.command_helper import run_command
 from tests.db_test_helper import db_is_responsive, db_replace_placeholders
-from tests.local_config import POSTGRES_DB
+from tests.local_config import POSTGRES_DB, MSSQL_SQLCMD_DB
 
 import mara_pipelines.config
 patch(mara_pipelines.config.data_dir)(lambda: pathlib.Path(__file__).parent)
@@ -18,38 +18,41 @@ FILE_PATH = pathlib.Path(__file__).parent
 
 
 if not POSTGRES_DB:
-    pytest.skip("skipping PostgreSQL tests: variable POSTGRES_DB not set", allow_module_level=True)
+    pytest.skip("skipping MSSQL tests: variable POSTGRES_DB not set", allow_module_level=True)
+if not MSSQL_SQLCMD_DB:
+    pytest.skip("skipping MSSQL tests: variable MSSQL_SQLCMD_DB not set", allow_module_level=True)
 
 
 @pytest.fixture(scope="session")
-def postgres_db(docker_ip, docker_services) -> Tuple[str, int]:
-    """Ensures that PostgreSQL server is running on docker."""
+def mssql_db(docker_ip, docker_services) -> Tuple[str, int]:
+    """Ensures that MSSQL server is running on docker."""
 
-    docker_port = docker_services.port_for("postgres", 5432)
-    _mara_db = db_replace_placeholders(POSTGRES_DB, docker_ip, docker_port)
+    postgres_docker_port = docker_services.port_for("postgres", 5432)
+    _mara_db = db_replace_placeholders(POSTGRES_DB, docker_ip, postgres_docker_port)
 
     # here we need to wait until the PostgreSQL port is available.
     docker_services.wait_until_responsive(
         timeout=30.0, pause=0.1, check=lambda: db_is_responsive(_mara_db)
     )
 
+    mssql_docker_port = docker_services.port_for("mssql", 1433)
+    master_db = db_replace_placeholders(MSSQL_SQLCMD_DB, docker_ip, mssql_docker_port)
+
+    # here we need to wait until the MSSQL port is available.
+    docker_services.wait_until_responsive(
+        timeout=30.0, pause=0.1, check=lambda: db_is_responsive(master_db)
+    )
+
     # create the dwh database
     conn: dbs.DB = None
     try:
-        conn = dbs.connect(_mara_db)  # dbt.cursor_context cannot be used here because
-                                      # CREATE DATABASE cannot run inside a
-                                      # transaction block
+        conn = dbs.connect(master_db)  # dbt.cursor_context cannot be used here because
+                                    # CREATE DATABASE cannot run inside a
+                                    # transaction block
         try:
             cur = conn.cursor()
             conn.autocommit = True
-            cur.execute('''
-CREATE DATABASE "dwh"
-    WITH OWNER "mara"
-    ENCODING 'UTF8'
-    TEMPLATE template0
-    LC_COLLATE = 'en_US.UTF-8'
-    LC_CTYPE = 'en_US.UTF-8'
-''')
+            cur.execute('CREATE DATABASE [dwh]')
         finally:
             if cur:
                 cur.close()
@@ -57,7 +60,7 @@ CREATE DATABASE "dwh"
         if conn:
             conn.close()
 
-    dwh_db = db_replace_placeholders(POSTGRES_DB, docker_ip, docker_port, database='dwh')
+    dwh_db = db_replace_placeholders(MSSQL_SQLCMD_DB, docker_ip, mssql_docker_port, database='dwh')
 
     import mara_db.config
     patch(mara_db.config.databases)(lambda: {
@@ -71,7 +74,7 @@ CREATE DATABASE "dwh"
 
 @pytest.mark.dependency()
 @pytest.fixture
-def names_table(postgres_db) -> Iterator[str]:
+def names_table(mssql_db) -> Iterator[str]:
     """
     Provides a 'names' table for tests.
     """
@@ -92,7 +95,7 @@ def names_table(postgres_db) -> Iterator[str]:
     )
 
 
-@pytest.mark.postgres_db
+@pytest.mark.mssql_db
 def test_read_file(names_table):
     """Tests command ReadFile"""
     assert run_command(
@@ -104,7 +107,6 @@ def test_read_file(names_table):
         base_path=FILE_PATH
     )
 
-
     with dbs.cursor_context('dwh') as cur:
         try:
             result = cur.execute(f'SELECT COUNT(*) FROM "{names_table}";')
@@ -114,7 +116,7 @@ def test_read_file(names_table):
             cur.execute(f'DELETE FROM "{names_table}";')
 
 
-@pytest.mark.postgres_db
+@pytest.mark.mssql_db
 def test_read_file_old_parameters(names_table):
     """Tests command ReadFile"""
     assert run_command(

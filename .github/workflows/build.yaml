@@ -24,4 +24,6 @@ jobs:
           echo Finished successful build with Python $pythonversion
       - name: Test with pytest
         run: |
-          pytest -v tests
+          pytest -v tests -m "not postgres_db and not mssql_db"
+          pytest -v tests -m postgres_db
+          pytest -v tests -m mssql_db

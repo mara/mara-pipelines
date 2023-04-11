@@ -4,7 +4,7 @@ import json
 import pathlib
 import shlex
 import sys
-from typing import List, Tuple, Dict
+from typing import List, Tuple, Dict, Union, Callable, Optional
 
 import enum
 
@@ -83,10 +83,10 @@ class ReadFile(pipelines.Command):
         self.timezone = timezone
         self.file_format = file_format
 
-    def db_alias(self):
+    def db_alias(self) -> str:
         return self._db_alias or config.default_db_alias()
 
-    def shell_command(self):
+    def shell_command(self) -> str:
         copy_from_stdin_command = mara_db.shell.copy_from_stdin_command(
             self.db_alias(), csv_format=self.csv_format, target_table=self.target_table,
             skip_header=self.skip_header,
@@ -104,7 +104,7 @@ class ReadFile(pipelines.Command):
             # Bigquery loading does not support streaming data through pipes
             return copy_from_stdin_command + f" {pathlib.Path(config.data_dir()) / self.file_name}"
 
-    def mapper_file_path(self):
+    def mapper_file_path(self) -> pathlib.Path:
         return self.parent.parent.base_path() / self.mapper_script_file_name
 
     def html_doc_items(self) -> List[Tuple[str, str]]:
@@ -141,10 +141,10 @@ class ReadSQLite(sql._SQLCommand):
         self.timezone = timezone
 
     @property
-    def db_alias(self):
+    def db_alias(self) -> str:
         return self._db_alias or config.default_db_alias()
 
-    def shell_command(self):
+    def shell_command(self) -> str:
         return (sql._SQLCommand.shell_command(self)
                 + '  | ' + mara_db.shell.copy_command(
                     mara_db.dbs.SQLiteDB(file_name=pathlib.Path(config.data_dir()).absolute() / self.sqlite_file_name),
@@ -188,10 +188,10 @@ class ReadScriptOutput(pipelines.Command):
         self.timezone = timezone
         self.pipe_format = pipe_format
 
-    def db_alias(self):
+    def db_alias(self) -> str:
         return self._db_alias or config.default_db_alias()
 
-    def shell_command(self):
+    def shell_command(self) -> str:
         return f'{shlex.quote(sys.executable)} "{self.file_path()}" \\\n' \
                + ('  | sort -u \\\n' if self.make_unique else '') \
                + '  | ' + mara_db.shell.copy_from_stdin_command(
@@ -200,7 +200,7 @@ class ReadScriptOutput(pipelines.Command):
             null_value_string=self.null_value_string, timezone=self.timezone,
             pipe_format=self.pipe_format)
 
-    def file_path(self):
+    def file_path(self) -> pathlib.Path:
         return self.parent.parent.base_path() / self.file_name
 
     def html_doc_items(self) -> List[Tuple[str, str]]:
@@ -219,3 +219,51 @@ class ReadScriptOutput(pipelines.Command):
                  _.tt[json.dumps(self.null_value_string) if self.null_value_string is not None else None]),
                 ('time zone', _.tt[self.timezone]),
                 (_.i['shell command'], html.highlight_syntax(self.shell_command(), 'bash'))]
+
+
+class WriteFile(sql._SQLCommand):
+    """Writes data to a local file. The command is executed on the shell."""
+
+    def __init__(self, dest_file_name: str, sql_statement: Optional[Union[Callable, str]] = None, sql_file_name: Optional[str] = None,
+                 replace: Optional[Dict[str, str]] = None, db_alias: Optional[str] = None,
+                 compression: Compression = Compression.NONE,
+                 format: formats.Format = formats.CsvFormat()) -> None:
+        """
+        Writes the output of a sql query to a file in a specific format. The command is executed on the shell.
+
+        Args:
+            dest_file_name: destination file name
+            sql_statement: The statement to run as a string
+            sql_file_name: The name of the file to run (relative to the directory of the parent pipeline)
+            replace: A set of replacements to perform against the sql query `{'replace`: 'with', ..}`
+            db_alias: db on which the SQL statement shall run
+            storage_alias: storage on which the CSV file shall be saved
+            format: the format in which the file shall be written. Default: CSV according to RFC 4180
+        """
+        if compression != Compression.NONE:
+            raise ValueError('Currently WriteFile only supports compression NONE')
+        super().__init__(sql_statement, sql_file_name, replace)
+        self.dest_file_name = dest_file_name
+        self._db_alias = db_alias
+        self.compression = compression
+        self.format = format
+
+    @property
+    def db_alias(self) -> str:
+        return self._db_alias or config.default_db_alias()
+
+    def shell_command(self) -> str:
+        command = super().shell_command() \
+            + '  | ' + mara_db.shell.copy_to_stdout_command( \
+                self.db_alias, header=None, footer=None, delimiter_char=None, \
+                csv_format=None, pipe_format=self.format) +' \\\n'
+        return command \
+            + f'  > "{pathlib.Path(config.data_dir()) / self.dest_file_name}"'
+
+    def html_doc_items(self) -> List[Tuple[str, str]]:
+        return [('db', _.tt[self.db_alias])
+                ] \
+               + sql._SQLCommand.html_doc_items(self, self.db_alias) \
+               + [('format', _.tt[self.format]),
+                  ('destination file name', _.tt[self.dest_file_name]),
+                  (_.i['shell command'], html.highlight_syntax(self.shell_command(), 'bash'))]
