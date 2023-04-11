@@ -4,7 +4,6 @@ import pytest
 import typing as t
 
 from mara_app.monkey_patch import patch
-import mara_db.config
 from mara_db import formats
 import mara_pipelines.config
 from mara_pipelines.commands.bash import RunBash
@@ -21,11 +20,6 @@ if not POSTGRES_DB:
     pytest.skip("skipping PostgreSQL tests: variable POSTGRES_DB not set", allow_module_level=True)
 
 
-# Configuration of test pipeline
-patch(mara_db.config.databases)(lambda: {'dwh': POSTGRES_DB})
-patch(mara_pipelines.config.default_db_alias)(lambda: 'dwh')
-
-
 @pytest.fixture(scope="session")
 def postgres_db(docker_ip, docker_services) -> t.Tuple[str, int]:
     """Ensures that PostgreSQL server is running on docker."""
@@ -37,6 +31,10 @@ def postgres_db(docker_ip, docker_services) -> t.Tuple[str, int]:
     docker_services.wait_until_responsive(
         timeout=30.0, pause=0.1, check=lambda: db_is_responsive(db)
     )
+
+    import mara_db.config
+    patch(mara_db.config.databases)(lambda: {'dwh': db})
+    patch(mara_pipelines.config.default_db_alias)(lambda: 'dwh')
 
     return db
 

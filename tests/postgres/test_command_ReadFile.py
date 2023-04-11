@@ -32,17 +32,17 @@ def postgres_db(docker_ip, docker_services) -> Tuple[str, int]:
 
     docker_port = docker_services.port_for("postgres", 5432)
     _mara_db = dbs.PostgreSQLDB(host=docker_ip,
-                               port=docker_port,
-                               user="mara",
-                               password="mara",
-                               database="mara")
+                                port=docker_port,
+                                user="mara",
+                                password="mara",
+                                database="mara")
 
     # here we need to wait until the PostgreSQL port is available.
     docker_services.wait_until_responsive(
         timeout=30.0, pause=0.1, check=lambda: db_is_responsive(_mara_db)
     )
 
-    # create the dwh database
+    # create databases
     try:
         conn = dbs.connect(_mara_db)  # dbt.cursor_context cannot be used here because
                                     # CREATE DATABASE cannot run inside a
@@ -50,13 +50,13 @@ def postgres_db(docker_ip, docker_services) -> Tuple[str, int]:
         try:
             cur = conn.cursor()
             conn.autocommit = True
-            cur.execute('''
+            cur.execute(f'''
 CREATE DATABASE "dwh"
-  WITH OWNER "mara"
-  ENCODING 'UTF8'
-  TEMPLATE template0
-  LC_COLLATE = 'en_US.UTF-8'
-  LC_CTYPE = 'en_US.UTF-8'
+WITH OWNER "mara"
+ENCODING 'UTF8'
+TEMPLATE template0
+LC_COLLATE = 'en_US.UTF-8'
+LC_CTYPE = 'en_US.UTF-8'
 ''')
         finally:
             if cur:
