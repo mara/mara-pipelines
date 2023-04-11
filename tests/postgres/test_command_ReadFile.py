@@ -31,7 +31,7 @@ def postgres_db(docker_ip, docker_services) -> Tuple[str, int]:
     """Ensures that PostgreSQL server is running on docker."""
 
     docker_port = docker_services.port_for("postgres", 5432)
-    mara_db = dbs.PostgreSQLDB(host=docker_ip,
+    _mara_db = dbs.PostgreSQLDB(host=docker_ip,
                                port=docker_port,
                                user="mara",
                                password="mara",
@@ -39,12 +39,12 @@ def postgres_db(docker_ip, docker_services) -> Tuple[str, int]:
 
     # here we need to wait until the PostgreSQL port is available.
     docker_services.wait_until_responsive(
-        timeout=30.0, pause=0.1, check=lambda: db_is_responsive(mara_db)
+        timeout=30.0, pause=0.1, check=lambda: db_is_responsive(_mara_db)
     )
 
     # create the dwh database
     try:
-        conn = dbs.connect(mara_db)  # dbt.cursor_context cannot be used here because
+        conn = dbs.connect(_mara_db)  # dbt.cursor_context cannot be used here because
                                     # CREATE DATABASE cannot run inside a
                                     # transaction block
         try:
@@ -73,7 +73,7 @@ CREATE DATABASE "dwh"
 
     import mara_db.config
     patch(mara_db.config.databases)(lambda: {
-        'mara': mara_db,
+        'mara': _mara_db,
         'dwh': dwh_db
     })
     patch(mara_pipelines.config.default_db_alias)(lambda: 'dwh')
