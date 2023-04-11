@@ -37,18 +37,18 @@ def postgres_db(docker_ip, docker_services) -> Tuple[str, int]:
     conn: dbs.DB = None
     try:
         conn = dbs.connect(_mara_db)  # dbt.cursor_context cannot be used here because
-                                    # CREATE DATABASE cannot run inside a
-                                    # transaction block
+                                      # CREATE DATABASE cannot run inside a
+                                      # transaction block
         try:
             cur = conn.cursor()
             conn.autocommit = True
             cur.execute('''
 CREATE DATABASE "dwh"
-WITH OWNER "mara"
-ENCODING 'UTF8'
-TEMPLATE template0
-LC_COLLATE = 'en_US.UTF-8'
-LC_CTYPE = 'en_US.UTF-8'
+    WITH OWNER "mara"
+    ENCODING 'UTF8'
+    TEMPLATE template0
+    LC_COLLATE = 'en_US.UTF-8'
+    LC_CTYPE = 'en_US.UTF-8'
 ''')
         finally:
             if cur:
