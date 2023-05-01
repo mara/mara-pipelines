@@ -1,5 +1,21 @@
 # Changelog
 
+## 3.4.0 (2023-05-01)
+
+- upgrade to bootstrap 4.6 (from alpha 4) (#66)<br>
+  *Caution:* Some CSS classes changed between Boostram Alpha 4 and 4.6. You might need to upgrade other mara packages as well, e.g. mara-pipelines and mara-app.
+- add HttpRequest command #78 (#79)
+- add WriteFile command (#89)
+- add support for formats in file operations (#95)
+- add typing (#91)
+- add before/after task to ParallelTask only when not command list is not empty (#93)
+- fix get_user_display_name on docker (#90)
+- fix small issues (#91)
+- fix SQLAlchemy warning about declarative_base moved in 2.0 (#99)
+
+**required changes**
+You might need to investigate your custom CSS styling, see boostram upgrade above.
+
 ## 3.3.0 (2022-09-22)
 
 - Add option to hide system stats in the UI #72
