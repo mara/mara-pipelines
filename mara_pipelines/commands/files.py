@@ -13,7 +13,7 @@ import mara_db.dbs
 from mara_db import formats
 import mara_db.shell
 import mara_storage.storages
-from mara_storage.shell import read_file_command
+from mara_storage.shell import read_file_command, write_file_command
 from . import sql
 from mara_page import _, html
 from .. import config, pipelines
@@ -64,6 +64,7 @@ class ReadFile(pipelines.Command):
                                      processing
             make_unique: drop duplicated lines
             db_alias: the db alias of the target table
+            storage_alias: the storage alias of the file_name
             csv_format: Treat the input as a CSV file
             skip_header: When true, skip the first line
             delimiter_char: The character that separates columns
@@ -257,7 +258,7 @@ class WriteFile(sql._SQLCommand):
     """Writes data to a local file. The command is executed on the shell."""
 
     def __init__(self, dest_file_name: str, sql_statement: Optional[Union[Callable, str]] = None, sql_file_name: Optional[str] = None,
-                 replace: Optional[Dict[str, str]] = None, db_alias: Optional[str] = None,
+                 replace: Optional[Dict[str, str]] = None, db_alias: Optional[str] = None, storage_alias: str = None,
                  compression: Compression = Compression.NONE,
                  format: formats.Format = formats.CsvFormat()) -> None:
         """
@@ -284,13 +285,17 @@ class WriteFile(sql._SQLCommand):
     def db_alias(self) -> str:
         return self._db_alias or config.default_db_alias()
 
+    @property
+    def storage_alias(self):
+        return self._storage_alias or config.default_storage_alias()
+
     def shell_command(self) -> str:
         command = super().shell_command() \
             + '  | ' + mara_db.shell.copy_to_stdout_command( \
                 self.db_alias, header=None, footer=None, delimiter_char=None, \
                 csv_format=None, pipe_format=self.format) +' \\\n'
         return command \
-            + f'  > "{pathlib.Path(config.data_dir()) / self.dest_file_name}"'
+            + f'  | {write_file_command(self.storage_alias, file_name=self.dest_file_name, compression=self.compression)}'
 
     def html_doc_items(self) -> List[Tuple[str, str]]:
         return [('db', _.tt[self.db_alias])
@@ -298,4 +303,5 @@ class WriteFile(sql._SQLCommand):
                + sql._SQLCommand.html_doc_items(self, self.db_alias) \
                + [('format', _.tt[self.format]),
                   ('destination file name', _.tt[self.dest_file_name]),
+                  ('storage alias', _.tt[self.storage_alias]),
                   (_.i['shell command'], html.highlight_syntax(self.shell_command(), 'bash'))]
