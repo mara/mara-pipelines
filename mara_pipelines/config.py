@@ -37,9 +37,17 @@ def default_storage_alias() -> str:
     """The alias of the storage that should be used when not specified otherwise"""
     return 'data'
 
-@patch(mara_storage.config.storages)
-def storages() -> {str: mara_storage.storages.Storage}:
-    return {'data': mara_storage.storages.LocalStorage(base_path=pathlib.Path(data_dir()))}
+patch(mara_storage.config.storages)(lambda: {'data': mara_storage.storages.LocalStorage(base_path=pathlib.Path(data_dir()))})
+
+# Need to patch this function to fix lru_cache issues. mara_storage.storages.storage.cache_clear() does not fix issues here
+@functools.lru_cache(maxsize=None)
+@patch(mara_storage.storages.storage)
+def storage(alias) -> mara_storage.storages.Storage:
+    """Returns a storage configuration by alias"""
+    storages = mara_storage.config.storages()
+    if alias not in storages:
+        raise KeyError(f'storage alias "{alias}" not configured')
+    return storages[alias]
 
 
 def default_task_max_retries():
