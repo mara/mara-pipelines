@@ -14,32 +14,11 @@ from mara_db import formats
 import mara_db.shell
 import mara_storage.storages
 from mara_storage.shell import read_file_command, write_file_command
+from mara_storage.compression import Compression
 from . import sql
 from mara_page import _, html
 from .. import config, pipelines
 import mara_pipelines
-
-
-@deprecation.deprecated(deprecated_in='3.2.0', removed_in='4.0.0',
-                        current_version=mara_pipelines.__version__,
-                        details='Use mara_storage.compression.Compression instead')
-class Compression(enum.EnumMeta):
-    """Different compression formats that are understood by file readers"""
-    NONE = 'none'
-    GZIP = 'gzip'
-    TAR_GZIP = 'tar.gzip'
-    ZIP = 'zip'
-
-
-@deprecation.deprecated(deprecated_in='3.2.0', removed_in='4.0.0',
-                        current_version=__version__,
-                        details='Use mara_storage.compression.uncompressor instead')
-def uncompressor(compression: Compression) -> str:
-    """Maps compression methods to command line programs that can unpack the respective files"""
-    return {Compression.NONE: 'cat',
-            Compression.ZIP: 'unzip -p',
-            Compression.GZIP: 'gunzip -d -c',
-            Compression.TAR_GZIP: 'tar -xOzf'}[compression]
 
 
 class ReadFile(pipelines.Command):
@@ -279,6 +258,7 @@ class WriteFile(sql._SQLCommand):
         self.dest_file_name = dest_file_name
         self._db_alias = db_alias
         self.compression = compression
+        self._storage_alias = storage_alias
         self.format = format
 
     @property

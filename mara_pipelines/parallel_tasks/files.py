@@ -11,6 +11,7 @@ import mara_db.config
 import mara_db.dbs
 from mara_page import _, html
 import mara_storage.client
+from mara_storage.compression import Compression
 
 from .. import config, pipelines
 from ..commands import python, sql, files
@@ -179,7 +180,7 @@ class _ParallelRead(pipelines.ParallelTask):
 
 class ParallelReadFile(_ParallelRead):
     def __init__(self, id: str, description: str, file_pattern: str, read_mode: ReadMode,
-                 compression: files.Compression, target_table: str, file_dependencies: Optional[List[str]] = None,
+                 compression: Compression, target_table: str, file_dependencies: Optional[List[str]] = None,
                  date_regex: Optional[str] = None, partition_target_table_by_day_id: bool = False,
                  truncate_partitions: bool = False,
                  commands_before: Optional[List[pipelines.Command]] = None, commands_after: Optional[List[pipelines.Command]] = None,
