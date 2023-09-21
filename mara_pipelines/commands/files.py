@@ -223,7 +223,7 @@ class ReadScriptOutput(pipelines.Command):
                 ('make unique', _.tt[self.make_unique]),
                 ('target_table', _.tt[self.target_table]),
                 ('db alias', _.tt[self.db_alias()]),
-                ('pipe format', _.tt[self.pipe_format])
+                ('pipe format', _.tt[self.pipe_format]),
                 ('delimiter char',
                  _.tt[json.dumps(self.delimiter_char) if self.delimiter_char is not None else None]),
                 ('quote char', _.tt[json.dumps(self.quote_char) if self.quote_char is not None else None]),
