@@ -27,7 +27,8 @@ class ParallelExecutePython(pipelines.ParallelTask):
             sub_pipeline.add(pipelines.Task(
                 id='_'.join([re.sub('[^0-9a-z\-_]+', '', str(x).lower().replace('-', '_')) for x in parameter_tuple]),
                 description=f'Runs the script with parameters {repr(parameter_tuple)}',
-                commands=[python.ExecutePython(file_name=self.file_name, args=list(parameter_tuple))]))
+                commands=[python.ExecutePython(file_name=self.file_name, args=list(parameter_tuple))],
+                max_retries=self.max_retries))
 
     def html_doc_items(self) -> List[Tuple[str, str]]:
         path = self.parent.base_path() / self.file_name
@@ -58,7 +59,8 @@ class ParallelRunFunction(pipelines.ParallelTask):
             sub_pipeline.add(pipelines.Task(
                 id=str(parameter).lower().replace(' ', '_').replace('-', '_'),
                 description=f'Runs the function with parameters {repr(parameter)}',
-                commands=[python.RunFunction(lambda args=parameter: self.function(args))]))
+                commands=[python.RunFunction(lambda args=parameter: self.function(args))],
+                max_retries=self.max_retries))
 
     def html_doc_items(self) -> List[Tuple[str, str]]:
         return [('function', _.pre[escape(str(self.function))]),

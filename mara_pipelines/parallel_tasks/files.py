@@ -34,10 +34,12 @@ class _ParallelRead(pipelines.ParallelTask):
                  max_number_of_parallel_tasks: Optional[int] = None, file_dependencies: Optional[List[str]] = None, date_regex: Optional[str] = None,
                  partition_target_table_by_day_id: bool = False, truncate_partitions: bool = False,
                  commands_before: Optional[List[pipelines.Command]] = None, commands_after: Optional[List[pipelines.Command]] = None,
-                 db_alias: Optional[str] = None, timezone: Optional[str] = None) -> None:
+                 db_alias: Optional[str] = None, timezone: Optional[str] = None,
+                 max_retries: Optional[int] = None) -> None:
         pipelines.ParallelTask.__init__(self, id=id, description=description,
                                         max_number_of_parallel_tasks=max_number_of_parallel_tasks,
-                                        commands_before=commands_before, commands_after=commands_after)
+                                        commands_before=commands_before, commands_after=commands_after,
+                                        max_retries=max_retries)
         self.file_pattern = file_pattern
         self.read_mode = read_mode
         self.date_regex = date_regex
@@ -139,12 +141,14 @@ class _ParallelRead(pipelines.ParallelTask):
                 id='create_partitions',
                 description='Creates required target table partitions',
                 commands=[sql.ExecuteSQL(sql_statement='\n'.join(slice), echo_queries=False, db_alias=self.db_alias)
-                          for slice in more_itertools.sliced(sql_statements, 50)])
+                          for slice in more_itertools.sliced(sql_statements, 50)],
+                max_retries=self.max_retries)
 
             sub_pipeline.add(create_partitions_task)
 
             for n, chunk in enumerate(more_itertools.chunked(files_per_day.items(), chunk_size)):
-                task = pipelines.Task(id=str(n), description='Reads a portion of the files')
+                task = pipelines.Task(id=str(n), description='Reads a portion of the files',
+                                      max_retries=self.max_retries)
                 for (day, files) in chunk:
                     target_table = self.target_table + '_' + day.strftime("%Y%m%d")
                     for file in files:
@@ -155,7 +159,8 @@ class _ParallelRead(pipelines.ParallelTask):
             for n, chunk in enumerate(more_itertools.chunked(files, chunk_size)):
                 sub_pipeline.add(
                     pipelines.Task(id=str(n), description=f'Reads {len(chunk)} files',
-                                   commands=sum([self.parallel_commands(x[0]) for x in chunk], [])))
+                                   commands=sum([self.parallel_commands(x[0]) for x in chunk], []),
+                                   max_retries=self.max_retries))
 
     def parallel_commands(self, file_name: str) -> List[pipelines.Command]:
         return [self.read_command(file_name)] + (
@@ -180,14 +185,16 @@ class ParallelReadFile(_ParallelRead):
                  mapper_script_file_name: Optional[str] = None, make_unique: bool = False, db_alias: Optional[str] = None,
                  delimiter_char: Optional[str] = None, quote_char: Optional[str] = None, null_value_string: Optional[str] = None,
                  skip_header: Optional[bool] = None, csv_format: bool = False,
-                 timezone: Optional[str] = None, max_number_of_parallel_tasks: Optional[int] = None) -> None:
+                 timezone: Optional[str] = None, max_number_of_parallel_tasks: Optional[int] = None,
+                 max_retries: Optional[int] = None) -> None:
         _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
                                read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
                                date_regex=date_regex, partition_target_table_by_day_id=partition_target_table_by_day_id,
                                truncate_partitions=truncate_partitions,
                                commands_before=commands_before, commands_after=commands_after,
                                db_alias=db_alias, timezone=timezone,
-                               max_number_of_parallel_tasks=max_number_of_parallel_tasks)
+                               max_number_of_parallel_tasks=max_number_of_parallel_tasks,
+                               max_retries=max_retries)
         self.compression = compression
         self.mapper_script_file_name = mapper_script_file_name or ''
         self.make_unique = make_unique
@@ -231,16 +238,18 @@ class ParallelReadFile(_ParallelRead):
 
 class ParallelReadSqlite(_ParallelRead):
     def __init__(self, id: str, description: str, file_pattern: str, read_mode: ReadMode, sql_file_name: str,
-                 target_table: str, file_dependencies: List[str] = None, date_regex: str = None,
+                 target_table: str, file_dependencies: Optional[List[str]] = None, date_regex: Optional[str] = None,
                  partition_target_table_by_day_id: bool = False, truncate_partitions: bool = False,
-                 commands_before: List[pipelines.Command] = None, commands_after: List[pipelines.Command] = None,
-                 db_alias: str = None, timezone=None, max_number_of_parallel_tasks: int = None) -> None:
+                 commands_before: Optional[List[pipelines.Command]] = None, commands_after: Optional[List[pipelines.Command]] = None,
+                 db_alias: Optional[str] = None, timezone=None, max_number_of_parallel_tasks: Optional[int] = None,
+                 max_retries: Optional[int] = None) -> None:
         _ParallelRead.__init__(self, id=id, description=description, file_pattern=file_pattern,
                                read_mode=read_mode, target_table=target_table, file_dependencies=file_dependencies,
                                date_regex=date_regex, partition_target_table_by_day_id=partition_target_table_by_day_id,
                                truncate_partitions=truncate_partitions,
                                commands_before=commands_before, commands_after=commands_after, db_alias=db_alias,
-                               timezone=timezone, max_number_of_parallel_tasks=max_number_of_parallel_tasks)
+                               timezone=timezone, max_number_of_parallel_tasks=max_number_of_parallel_tasks,
+                               max_retries=max_retries)
         self.sql_file_name = sql_file_name
 
     def read_command(self, file_name: str) -> List[pipelines.Command]:

@@ -109,7 +109,8 @@ class Task(Node):
 
 class ParallelTask(Node):
     def __init__(self, id: str, description: str, max_number_of_parallel_tasks: Optional[int] = None,
-                 commands_before: Optional[List[Command]] = None, commands_after: Optional[List[Command]] = None) -> None:
+                 commands_before: Optional[List[Command]] = None, commands_after: Optional[List[Command]] = None,
+                 max_retries: Optional[int] = None) -> None:
         super().__init__(id, description)
         self.commands_before = []
         for command in commands_before or []:
@@ -117,6 +118,7 @@ class ParallelTask(Node):
         self.commands_after = []
         for command in commands_after or []:
             self.add_command_after(command)
+        self.max_retries = max_retries
         self.max_number_of_parallel_tasks = max_number_of_parallel_tasks
 
     def add_command_before(self, command: Command):
