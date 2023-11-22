@@ -23,8 +23,8 @@ def run_pipeline(pipeline: pipelines.Pipeline, nodes: Set[pipelines.Node] = None
     Return:
         True when the pipeline run succeeded
     """
-    from ..logging import logger, pipeline_events
-    from .. import execution
+    from .logging import logger, pipeline_events
+    from . import execution
 
     RESET_ALL = 'reset_all'
     PATH_COLOR = 'path_color'
@@ -143,7 +143,7 @@ def run_interactively():
               help='The parent ids of of the node to reset. Example: "pipeline-id,sub-pipeline-id".')
 def reset_incremental_processing(path):
     """Reset status of incremental processing for a node"""
-    from ..incremental_processing import reset
+    from .incremental_processing import reset
 
     path = path.split(',') if path else []
     node, found = pipelines.find_node(path)
