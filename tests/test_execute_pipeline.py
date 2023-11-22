@@ -12,7 +12,7 @@ def test_execute_without_db_success():
     """
     from mara_pipelines.commands.python import RunFunction
     from mara_pipelines.pipelines import Pipeline, Task
-    from mara_pipelines.ui.cli import run_pipeline
+    from mara_pipelines.cli import run_pipeline
 
     pipeline = Pipeline(
         id='test_execute_without_db',
@@ -35,7 +35,7 @@ def test_execute_without_db_failed():
     """
     from mara_pipelines.commands.python import RunFunction
     from mara_pipelines.pipelines import Pipeline, Task
-    from mara_pipelines.ui.cli import run_pipeline
+    from mara_pipelines.cli import run_pipeline
 
     pipeline = Pipeline(
         id='test_execute_without_db',
@@ -57,7 +57,7 @@ def test_demo_pipeline():
     Run the demo pipeline
     """
     from mara_pipelines.pipelines import demo_pipeline
-    from mara_pipelines.ui.cli import run_pipeline
+    from mara_pipelines.cli import run_pipeline
 
     pipeline = demo_pipeline()
 

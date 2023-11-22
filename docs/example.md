@@ -5,7 +5,7 @@ Here is a pipeline "demo" consisting of three nodes that depend on each other: t
 ```python
 from mara_pipelines.commands.bash import RunBash
 from mara_pipelines.pipelines import Pipeline, Task
-from mara_pipelines.ui.cli import run_pipeline, run_interactively
+from mara_pipelines.cli import run_pipeline, run_interactively
 
 pipeline = Pipeline(
     id='demo',
@@ -68,7 +68,7 @@ CREATE TABLE data_integration_file_dependency (
 This runs a pipeline with output to stdout:
 
 ```python
-from mara_pipelines.ui.cli import run_pipeline
+from mara_pipelines.cli import run_pipeline
 
 run_pipeline(pipeline)
 ```
