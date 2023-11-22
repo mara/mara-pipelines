@@ -1,7 +1,7 @@
 import copy
 import pathlib
 import re
-from typing import Optional, Dict, Set, List, Tuple, Union
+from typing import Optional, Dict, Set, List, Tuple, Union, Callable
 
 from . import config
 
@@ -81,24 +81,49 @@ class Command():
 
 
 class Task(Node):
-    def __init__(self, id: str, description: str, commands: Optional[List[Command]] = None, max_retries: Optional[int] = None) -> None:
+    def __init__(self, id: str, description: str, commands: Optional[Union[Callable, List[Command]]] = None, max_retries: Optional[int] = None) -> None:
         super().__init__(id, description)
-        self.commands = []
+        self.callable_commands = callable(commands)
         self.max_retries = max_retries
 
-        for command in commands or []:
-            self.add_command(command)
-
-    def add_command(self, command: Command, prepend=False):
-        if prepend:
-            self.commands.insert(0, command)
+        if self.callable_commands:
+            self._commands = None
+            self.__commands_callable = commands
         else:
-            self.commands.append(command)
+            self._commands = []
+            self._add_commands(commands or [])
+
+    def _test_is_not_dynamic(self):
+        if self.callable_commands:
+            raise Exception('You cannot use add_command when the task is constructed with a callable commands function.')
+
+    @property
+    def commands(self) -> List:
+        if not self._commands:
+            self._commands = []
+            # execute the callable command function and cache the result
+            for command in self.__commands_callable() or []:
+                self._add_command(command)
+        return self._commands
+
+    def _add_command(self, command: Command, prepend=False):
+        if prepend:
+            self._commands.insert(0, command)
+        else:
+            self._commands.append(command)
         command.parent = self
 
-    def add_commands(self, commands: List[Command]):
+    def _add_commands(self, commands: List[Command]):
         for command in commands:
-            self.add_command(command)
+            self._add_command(command)
+
+    def add_command(self, command: Command, prepend=False):
+        self._test_is_not_dynamic()
+        self._add_command(command, prepend=prepend)
+
+    def add_commands(self, commands: List[Command]):
+        self._test_is_not_dynamic()
+        self._add_commands(commands)
 
     def run(self):
         for command in self.commands:
