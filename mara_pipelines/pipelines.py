@@ -83,26 +83,26 @@ class Command():
 class Task(Node):
     def __init__(self, id: str, description: str, commands: Optional[Union[Callable, List[Command]]] = None, max_retries: Optional[int] = None) -> None:
         super().__init__(id, description)
-        self.callable_commands = callable(commands)
+        self.is_dynamic_commands = callable(commands)
         self.max_retries = max_retries
 
-        if self.callable_commands:
+        if self.is_dynamic_commands:
             self._commands = None
-            self.__commands_callable = commands
+            self.__dynamic_commands_generator_func = commands
         else:
             self._commands = []
             self._add_commands(commands or [])
 
-    def _test_is_not_dynamic(self):
-        if self.callable_commands:
+    def _assert_is_not_dynamic(self):
+        if self.is_dynamic_commands:
             raise Exception('You cannot use add_command when the task is constructed with a callable commands function.')
 
     @property
     def commands(self) -> List:
-        if not self._commands:
+        if self._commands is None:
             self._commands = []
             # execute the callable command function and cache the result
-            for command in self.__commands_callable() or []:
+            for command in self.__dynamic_commands_generator_func() or []:
                 self._add_command(command)
         return self._commands
 
@@ -118,11 +118,11 @@ class Task(Node):
             self._add_command(command)
 
     def add_command(self, command: Command, prepend=False):
-        self._test_is_not_dynamic()
+        self._assert_is_not_dynamic()
         self._add_command(command, prepend=prepend)
 
     def add_commands(self, commands: List[Command]):
-        self._test_is_not_dynamic()
+        self._assert_is_not_dynamic()
         self._add_commands(commands)
 
     def run(self):

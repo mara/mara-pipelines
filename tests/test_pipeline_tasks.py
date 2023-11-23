@@ -31,7 +31,7 @@ def test_run_task():
     assert test_result.has_run
 
 
-def test_run_task_callable_commands():
+def test_run_task_dynamic_commands():
     """
     A simple test executing a task with callable commands
     """
@@ -48,8 +48,8 @@ def test_run_task_callable_commands():
     assert not test_result.has_run
 
     task = Task(
-        id='run_task_callable_commands',
-        description="Unit test test_run_task_callable_commands",
+        id='run_task_dynamic_commands',
+        description="Unit test test_run_task_dynamic_commands",
         commands=generate_command_list)
 
     assert not test_result.has_run

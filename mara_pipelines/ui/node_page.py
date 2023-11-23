@@ -80,7 +80,7 @@ def __(pipeline: pipelines.Pipeline):
 def __(task: pipelines.Task):
     if not acl.current_user_has_permission(views.acl_resource):
         return bootstrap.card(header_left='Commands', body=acl.inline_permission_denied_message())
-    elif task.callable_commands:
+    elif task.is_dynamic_commands:
         return bootstrap.card(
             header_left='Commands',
             body=f"""<span style="font-style:italic;color:#aaa"><span class="fa fa-lightbulb"> </span> {"... are defined dynamically during execution"}</span>""")
