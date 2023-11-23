@@ -83,15 +83,19 @@ class Command():
 class Task(Node):
     def __init__(self, id: str, description: str, commands: Optional[Union[Callable, List[Command]]] = None, max_retries: Optional[int] = None) -> None:
         super().__init__(id, description)
-        self.is_dynamic_commands = callable(commands)
         self.max_retries = max_retries
 
-        if self.is_dynamic_commands:
+        if callable(commands):
             self._commands = None
             self.__dynamic_commands_generator_func = commands
         else:
             self._commands = []
             self._add_commands(commands or [])
+
+    @property
+    def is_dynamic_commands(self) -> bool:
+        """if the command list is generated dynamically via a function"""
+        return self.__dynamic_commands_generator_func is not None
 
     def _assert_is_not_dynamic(self):
         if self.is_dynamic_commands:
