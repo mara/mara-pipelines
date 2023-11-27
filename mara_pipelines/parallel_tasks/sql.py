@@ -51,7 +51,8 @@ class ParallelExecuteSQL(pipelines.ParallelTask, sql._SQLCommand):
                                    echo_queries=self.echo_queries, timezone=self.timezone, replace=replace)
                     if self.sql_file_name else
                     sql.ExecuteSQL(sql_statement=self.sql_statement, db_alias=self.db_alias,
-                                   echo_queries=self.echo_queries, timezone=self.timezone, replace=replace)]))
+                                   echo_queries=self.echo_queries, timezone=self.timezone, replace=replace)],
+                max_retries=self.max_retries))
 
     def html_doc_items(self) -> List[Tuple[str, str]]:
         return [('db', _.tt[self.db_alias])] \
