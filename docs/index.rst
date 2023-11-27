@@ -35,6 +35,17 @@ This part of the documentation focuses on step-by-step instructions how to use t
    config
 
 
+CLI commands
+------------
+
+When you are looking at available CLI commands, here you are at the right place.
+
+.. toctree::
+   :maxdepth: 2
+
+   cli
+
+
 API Reference
 -------------
 
