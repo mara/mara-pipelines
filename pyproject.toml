@@ -2,6 +2,9 @@
 requires = ["setuptools >= 40.6.0", "wheel >= 0.31"]
 build-backend = "setuptools.build_meta"
 
+[project.entry-points.'mara.commands']
+pipelines = "mara_pipelines.cli.mara_pipelines
+
 [tool.pytest.ini_options]
 markers = [
     "postgres_db",
