@@ -1,5 +1,13 @@
 # Changelog
 
+## 3.5.0 (2023-12-06)
+
+- add entry point `mara.commands` (for [mara-cli](https://github.com/mara/mara-cli) support)
+- add mara-pipelines click command group (#104)
+- add dynamic Task (#106)
+- add max_retries for parallel tasks (#105)
+- fix html_doc_items tuple of command ReadScriptOutput
+
 ## 3.4.0 (2023-05-01)
 
 - upgrade to bootstrap 4.6 (from alpha 4) (#66)<br>
