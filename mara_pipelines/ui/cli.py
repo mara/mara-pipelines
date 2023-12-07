@@ -5,7 +5,7 @@ from warnings import warn
 from typing import Set
 
 from .. import pipelines
-from . import cli
+from .. import cli
 
 
 def run_pipeline(pipeline: pipelines.Pipeline, nodes: Set[pipelines.Node] = None,
