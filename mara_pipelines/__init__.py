@@ -1,5 +1,5 @@
 """Make the functionalities of this package auto-discoverable by mara-app"""
-__version__ = '3.4.0'
+__version__ = '3.5.0'
 
 
 def MARA_CONFIG_MODULES():
@@ -30,8 +30,10 @@ def MARA_ACL_RESOURCES():
 
 
 def MARA_CLICK_COMMANDS():
-    from .ui import cli
-    return [cli.run, cli.run_interactively, cli.reset_incremental_processing]
+    from . import cli
+    from .ui import cli as old_cli
+    return [cli.mara_pipelines,
+        old_cli._run, old_cli._run_interactively, old_cli._reset_incremental_processing]
 
 
 def MARA_NAVIGATION_ENTRIES():

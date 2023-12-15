@@ -10,7 +10,7 @@ from mara_pipelines.commands.bash import RunBash
 from mara_pipelines.commands.files import WriteFile
 from mara_pipelines.commands.sql import ExecuteSQL
 from mara_pipelines.pipelines import Pipeline, Task
-from mara_pipelines.ui.cli import run_pipeline
+from mara_pipelines.cli import run_pipeline
 
 from tests.db_test_helper import db_is_responsive, db_replace_placeholders
 from tests.local_config import POSTGRES_DB

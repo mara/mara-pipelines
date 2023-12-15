@@ -1,7 +1,7 @@
 import copy
 import pathlib
 import re
-from typing import Optional, Dict, Set, List, Tuple, Union
+from typing import Optional, Dict, Set, List, Tuple, Union, Callable
 
 from . import config
 
@@ -81,24 +81,53 @@ class Command():
 
 
 class Task(Node):
-    def __init__(self, id: str, description: str, commands: Optional[List[Command]] = None, max_retries: Optional[int] = None) -> None:
+    def __init__(self, id: str, description: str, commands: Optional[Union[Callable, List[Command]]] = None, max_retries: Optional[int] = None) -> None:
         super().__init__(id, description)
-        self.commands = []
         self.max_retries = max_retries
 
-        for command in commands or []:
-            self.add_command(command)
-
-    def add_command(self, command: Command, prepend=False):
-        if prepend:
-            self.commands.insert(0, command)
+        if callable(commands):
+            self._commands = None
+            self.__dynamic_commands_generator_func = commands
         else:
-            self.commands.append(command)
+            self._commands = []
+            self._add_commands(commands or [])
+
+    @property
+    def is_dynamic_commands(self) -> bool:
+        """if the command list is generated dynamically via a function"""
+        return self.__dynamic_commands_generator_func is not None
+
+    def _assert_is_not_dynamic(self):
+        if self.is_dynamic_commands:
+            raise Exception('You cannot use add_command when the task is constructed with a callable commands function.')
+
+    @property
+    def commands(self) -> List:
+        if self._commands is None:
+            self._commands = []
+            # execute the callable command function and cache the result
+            for command in self.__dynamic_commands_generator_func() or []:
+                self._add_command(command)
+        return self._commands
+
+    def _add_command(self, command: Command, prepend=False):
+        if prepend:
+            self._commands.insert(0, command)
+        else:
+            self._commands.append(command)
         command.parent = self
 
-    def add_commands(self, commands: List[Command]):
+    def _add_commands(self, commands: List[Command]):
         for command in commands:
-            self.add_command(command)
+            self._add_command(command)
+
+    def add_command(self, command: Command, prepend=False):
+        self._assert_is_not_dynamic()
+        self._add_command(command, prepend=prepend)
+
+    def add_commands(self, commands: List[Command]):
+        self._assert_is_not_dynamic()
+        self._add_commands(commands)
 
     def run(self):
         for command in self.commands:
@@ -109,7 +138,8 @@ class Task(Node):
 
 class ParallelTask(Node):
     def __init__(self, id: str, description: str, max_number_of_parallel_tasks: Optional[int] = None,
-                 commands_before: Optional[List[Command]] = None, commands_after: Optional[List[Command]] = None) -> None:
+                 commands_before: Optional[List[Command]] = None, commands_after: Optional[List[Command]] = None,
+                 max_retries: Optional[int] = None) -> None:
         super().__init__(id, description)
         self.commands_before = []
         for command in commands_before or []:
@@ -117,6 +147,7 @@ class ParallelTask(Node):
         self.commands_after = []
         for command in commands_after or []:
             self.add_command_after(command)
+        self.max_retries = max_retries
         self.max_number_of_parallel_tasks = max_number_of_parallel_tasks
 
     def add_command_before(self, command: Command):
